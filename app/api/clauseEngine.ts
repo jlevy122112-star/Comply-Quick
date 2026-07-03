@@ -14,7 +14,40 @@ export interface CompliancePacket {
   devChecklist: string[];
 }
 
+const VALID_PERSONAS = ['developer', 'agency', 'merchant'] as const;
+
+function validateInput(input: unknown): asserts input is GenerationInput {
+  if (!input || typeof input !== 'object') {
+    throw new Error('GenerationInput is required and must be an object');
+  }
+
+  const obj = input as Record<string, unknown>;
+
+  if (!VALID_PERSONAS.includes(obj.persona as typeof VALID_PERSONAS[number])) {
+    throw new Error(
+      `Invalid persona: expected one of ${VALID_PERSONAS.join(', ')}, got "${String(obj.persona)}"`
+    );
+  }
+
+  if (!Array.isArray(obj.techStack)) {
+    throw new Error('techStack must be an array of strings');
+  }
+
+  if (typeof obj.nexus !== 'string' || obj.nexus.trim() === '') {
+    throw new Error('nexus must be a non-empty string');
+  }
+
+  if (!Array.isArray(obj.jurisdictions)) {
+    throw new Error('jurisdictions must be an array of strings');
+  }
+
+  if (typeof obj.vertical !== 'string' || obj.vertical.trim() === '') {
+    throw new Error('vertical must be a non-empty string');
+  }
+}
+
 export function generateCompliancePacket(input: GenerationInput): CompliancePacket {
+  validateInput(input);
   let contractShield = `### MASTER LIABILITY LIMITATION & COMPLIANCE WAIVER\n\n`;
   contractShield += `This Compliance Waiver Amendment is entered into by the Service Provider and the Client. \n\n`;
   contractShield += `1. **Scope of Technical Implementation:** The Service Provider is contracted solely to implement technical integrations specified in the client brief, explicitly limited to: ${input.techStack.join(', ')}.\n\n`;

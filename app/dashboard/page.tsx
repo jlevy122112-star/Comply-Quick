@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { generateCompliancePacket, CompliancePacket } from '../api/clauseEngine';
+import { generateCompliancePacket, GenerationInput, CompliancePacket } from '../api/clauseEngine';
 import { Clipboard, Check, Lock, ShieldAlert, CheckCircle } from 'lucide-react';
 
 export default function ComplyQuickWorkspace() {
@@ -10,12 +10,13 @@ export default function ComplyQuickWorkspace() {
   const [copied, setCopied] = useState(false);
   const [isAssembling, setIsAssembling] = useState(false);
   const [packet, setPacket] = useState<CompliancePacket | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<GenerationInput>({
     persona: 'developer',
-    techStack: [] as string[],
+    techStack: [],
     nexus: 'US-TX',
-    jurisdictions: [] as string[],
+    jurisdictions: [],
     vertical: 'Standard Apparel'
   });
 
@@ -35,25 +36,47 @@ export default function ComplyQuickWorkspace() {
 
   const runGeneration = () => {
     setIsAssembling(true);
+    setError(null);
     setTimeout(() => {
-      // @ts-ignore
-      const result = generateCompliancePacket(formData);
-      setPacket(result);
-      setIsAssembling(false);
-      setStep(6);
+      try {
+        const result = generateCompliancePacket(formData);
+        setPacket(result);
+        setStep(6);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to generate compliance packet';
+        setError(message);
+        console.error('Compliance generation failed:', err);
+      } finally {
+        setIsAssembling(false);
+      }
     }, 2500);
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Clipboard write failed:', err);
+    }
   };
 
   return (
     <div className="min-h-screen bg-slate-950 text-white font-sans antialiased flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl relative overflow-hidden">
         
+        {/* Error Banner */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-950/50 border border-red-800 rounded-xl flex items-start gap-3">
+            <ShieldAlert size={18} className="text-red-400 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-red-400">Generation Failed</p>
+              <p className="text-xs text-red-300/80 mt-1">{error}</p>
+            </div>
+          </div>
+        )}
+
         {/* Step 1: Persona Selection */}
         {step === 1 && (
           <div>
@@ -63,7 +86,7 @@ export default function ComplyQuickWorkspace() {
               {['developer', 'agency', 'merchant'].map((p) => (
                 <button 
                   key={p}
-                  onClick={() => { setFormData(prev => ({ ...prev, persona: p })); setStep(2); }}
+                  onClick={() => { setFormData(prev => ({ ...prev, persona: p as GenerationInput['persona'] })); setStep(2); }}
                   className={`p-6 rounded-xl border transition-all text-left capitalize ${formData.persona === p ? 'border-teal-500 bg-teal-950/30' : 'border-slate-800 bg-slate-900/50 hover:border-slate-700'}`}
                 >
                   <div className="font-semibold text-lg">{p}</div>
