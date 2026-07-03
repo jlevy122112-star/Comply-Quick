@@ -274,9 +274,34 @@ function getRegionChecks(region: TargetRegion): string[] {
 
 // ─── Main Export ────────────────────────────────────────────────────────────
 
+const VALID_USER_TYPES: ReadonlySet<string> = new Set(["developer", "merchant"]);
+const VALID_FRAMEWORKS: ReadonlySet<string> = new Set(["shopify", "nextjs", "wordpress"]);
+const VALID_PIXELS: ReadonlySet<string> = new Set(["meta", "google", "tiktok"]);
+const VALID_REGIONS: ReadonlySet<string> = new Set(["us_general", "california_ccpa", "eu_gdpr"]);
+
+function validateInput(input: ComplianceInput): void {
+  if (!VALID_USER_TYPES.has(input.userType)) {
+    throw new Error(`Invalid userType: "${input.userType}". Must be "developer" or "merchant".`);
+  }
+  if (!VALID_FRAMEWORKS.has(input.framework)) {
+    throw new Error(`Invalid framework: "${input.framework}". Must be "shopify", "nextjs", or "wordpress".`);
+  }
+  for (const pixel of input.trackingPixels) {
+    if (!VALID_PIXELS.has(pixel)) {
+      throw new Error(`Invalid tracking pixel: "${pixel}". Must be "meta", "google", or "tiktok".`);
+    }
+  }
+  for (const region of input.targetRegions) {
+    if (!VALID_REGIONS.has(region)) {
+      throw new Error(`Invalid target region: "${region}". Must be "us_general", "california_ccpa", or "eu_gdpr".`);
+    }
+  }
+}
+
 export function generateCompliancePackage(
   input: ComplianceInput
 ): CompliancePackage {
+  validateInput(input);
   const { userType, framework, trackingPixels, targetRegions } = input;
 
   // 1. Build Inward Contract Shield
@@ -322,7 +347,11 @@ function buildPrivacyHeader(
   const frameworkLabel = getFrameworkLabel(framework);
   const pixelLabels = pixels.map(getPixelLabel).join(", ");
 
-  return `Privacy Policy Addendum — Technology Disclosure\n\nThis addendum supplements the primary Privacy Policy for this ${frameworkLabel} application. It provides specific disclosures regarding third-party tracking technologies actively deployed on this website: ${pixelLabels}. This addendum was last updated on the date of deployment and must be reviewed whenever tracking configurations change.`;
+  const techDisclosure = pixelLabels
+    ? `It provides specific disclosures regarding third-party tracking technologies actively deployed on this website: ${pixelLabels}.`
+    : "No third-party tracking technologies have been declared for this website.";
+
+  return `Privacy Policy Addendum — Technology Disclosure\n\nThis addendum supplements the primary Privacy Policy for this ${frameworkLabel} application. ${techDisclosure} This addendum was last updated on the date of deployment and must be reviewed whenever tracking configurations change.`;
 }
 
 function getFrameworkLabel(framework: Framework): string {
