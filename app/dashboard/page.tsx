@@ -2,31 +2,42 @@
 'use client';
 
 import React, { useState } from 'react';
-import { generateCompliancePacket, CompliancePacket } from '../api/clauseEngine';
-import { Clipboard, Check, Lock, ShieldAlert, CheckCircle } from 'lucide-react';
+import { generateFreePacket, validateInput, FreeCompliancePacket, Persona, TechStack, Nexus, Jurisdiction, Vertical } from '../api/clauseEngine';
+import { Clipboard, Check, Lock, CheckCircle } from 'lucide-react';
+
+const STRIPE_SINGLE_PASS_URL = process.env.NEXT_PUBLIC_STRIPE_SINGLE_PASS_URL ?? '';
+const STRIPE_AGENCY_PRO_URL = process.env.NEXT_PUBLIC_STRIPE_AGENCY_PRO_URL ?? '';
+
+interface FormData {
+  persona: Persona;
+  techStack: TechStack[];
+  nexus: Nexus;
+  jurisdictions: Jurisdiction[];
+  vertical: Vertical;
+}
 
 export default function ComplyQuickWorkspace() {
   const [step, setStep] = useState(1);
   const [copied, setCopied] = useState(false);
   const [isAssembling, setIsAssembling] = useState(false);
-  const [packet, setPacket] = useState<CompliancePacket | null>(null);
+  const [packet, setPacket] = useState<FreeCompliancePacket | null>(null);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     persona: 'developer',
-    techStack: [] as string[],
+    techStack: [],
     nexus: 'US-TX',
-    jurisdictions: [] as string[],
+    jurisdictions: [],
     vertical: 'Standard Apparel'
   });
 
-  const toggleTech = (tech: string) => {
+  const toggleTech = (tech: TechStack) => {
     setFormData(prev => ({
       ...prev,
       techStack: prev.techStack.includes(tech) ? prev.techStack.filter(t => t !== tech) : [...prev.techStack, tech]
     }));
   };
 
-  const toggleJurisdiction = (jur: string) => {
+  const toggleJurisdiction = (jur: Jurisdiction) => {
     setFormData(prev => ({
       ...prev,
       jurisdictions: prev.jurisdictions.includes(jur) ? prev.jurisdictions.filter(j => j !== jur) : [...prev.jurisdictions, jur]
@@ -34,10 +45,10 @@ export default function ComplyQuickWorkspace() {
   };
 
   const runGeneration = () => {
+    if (!validateInput(formData)) return;
     setIsAssembling(true);
     setTimeout(() => {
-      // @ts-ignore
-      const result = generateCompliancePacket(formData);
+      const result = generateFreePacket(formData);
       setPacket(result);
       setIsAssembling(false);
       setStep(6);
@@ -60,7 +71,7 @@ export default function ComplyQuickWorkspace() {
             <h2 className="text-2xl font-bold mb-2">Select Your Professional Profile</h2>
             <p className="text-slate-400 mb-6">We calibrate the contract structures to match your structural business risk profile.</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {['developer', 'agency', 'merchant'].map((p) => (
+              {(['developer', 'agency', 'merchant'] as const).map((p) => (
                 <button 
                   key={p}
                   onClick={() => { setFormData(prev => ({ ...prev, persona: p })); setStep(2); }}
@@ -80,7 +91,7 @@ export default function ComplyQuickWorkspace() {
             <h2 className="text-2xl font-bold mb-2">Integrate Technical Architecture Components</h2>
             <p className="text-slate-400 mb-6">Select all operational components actively running inside your client's stack.</p>
             <div className="grid grid-cols-2 gap-4 mb-6">
-              {['Shopify', 'Klaviyo', 'Meta Pixel', 'Google Analytics'].map((tech) => (
+              {(['Shopify', 'Klaviyo', 'Meta Pixel', 'Google Analytics'] as const).map((tech) => (
                 <button
                   key={tech}
                   onClick={() => toggleTech(tech)}
@@ -104,7 +115,7 @@ export default function ComplyQuickWorkspace() {
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Merchant Registration Country</label>
                 <select 
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 focus:outline-none focus:border-teal-500"
-                  onChange={(e) => setFormData(prev => ({ ...prev, nexus: e.target.value }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, nexus: e.target.value as Nexus }))}
                 >
                   <option value="US-TX">United States (Texas Nexus)</option>
                   <option value="US-CA">United States (California Nexus)</option>
@@ -115,7 +126,7 @@ export default function ComplyQuickWorkspace() {
               <div>
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Target Consumer Markets</label>
                 <div className="flex gap-2">
-                  {['General US', 'California/CCPA', 'EU/GDPR'].map(jur => (
+                  {(['General US', 'California/CCPA', 'EU/GDPR'] as const).map(jur => (
                     <button
                       key={jur}
                       type="button"
@@ -139,7 +150,7 @@ export default function ComplyQuickWorkspace() {
             <p className="text-slate-400 mb-6">High-risk industries trigger strict specialized structural warnings automatically.</p>
             <select 
               className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 focus:outline-none focus:border-teal-500 mb-6"
-              onChange={(e) => setFormData(prev => ({ ...prev, vertical: e.target.value }))}
+              onChange={(e) => setFormData(prev => ({ ...prev, vertical: e.target.value as Vertical }))}
             >
               <option value="Standard Apparel">Standard Apparel & Accessories</option>
               <option value="Dietary Supplements">Dietary Supplements & Nutraceuticals</option>
@@ -157,7 +168,7 @@ export default function ComplyQuickWorkspace() {
           </div>
         )}
 
-        {/* Step 6: Split Delivery Studio & Paywall Matrix */}
+        {/* Step 6: Free Tier Results & Premium Upsell */}
         {step === 6 && packet && (
           <div className="space-y-6">
             <div>
@@ -172,28 +183,23 @@ export default function ComplyQuickWorkspace() {
               </pre>
             </div>
 
-            {/* Premium Package Blur Section */}
-            <div className="relative border border-slate-800 rounded-xl p-6 bg-slate-950/50">
-              <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-md rounded-xl z-10 flex flex-col items-center justify-center p-6 text-center">
-                <div className="bg-slate-900 border border-slate-800 p-3 rounded-full mb-3 text-teal-400 shadow-xl shadow-teal-500/5"><Lock size={24}/></div>
-                <h4 className="text-xl font-bold mb-2">Unlock Client Privacy Policies & Dev Checklist</h4>
-                <p className="text-xs text-slate-400 max-w-md mb-6">Get the tailored store footprint policies and tactical configurations mapped for this exact technical stack.</p>
-                
-                <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
-                  <a href="https://buy.stripe.com/3cIcN47Yy7sk1iwdEJdAk01" target="_blank" rel="noopener noreferrer" className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs text-center border border-slate-700 transition-all">
+            {/* Premium Upsell — no premium content is sent to the client */}
+            <div className="border border-slate-800 rounded-xl p-6 bg-slate-950/50 flex flex-col items-center text-center">
+              <div className="bg-slate-900 border border-slate-800 p-3 rounded-full mb-3 text-teal-400 shadow-xl shadow-teal-500/5"><Lock size={24}/></div>
+              <h4 className="text-xl font-bold mb-2">Unlock Client Privacy Policies & Dev Checklist</h4>
+              <p className="text-xs text-slate-400 max-w-md mb-6">Get the tailored store footprint policies and tactical configurations mapped for this exact technical stack.</p>
+              
+              <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
+                {STRIPE_SINGLE_PASS_URL && (
+                  <a href={STRIPE_SINGLE_PASS_URL} target="_blank" rel="noopener noreferrer" className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2.5 px-4 rounded-xl text-xs text-center border border-slate-700 transition-all">
                     Unlock Single Pass ($12)
                   </a>
-                  <a href="https://buy.stripe.com/aFabJ0a6G5kc4uI449dAk00" target="_blank" rel="noopener noreferrer" className="flex-1 bg-gradient-to-r from-teal-500 to-indigo-600 text-white font-semibold py-2.5 px-4 rounded-xl text-xs text-center transition-all shadow-lg shadow-teal-500/20">
+                )}
+                {STRIPE_AGENCY_PRO_URL && (
+                  <a href={STRIPE_AGENCY_PRO_URL} target="_blank" rel="noopener noreferrer" className="flex-1 bg-gradient-to-r from-teal-500 to-indigo-600 text-white font-semibold py-2.5 px-4 rounded-xl text-xs text-center transition-all shadow-lg shadow-teal-500/20">
                     Unlimited Agency Pro ($29/mo)
                   </a>
-                </div>
-              </div>
-
-              {/* Fake Content Underneath Blur Layer for Premium UI Aesthetics */}
-              <div className="opacity-20 pointer-events-none font-mono text-xs space-y-4">
-                <div className="h-4 bg-slate-800 rounded w-3/4"></div>
-                <div className="h-4 bg-slate-800 rounded w-5/6"></div>
-                <div className="h-4 bg-slate-800 rounded w-1/2"></div>
+                )}
               </div>
             </div>
           </div>
