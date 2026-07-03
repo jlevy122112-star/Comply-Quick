@@ -4,6 +4,10 @@
 import React, { useState } from 'react';
 import { generateCompliancePacket, CompliancePacket } from '../api/clauseEngine';
 import { Clipboard, Check, Lock, ShieldAlert, CheckCircle } from 'lucide-react';
+import { toggleItem, copyToClipboard } from '../lib/utils';
+import { StepHeader } from '../components/StepHeader';
+import { SelectionButton } from '../components/SelectionButton';
+import { ContinueButton } from '../components/ContinueButton';
 
 export default function ComplyQuickWorkspace() {
   const [step, setStep] = useState(1);
@@ -19,17 +23,10 @@ export default function ComplyQuickWorkspace() {
     vertical: 'Standard Apparel'
   });
 
-  const toggleTech = (tech: string) => {
+  const toggleField = (field: 'techStack' | 'jurisdictions', value: string) => {
     setFormData(prev => ({
       ...prev,
-      techStack: prev.techStack.includes(tech) ? prev.techStack.filter(t => t !== tech) : [...prev.techStack, tech]
-    }));
-  };
-
-  const toggleJurisdiction = (jur: string) => {
-    setFormData(prev => ({
-      ...prev,
-      jurisdictions: prev.jurisdictions.includes(jur) ? prev.jurisdictions.filter(j => j !== jur) : [...prev.jurisdictions, jur]
+      [field]: toggleItem(prev[field], value),
     }));
   };
 
@@ -44,12 +41,6 @@ export default function ComplyQuickWorkspace() {
     }, 2500);
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   return (
     <div className="min-h-screen bg-slate-950 text-white font-sans antialiased flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl relative overflow-hidden">
@@ -57,18 +48,22 @@ export default function ComplyQuickWorkspace() {
         {/* Step 1: Persona Selection */}
         {step === 1 && (
           <div>
-            <h2 className="text-2xl font-bold mb-2">Select Your Professional Profile</h2>
-            <p className="text-slate-400 mb-6">We calibrate the contract structures to match your structural business risk profile.</p>
+            <StepHeader
+              title="Select Your Professional Profile"
+              description="We calibrate the contract structures to match your structural business risk profile."
+            />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {['developer', 'agency', 'merchant'].map((p) => (
-                <button 
+                <SelectionButton
                   key={p}
+                  label={p}
+                  selected={formData.persona === p}
                   onClick={() => { setFormData(prev => ({ ...prev, persona: p })); setStep(2); }}
-                  className={`p-6 rounded-xl border transition-all text-left capitalize ${formData.persona === p ? 'border-teal-500 bg-teal-950/30' : 'border-slate-800 bg-slate-900/50 hover:border-slate-700'}`}
+                  className="p-6 text-left capitalize"
                 >
                   <div className="font-semibold text-lg">{p}</div>
                   <div className="text-xs text-slate-400 mt-2">Generate target structural waivers tailored for a custom {p} footprint.</div>
-                </button>
+                </SelectionButton>
               ))}
             </div>
           </div>
@@ -77,28 +72,32 @@ export default function ComplyQuickWorkspace() {
         {/* Step 2: Tech Stack Grid */}
         {step === 2 && (
           <div>
-            <h2 className="text-2xl font-bold mb-2">Integrate Technical Architecture Components</h2>
-            <p className="text-slate-400 mb-6">Select all operational components actively running inside your client's stack.</p>
+            <StepHeader
+              title="Integrate Technical Architecture Components"
+              description="Select all operational components actively running inside your client's stack."
+            />
             <div className="grid grid-cols-2 gap-4 mb-6">
               {['Shopify', 'Klaviyo', 'Meta Pixel', 'Google Analytics'].map((tech) => (
-                <button
+                <SelectionButton
                   key={tech}
-                  onClick={() => toggleTech(tech)}
-                  className={`p-4 rounded-xl border text-center font-medium transition-all ${formData.techStack.includes(tech) ? 'border-teal-500 bg-teal-950/20 text-teal-400' : 'border-slate-800 bg-slate-900'}`}
-                >
-                  {tech}
-                </button>
+                  label={tech}
+                  selected={formData.techStack.includes(tech)}
+                  onClick={() => toggleField('techStack', tech)}
+                  className="text-center"
+                />
               ))}
             </div>
-            <button onClick={() => setStep(3)} className="w-full bg-slate-800 hover:bg-slate-700 text-white font-semibold py-3 rounded-xl transition-all">Continue to Boundaries</button>
+            <ContinueButton onClick={() => setStep(3)} label="Continue to Boundaries" />
           </div>
         )}
 
         {/* Step 3: Regional Definitions */}
         {step === 3 && (
           <div>
-            <h2 className="text-2xl font-bold mb-2">Define Nexus and Target Jurisdictions</h2>
-            <p className="text-slate-400 mb-6">Where is the corporate entity registered, and where do targeted consumers reside?</p>
+            <StepHeader
+              title="Define Nexus and Target Jurisdictions"
+              description="Where is the corporate entity registered, and where do targeted consumers reside?"
+            />
             <div className="space-y-4 mb-6">
               <div>
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Merchant Registration Country</label>
@@ -116,27 +115,28 @@ export default function ComplyQuickWorkspace() {
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Target Consumer Markets</label>
                 <div className="flex gap-2">
                   {['General US', 'California/CCPA', 'EU/GDPR'].map(jur => (
-                    <button
+                    <SelectionButton
                       key={jur}
-                      type="button"
-                      onClick={() => toggleJurisdiction(jur)}
-                      className={`flex-1 p-3 border rounded-xl font-medium transition-all text-sm ${formData.jurisdictions.includes(jur) ? 'border-teal-500 bg-teal-950/20 text-teal-400' : 'border-slate-800 bg-slate-900'}`}
-                    >
-                      {jur}
-                    </button>
+                      label={jur}
+                      selected={formData.jurisdictions.includes(jur)}
+                      onClick={() => toggleField('jurisdictions', jur)}
+                      className="flex-1 p-3 text-sm"
+                    />
                   ))}
                 </div>
               </div>
             </div>
-            <button onClick={() => setStep(4)} className="w-full bg-slate-800 hover:bg-slate-700 text-white font-semibold py-3 rounded-xl transition-all">Define Risk Profile</button>
+            <ContinueButton onClick={() => setStep(4)} label="Define Risk Profile" />
           </div>
         )}
 
         {/* Step 4: Vertical Categorization */}
         {step === 4 && (
           <div>
-            <h2 className="text-2xl font-bold mb-2">Categorize Store Operational Vertical</h2>
-            <p className="text-slate-400 mb-6">High-risk industries trigger strict specialized structural warnings automatically.</p>
+            <StepHeader
+              title="Categorize Store Operational Vertical"
+              description="High-risk industries trigger strict specialized structural warnings automatically."
+            />
             <select 
               className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 focus:outline-none focus:border-teal-500 mb-6"
               onChange={(e) => setFormData(prev => ({ ...prev, vertical: e.target.value }))}
@@ -145,7 +145,7 @@ export default function ComplyQuickWorkspace() {
               <option value="Dietary Supplements">Dietary Supplements & Nutraceuticals</option>
               <option value="Kids Goods">Children's Products & Toys (COPPA Risk)</option>
             </select>
-            <button onClick={runGeneration} className="w-full bg-gradient-to-r from-teal-500 to-indigo-600 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-teal-500/20">Generate Architectural Shield</button>
+            <ContinueButton onClick={runGeneration} label="Generate Architectural Shield" variant="primary" />
           </div>
         )}
 
@@ -163,7 +163,7 @@ export default function ComplyQuickWorkspace() {
             <div>
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-lg font-bold text-teal-400 flex items-center gap-2"><CheckCircle size={18}/> Inward Contract Waiver Layer (Unlocked)</h3>
-                <button onClick={() => copyToClipboard(packet.inwardContractShield)} className="text-slate-400 hover:text-white flex items-center gap-1 text-sm bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 transition-all">
+                <button onClick={() => copyToClipboard(packet.inwardContractShield, setCopied)} className="text-slate-400 hover:text-white flex items-center gap-1 text-sm bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 transition-all">
                   {copied ? <Check size={14} className="text-green-400"/> : <Clipboard size={14}/>} {copied ? 'Copied' : 'Copy'}
                 </button>
               </div>
