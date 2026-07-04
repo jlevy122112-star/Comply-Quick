@@ -18,17 +18,17 @@ export const metadata: Metadata = {
     template: "%s | Comply-Quick",
   },
   description:
-    "Generate ironclad liability shields, privacy policies, and pre-launch checklists in 30 seconds. Map your tech stack to compliance documents across 6 jurisdictions. Trusted by Shopify, WordPress, Next.js, Wix & Squarespace developers.",
+    "Generate privacy policies, clear customer terms, and pre-launch checklists in under a minute. Everything your business needs to launch compliant and earn customer trust across 6 jurisdictions. Built for Shopify, WordPress, Next.js, Wix & Squarespace sites.",
   keywords: [
     "compliance generator",
     "privacy policy generator",
     "web agency compliance",
     "GDPR compliance tool",
     "CCPA compliance",
-    "developer liability shield",
+    "customer trust",
     "cookie consent",
     "HIPAA compliance",
-    "web developer contracts",
+    "customer terms of service",
     "freelancer compliance",
   ],
   authors: [{ name: "Comply-Quick" }],
@@ -38,16 +38,16 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     siteName: "Comply-Quick",
-    title: "Comply-Quick — The 30-Second Liability Shield for Web Agencies",
+    title: "Comply-Quick — Your Entire Compliance Stack in Under a Minute",
     description:
-      "Answer 4 questions about your tech stack. Get a ready-to-deploy liability shield, privacy policy, and pre-launch checklist — with a compliance score.",
+      "Answer a few questions about your website and instantly generate a privacy policy, clear customer terms, and a pre-launch checklist — everything your business needs to launch with confidence.",
     url: "/",
   },
   twitter: {
     card: "summary_large_image",
     title: "Comply-Quick — Compliance Package Generator",
     description:
-      "Map your tech stack to ironclad compliance documents in 30 seconds. 5 frameworks, 6 pixels, 6 jurisdictions, enterprise modules.",
+      "Turn your tech stack into a complete, launch-ready compliance package in under a minute. 5 frameworks, 6 pixels, 6 jurisdictions, enterprise modules.",
   },
   robots: {
     index: true,

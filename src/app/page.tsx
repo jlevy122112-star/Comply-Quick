@@ -26,15 +26,16 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-block mb-6 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20">
             <span className="text-xs font-medium text-indigo-400">
-              Used by Shopify, WordPress, Next.js, Wix &amp; Squarespace developers
+              Built for Shopify, WordPress, Next.js, Wix &amp; Squarespace sites
             </span>
           </div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight tracking-tight">
-            The 30-Second Liability Shield for Web Agencies &amp; Freelancers.
+            Your Entire Compliance Stack, Done in Under a Minute.
           </h1>
           <p className="mt-6 text-base sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
-            Answer 4 questions about your tech stack. Get a ready-to-deploy liability shield, privacy policy, and
-            pre-launch checklist &mdash; with a compliance score.
+            Answer a few questions about your website and instantly generate everything your business needs to launch
+            with confidence &mdash; a tailored privacy policy, clear customer terms, a pre-launch checklist, and a
+            compliance score your customers can trust.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
@@ -51,7 +52,7 @@ export default function LandingPage() {
             </a>
           </div>
           <p className="mt-4 text-xs text-gray-500">
-            Free preview included &mdash; see your compliance score and contract shield before you pay.
+            Free preview included &mdash; see your compliance score and customer terms before you pay.
           </p>
         </div>
       </header>
@@ -78,7 +79,7 @@ export default function LandingPage() {
               <ul className="space-y-4">
                 <ComparisonItem negative>Generic fill-in-the-blank forms with no technical context</ComparisonItem>
                 <ComparisonItem negative>Same boilerplate output regardless of your actual stack</ComparisonItem>
-                <ComparisonItem negative>No liability separation between developer and merchant</ComparisonItem>
+                <ComparisonItem negative>No clear terms defining the relationship with your customers</ComparisonItem>
                 <ComparisonItem negative>Manual updates required for every regulatory change</ComparisonItem>
                 <ComparisonItem negative>
                   No awareness of tracking pixels, frameworks, or deployment environments
@@ -100,7 +101,7 @@ export default function LandingPage() {
                 </ComparisonItem>
                 <ComparisonItem>Detects 6 tracking pixels and generates per-script legal disclosures</ComparisonItem>
                 <ComparisonItem>
-                  Produces inward contract shields shifting liability from developer to merchant
+                  Generates clear customer-facing terms that set expectations and build trust at checkout
                 </ComparisonItem>
                 <ComparisonItem>
                   Covers 6 jurisdictions (US, CCPA, GDPR, PIPEDA, LGPD, Australia) automatically
