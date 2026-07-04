@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore, useCallback } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import {
   getSavedProjects,
@@ -92,32 +92,22 @@ const QUICK_TOOLS: QuickTool[] = [
 
 // ─── Main Command Center ────────────────────────────────────────────────────
 
-// localStorage subscriptions for SSR-safe hydration
-const emptyProjects: SavedProject[] = [];
-const subscribeStorage = (cb: () => void) => {
-  window.addEventListener("storage", cb);
-  return () => window.removeEventListener("storage", cb);
-};
-const getProjectsSnapshot = () => getSavedProjects();
-const getProjectsServerSnapshot = () => emptyProjects;
-const getTierSnapshot = () => getPaidTier();
-const getTierServerSnapshot = (): PaidTier => null;
-
 export default function CommandCenterPage() {
-  const projects = useSyncExternalStore(subscribeStorage, getProjectsSnapshot, getProjectsServerSnapshot);
-  const tier = useSyncExternalStore(subscribeStorage, getTierSnapshot, getTierServerSnapshot);
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  // Force re-read after local mutations
-  void refreshKey;
+  const [projects, setProjects] = useState<SavedProject[]>(() => {
+    if (typeof window === "undefined") return [];
+    return getSavedProjects();
+  });
+  const [tier] = useState<PaidTier>(() => {
+    if (typeof window === "undefined") return null;
+    return getPaidTier();
+  });
 
   const aggregateScore = getAggregateScore(projects);
   const projectsNeedingAttention = projects.filter((p) => p.status !== "current").length;
 
   const handleDeleteProject = useCallback((id: string) => {
     deleteProject(id);
-    setRefreshKey((k) => k + 1);
-    window.dispatchEvent(new Event("storage"));
+    setProjects(getSavedProjects());
   }, []);
 
   function handleDownload(project: SavedProject) {
