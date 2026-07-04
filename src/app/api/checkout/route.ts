@@ -1,14 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-
-function getStripe(): Stripe | null {
-  if (!stripeSecretKey) return null;
-  return new Stripe(stripeSecretKey);
-}
+import { getStripe } from "@/services";
 
 type Plan = "single" | "agency" | "enterprise";
 type Billing = "monthly" | "annual";
