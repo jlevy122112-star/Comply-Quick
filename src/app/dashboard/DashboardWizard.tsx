@@ -97,7 +97,7 @@ export default function DashboardWizard({ isPremium, isAuthenticated }: Dashboar
   // Stripe checkout handler. Requires authentication — unauthenticated users are
   // routed to sign in first, then returned to the wizard.
   const handleCheckout = useCallback(
-    async (plan: "single" | "agency" | "enterprise") => {
+    async (plan: "single" | "agency" | "enterprise", billing: "monthly" | "annual" = "monthly") => {
       if (!isAuthenticated) {
         window.location.href = `/login?redirect=${encodeURIComponent("/dashboard")}`;
         return;
@@ -106,7 +106,7 @@ export default function DashboardWizard({ isPremium, isAuthenticated }: Dashboar
         const res = await fetch("/api/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ plan }),
+          body: JSON.stringify({ plan, billing }),
         });
         if (res.status === 401) {
           window.location.href = `/login?redirect=${encodeURIComponent("/dashboard")}`;
@@ -655,8 +655,11 @@ function PaywallGate({
   regionCount: number;
   hasModules: boolean;
   pixelCount: number;
-  onCheckout: (plan: "single" | "agency" | "enterprise") => void;
+  onCheckout: (plan: "single" | "agency" | "enterprise", billing?: "monthly" | "annual") => void;
 }) {
+  const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
+  const agencyPrice = billing === "annual" ? "$290/yr" : "$29/mo";
+  const enterprisePrice = billing === "annual" ? "$990/yr" : "$99/mo";
   return (
     <div className="relative">
       {/* Blurred preview tease — shows what's locked */}
@@ -759,6 +762,31 @@ function PaywallGate({
             </div>
           </div>
 
+          {/* Billing cadence toggle (applies to subscription plans) */}
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <div className="inline-flex rounded-full bg-gray-800 p-1">
+              <button
+                type="button"
+                onClick={() => setBilling("monthly")}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  billing === "monthly" ? "bg-gray-700 text-white" : "text-gray-400 hover:text-gray-200"
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                type="button"
+                onClick={() => setBilling("annual")}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  billing === "annual" ? "bg-gray-700 text-white" : "text-gray-400 hover:text-gray-200"
+                }`}
+              >
+                Annual
+                <span className="ml-1 text-emerald-400">save ~17%</span>
+              </button>
+            </div>
+          </div>
+
           {/* CTA Buttons */}
           <div className="space-y-3">
             <button
@@ -771,17 +799,17 @@ function PaywallGate({
             </button>
             <button
               type="button"
-              onClick={() => onCheckout("agency")}
+              onClick={() => onCheckout("agency", billing)}
               className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold hover:from-purple-500 hover:to-indigo-500 transition-all"
             >
-              Unlimited Agency Pass &mdash; $29/mo
+              Unlimited Agency Pass &mdash; {agencyPrice}
             </button>
             <button
               type="button"
-              onClick={() => onCheckout("enterprise")}
+              onClick={() => onCheckout("enterprise", billing)}
               className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold hover:from-amber-500 hover:to-orange-500 transition-all"
             >
-              Enterprise Tier &mdash; $99/mo
+              Enterprise Tier &mdash; {enterprisePrice}
             </button>
           </div>
 

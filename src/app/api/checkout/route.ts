@@ -11,15 +11,28 @@ function getStripe(): Stripe | null {
 }
 
 type Plan = "single" | "agency" | "enterprise";
+type Billing = "monthly" | "annual";
 
 interface CheckoutRequestBody {
   plan: Plan;
+  billing?: Billing;
 }
 
-const PLAN_CONFIG: Record<Plan, { priceEnv: string; mode: "payment" | "subscription" }> = {
-  single: { priceEnv: "STRIPE_PRICE_SINGLE", mode: "payment" },
-  agency: { priceEnv: "STRIPE_PRICE_AGENCY", mode: "subscription" },
-  enterprise: { priceEnv: "STRIPE_PRICE_ENTERPRISE", mode: "subscription" },
+// Maps a plan (+ billing cadence for subscriptions) to the Stripe Price env var.
+// The `plan` value is what gets persisted as the entitlement tier by the webhook.
+const PLAN_CONFIG: Record<Plan, { mode: "payment" | "subscription"; priceEnv: Record<Billing, string> }> = {
+  single: {
+    mode: "payment",
+    priceEnv: { monthly: "STRIPE_PRICE_SINGLE", annual: "STRIPE_PRICE_SINGLE" },
+  },
+  agency: {
+    mode: "subscription",
+    priceEnv: { monthly: "STRIPE_PRICE_AGENCY", annual: "STRIPE_PRICE_AGENCY_ANNUAL" },
+  },
+  enterprise: {
+    mode: "subscription",
+    priceEnv: { monthly: "STRIPE_PRICE_ENTERPRISE", annual: "STRIPE_PRICE_ENTERPRISE_ANNUAL" },
+  },
 };
 
 export async function POST(request: NextRequest) {
@@ -55,19 +68,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { plan } = body as CheckoutRequestBody;
+  const { plan, billing = "monthly" } = body as CheckoutRequestBody;
 
   if (!plan || !PLAN_CONFIG[plan]) {
     return NextResponse.json({ error: "Invalid plan. Must be one of: single, agency, enterprise" }, { status: 400 });
   }
 
   const config = PLAN_CONFIG[plan];
-  const priceId = process.env[config.priceEnv];
+  const priceEnv = config.priceEnv[billing === "annual" ? "annual" : "monthly"];
+  const priceId = process.env[priceEnv];
   if (!priceId) {
     return NextResponse.json(
       {
         error: "Price not configured",
-        message: `Set the ${config.priceEnv} environment variable to the Stripe Price ID.`,
+        message: `Set the ${priceEnv} environment variable to the Stripe Price ID.`,
       },
       { status: 503 }
     );
