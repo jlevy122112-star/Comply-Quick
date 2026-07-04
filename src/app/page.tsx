@@ -23,15 +23,16 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-block mb-6 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20">
             <span className="text-xs font-medium text-indigo-400">
-              Built for agencies &amp; freelancers
+              Used by Shopify, WordPress, Next.js, Wix &amp; Squarespace developers
             </span>
           </div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight tracking-tight">
             The 30-Second Liability Shield for Web Agencies &amp; Freelancers.
           </h1>
           <p className="mt-6 text-base sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
-            Map your client&apos;s technical stack to ironclad data privacy
-            contracts and store policies.
+            Answer 4 questions about your tech stack. Get a ready-to-deploy
+            liability shield, privacy policy, and pre-launch checklist &mdash;
+            with a compliance score.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
@@ -47,6 +48,10 @@ export default function LandingPage() {
               View Pricing
             </a>
           </div>
+          <p className="mt-4 text-xs text-gray-500">
+            Free preview included &mdash; see your compliance score and contract
+            shield before you pay.
+          </p>
         </div>
       </header>
 
@@ -71,7 +76,7 @@ export default function LandingPage() {
                   <span className="text-red-400 text-lg">&#x2717;</span>
                 </div>
                 <h3 className="text-lg font-semibold text-white">
-                  Standard Template Generators
+                  Generic Policy Generators
                 </h3>
               </div>
               <ul className="space-y-4">
@@ -105,19 +110,19 @@ export default function LandingPage() {
               </div>
               <ul className="space-y-4">
                 <ComparisonItem>
-                  Maps actual framework (Shopify, Next.js, WordPress) to framework-specific clauses
+                  Maps 5 frameworks (Shopify, Next.js, WordPress, Wix, Squarespace) to specific clauses
                 </ComparisonItem>
                 <ComparisonItem>
-                  Detects active tracking pixels and generates per-script legal disclosures
+                  Detects 6 tracking pixels and generates per-script legal disclosures
                 </ComparisonItem>
                 <ComparisonItem>
                   Produces inward contract shields shifting liability from developer to merchant
                 </ComparisonItem>
                 <ComparisonItem>
-                  Generates jurisdiction-specific notices (GDPR, CCPA, US General) automatically
+                  Covers 6 jurisdictions (US, CCPA, GDPR, PIPEDA, LGPD, Australia) automatically
                 </ComparisonItem>
                 <ComparisonItem>
-                  Includes developer pre-launch checklist with critical compliance steps
+                  Enterprise modules: HIPAA, PCI-DSS, ADA/WCAG, SOC 2 compliance shields
                 </ComparisonItem>
               </ul>
             </article>
@@ -130,8 +135,8 @@ export default function LandingPage() {
         id="pricing"
         className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50"
       >
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12 sm:mb-16">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-4">
             <h2 className="text-2xl sm:text-3xl font-bold text-white">
               Simple, transparent pricing.
             </h2>
@@ -141,13 +146,22 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 max-w-3xl mx-auto">
+          {/* Pricing anchor */}
+          <p className="text-center text-xs text-gray-500 mb-10 sm:mb-14">
+            Average attorney compliance review: $2,000 &ndash; $5,000.
+            Comply-Quick starts at $12.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
             {/* Single Project Pass */}
             <article className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-8 flex flex-col">
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-white">
                   Single Project Pass
                 </h3>
+                <p className="mt-1 text-xs text-gray-500">
+                  One project. Lifetime access. No subscription.
+                </p>
                 <div className="mt-3 flex items-baseline gap-1">
                   <span className="text-4xl font-bold text-white">$12</span>
                   <span className="text-sm text-gray-400">one-time</span>
@@ -162,6 +176,7 @@ export default function LandingPage() {
                 <PricingFeature>
                   Full contract shield + privacy addendum + checklist
                 </PricingFeature>
+                <PricingFeature>Compliance score breakdown</PricingFeature>
               </ul>
               <Link
                 href="/dashboard"
@@ -182,6 +197,9 @@ export default function LandingPage() {
                 <h3 className="text-lg font-semibold text-white">
                   Agency Scale Plan
                 </h3>
+                <p className="mt-1 text-xs text-gray-500">
+                  Unlimited projects for growing teams.
+                </p>
                 <div className="mt-3 flex items-baseline gap-1">
                   <span className="text-4xl font-bold text-white">$29</span>
                   <span className="text-sm text-gray-400">/month</span>
@@ -195,7 +213,7 @@ export default function LandingPage() {
                 </PricingFeature>
                 <PricingFeature>Priority support</PricingFeature>
                 <PricingFeature>
-                  All frameworks, pixels, and regions
+                  All 5 frameworks, 6 pixels, and 6 regions
                 </PricingFeature>
               </ul>
               <Link
@@ -205,7 +223,49 @@ export default function LandingPage() {
                 Start Free Trial
               </Link>
             </article>
+
+            {/* Enterprise Tier */}
+            <article className="bg-gray-900 border border-amber-500/40 rounded-2xl p-6 sm:p-8 flex flex-col ring-1 ring-amber-500/10 relative overflow-hidden">
+              <div className="absolute top-4 right-4 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30">
+                <span className="text-xs font-medium text-amber-300">
+                  Enterprise
+                </span>
+              </div>
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-white">
+                  Enterprise Tier
+                </h3>
+                <p className="mt-1 text-xs text-gray-500">
+                  Full compliance stack for regulated industries.
+                </p>
+                <div className="mt-3 flex items-baseline gap-1">
+                  <span className="text-4xl font-bold text-white">$99</span>
+                  <span className="text-sm text-gray-400">/month</span>
+                </div>
+              </div>
+              <ul className="space-y-3 mb-8 flex-1">
+                <PricingFeature>Everything in Agency, plus:</PricingFeature>
+                <PricingFeature>HIPAA compliance shield</PricingFeature>
+                <PricingFeature>PCI-DSS payment security module</PricingFeature>
+                <PricingFeature>ADA / WCAG accessibility compliance</PricingFeature>
+                <PricingFeature>SOC 2 security controls shield</PricingFeature>
+                <PricingFeature>REST API access for automation</PricingFeature>
+                <PricingFeature>White-label markdown exports</PricingFeature>
+                <PricingFeature>Dedicated onboarding support</PricingFeature>
+              </ul>
+              <Link
+                href="/dashboard"
+                className="block w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-center text-white font-semibold hover:from-amber-500 hover:to-orange-500 transition-all"
+              >
+                Contact Sales
+              </Link>
+            </article>
           </div>
+
+          {/* Guarantee */}
+          <p className="mt-8 text-center text-xs text-gray-500">
+            30-day money-back guarantee on all plans. No questions asked.
+          </p>
         </div>
       </section>
 
