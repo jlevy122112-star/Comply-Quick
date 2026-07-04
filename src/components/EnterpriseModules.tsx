@@ -164,26 +164,17 @@ const MODULE_OUTPUTS: Record<ComplianceModule, ComplianceModuleOutput> = {
   },
 };
 
-const VALID_MODULES: ReadonlySet<string> = new Set([
-  "hipaa",
-  "pci_dss",
-  "ada_wcag",
-  "soc2",
-]);
+const VALID_MODULES: ReadonlySet<string> = new Set(["hipaa", "pci_dss", "ada_wcag", "soc2"]);
 
 export function validateModules(modules: ComplianceModule[]): void {
   for (const mod of modules) {
     if (!VALID_MODULES.has(mod)) {
-      throw new Error(
-        `Invalid compliance module: "${mod}". Must be "hipaa", "pci_dss", "ada_wcag", or "soc2".`
-      );
+      throw new Error(`Invalid compliance module: "${mod}". Must be "hipaa", "pci_dss", "ada_wcag", or "soc2".`);
     }
   }
 }
 
-export function generateModuleOutputs(
-  modules: ComplianceModule[]
-): ComplianceModuleOutput[] {
+export function generateModuleOutputs(modules: ComplianceModule[]): ComplianceModuleOutput[] {
   validateModules(modules);
   return modules.map((mod) => MODULE_OUTPUTS[mod]);
 }

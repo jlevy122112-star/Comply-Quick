@@ -13,7 +13,14 @@ import type { ComplianceModule } from "@/components/EnterpriseModules";
 const VALID_USER_TYPES = new Set<string>(["developer", "merchant"]);
 const VALID_FRAMEWORKS = new Set<string>(["shopify", "nextjs", "wordpress", "wix", "squarespace"]);
 const VALID_PIXELS = new Set<string>(["meta", "google", "tiktok", "linkedin", "pinterest", "snapchat"]);
-const VALID_REGIONS = new Set<string>(["us_general", "california_ccpa", "eu_gdpr", "canada_pipeda", "brazil_lgpd", "australia_privacy"]);
+const VALID_REGIONS = new Set<string>([
+  "us_general",
+  "california_ccpa",
+  "eu_gdpr",
+  "canada_pipeda",
+  "brazil_lgpd",
+  "australia_privacy",
+]);
 const VALID_MODULES = new Set<string>(["hipaa", "pci_dss", "ada_wcag", "soc2"]);
 
 interface ApiRequestBody {
@@ -74,10 +81,7 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json(
-      { error: "Invalid JSON body" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
   if (!validateRequestBody(body)) {
@@ -88,7 +92,8 @@ export async function POST(request: NextRequest) {
           userType: "developer | merchant",
           framework: "shopify | nextjs | wordpress | wix | squarespace",
           trackingPixels: "string[] — meta, google, tiktok, linkedin, pinterest, snapchat",
-          targetRegions: "string[] — us_general, california_ccpa, eu_gdpr, canada_pipeda, brazil_lgpd, australia_privacy",
+          targetRegions:
+            "string[] — us_general, california_ccpa, eu_gdpr, canada_pipeda, brazil_lgpd, australia_privacy",
         },
         optional: {
           complianceModules: "string[] — hipaa, pci_dss, ada_wcag, soc2",

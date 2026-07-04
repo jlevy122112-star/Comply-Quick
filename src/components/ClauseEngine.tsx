@@ -4,11 +4,7 @@
  * developer stacks to protective legal text.
  */
 
-import {
-  generateModuleOutputs,
-  type ComplianceModule,
-  type ComplianceModuleOutput,
-} from "./EnterpriseModules";
+import { generateModuleOutputs, type ComplianceModule, type ComplianceModuleOutput } from "./EnterpriseModules";
 
 export type { ComplianceModule, ComplianceModuleOutput };
 
@@ -21,12 +17,7 @@ export type Framework = "shopify" | "nextjs" | "wordpress" | "wix" | "squarespac
 export type TrackingPixel = "meta" | "google" | "tiktok" | "linkedin" | "pinterest" | "snapchat";
 
 export type TargetRegion =
-  | "us_general"
-  | "california_ccpa"
-  | "eu_gdpr"
-  | "canada_pipeda"
-  | "brazil_lgpd"
-  | "australia_privacy";
+  "us_general" | "california_ccpa" | "eu_gdpr" | "canada_pipeda" | "brazil_lgpd" | "australia_privacy";
 
 export interface ComplianceInput {
   userType: UserType;
@@ -83,9 +74,9 @@ export interface CompliancePackage {
 
 const LIABILITY_SHIFT_PREAMBLES: Record<UserType, string> = {
   developer:
-    "This Inward Contract Shield Agreement (\"Agreement\") is entered into between the Web Developer (\"Developer\") and the Store Merchant (\"Merchant\"). The Developer provides technical implementation services only. The Merchant retains full legal responsibility for all compliance obligations, data collection practices, and consumer-facing legal disclosures. The Developer expressly disclaims all liability arising from the Merchant's failure to maintain compliant data practices post-deployment.",
+    'This Inward Contract Shield Agreement ("Agreement") is entered into between the Web Developer ("Developer") and the Store Merchant ("Merchant"). The Developer provides technical implementation services only. The Merchant retains full legal responsibility for all compliance obligations, data collection practices, and consumer-facing legal disclosures. The Developer expressly disclaims all liability arising from the Merchant\'s failure to maintain compliant data practices post-deployment.',
   merchant:
-    "This Inward Contract Shield Agreement (\"Agreement\") is entered into between the Store Merchant (\"Merchant\") and the Web Developer (\"Developer\"). The Merchant acknowledges sole responsibility for ongoing compliance maintenance, legal disclosure accuracy, and consumer data handling practices. The Developer's obligation is limited to technical implementation as specified in the project scope.",
+    'This Inward Contract Shield Agreement ("Agreement") is entered into between the Store Merchant ("Merchant") and the Web Developer ("Developer"). The Merchant acknowledges sole responsibility for ongoing compliance maintenance, legal disclosure accuracy, and consumer data handling practices. The Developer\'s obligation is limited to technical implementation as specified in the project scope.',
 };
 
 const FRAMEWORK_LIABILITY_CLAUSES: Record<Framework, ContractShieldClause[]> = {
@@ -181,7 +172,7 @@ const REGIONAL_DISCLOSURES: Record<TargetRegion, string> = {
   california_ccpa:
     "California Consumer Privacy Act (CCPA/CPRA) Notice: If you are a California resident, you have the right to: (1) know what personal information is collected, used, shared, or sold; (2) delete personal information held by us and by extension our service providers; (3) opt-out of the sale or sharing of personal information; (4) non-discrimination for exercising your CCPA rights; and (5) correct inaccurate personal information. To exercise these rights, contact us using the information provided below. We will verify your identity before processing your request. Categories of personal information collected include: identifiers, internet activity, geolocation data, and commercial information. We do not knowingly sell the personal information of consumers under 16 years of age.",
   eu_gdpr:
-    "General Data Protection Regulation (GDPR) Notice: For users in the European Economic Area (EEA), United Kingdom, and Switzerland: We process personal data under the following legal bases: (a) consent — where you have given explicit consent for specific processing purposes; (b) contract performance — where processing is necessary to fulfill our obligations; (c) legitimate interests — where processing serves our legitimate business interests without overriding your rights. You have the right to: access your data, rectify inaccuracies, erase your data (\"right to be forgotten\"), restrict processing, data portability, object to processing, and withdraw consent at any time. To exercise these rights or lodge a complaint with your supervisory authority, contact our Data Protection Officer at the address provided. Data transfers outside the EEA are protected by Standard Contractual Clauses or adequacy decisions.",
+    'General Data Protection Regulation (GDPR) Notice: For users in the European Economic Area (EEA), United Kingdom, and Switzerland: We process personal data under the following legal bases: (a) consent — where you have given explicit consent for specific processing purposes; (b) contract performance — where processing is necessary to fulfill our obligations; (c) legitimate interests — where processing serves our legitimate business interests without overriding your rights. You have the right to: access your data, rectify inaccuracies, erase your data ("right to be forgotten"), restrict processing, data portability, object to processing, and withdraw consent at any time. To exercise these rights or lodge a complaint with your supervisory authority, contact our Data Protection Officer at the address provided. Data transfers outside the EEA are protected by Standard Contractual Clauses or adequacy decisions.',
   canada_pipeda:
     "Personal Information Protection and Electronic Documents Act (PIPEDA) Notice: For users in Canada, we collect, use, and disclose personal information in accordance with PIPEDA and applicable provincial privacy legislation. You have the right to: (1) know what personal information we hold about you; (2) challenge the accuracy and completeness of your information; (3) request amendment of inaccurate information; (4) withdraw consent for the collection, use, or disclosure of your information (subject to legal and contractual restrictions). We obtain meaningful consent before collecting personal information and limit collection to purposes a reasonable person would consider appropriate. To submit an access request or privacy complaint, contact our Privacy Officer at the address provided. You also have the right to file a complaint with the Office of the Privacy Commissioner of Canada.",
   brazil_lgpd:
@@ -402,7 +393,14 @@ function getRegionChecks(region: TargetRegion): string[] {
 const VALID_USER_TYPES: ReadonlySet<string> = new Set(["developer", "merchant"]);
 const VALID_FRAMEWORKS: ReadonlySet<string> = new Set(["shopify", "nextjs", "wordpress", "wix", "squarespace"]);
 const VALID_PIXELS: ReadonlySet<string> = new Set(["meta", "google", "tiktok", "linkedin", "pinterest", "snapchat"]);
-const VALID_REGIONS: ReadonlySet<string> = new Set(["us_general", "california_ccpa", "eu_gdpr", "canada_pipeda", "brazil_lgpd", "australia_privacy"]);
+const VALID_REGIONS: ReadonlySet<string> = new Set([
+  "us_general",
+  "california_ccpa",
+  "eu_gdpr",
+  "canada_pipeda",
+  "brazil_lgpd",
+  "australia_privacy",
+]);
 
 function validateInput(input: ComplianceInput): void {
   if (!VALID_USER_TYPES.has(input.userType)) {
@@ -423,9 +421,7 @@ function validateInput(input: ComplianceInput): void {
   }
 }
 
-export function generateCompliancePackage(
-  input: ComplianceInput
-): CompliancePackage {
+export function generateCompliancePackage(input: ComplianceInput): CompliancePackage {
   validateInput(input);
   const { userType, framework, trackingPixels, targetRegions, complianceModules } = input;
 
@@ -436,12 +432,8 @@ export function generateCompliancePackage(
   };
 
   // 2. Build Consumer-Facing Privacy Policy Addendum
-  const scriptDeclarations = trackingPixels.map(
-    (pixel) => PIXEL_SCRIPT_DECLARATIONS[pixel]
-  );
-  const regionalDisclosures = targetRegions.map(
-    (region) => REGIONAL_DISCLOSURES[region]
-  );
+  const scriptDeclarations = trackingPixels.map((pixel) => PIXEL_SCRIPT_DECLARATIONS[pixel]);
+  const regionalDisclosures = targetRegions.map((region) => REGIONAL_DISCLOSURES[region]);
 
   const consumerPrivacyPolicyAddendum: PrivacyPolicyAddendum = {
     header: buildPrivacyHeader(framework, trackingPixels),
@@ -450,11 +442,7 @@ export function generateCompliancePackage(
   };
 
   // 3. Build Developer Pre-Launch Checklist
-  const developerPreLaunchChecklist = buildChecklist(
-    framework,
-    trackingPixels,
-    targetRegions
-  );
+  const developerPreLaunchChecklist = buildChecklist(framework, trackingPixels, targetRegions);
 
   // 4. Generate Enterprise Module Outputs (if provided)
   let enterpriseModules: ComplianceModuleOutput[] | undefined;
@@ -514,10 +502,7 @@ function calculateComplianceScore(
 
   // Overall: weighted average
   const overall = Math.round(
-    contractProtection * 0.25 +
-    privacyCoverage * 0.25 +
-    preLaunchReadiness * 0.25 +
-    regulatoryBreadth * 0.25
+    contractProtection * 0.25 + privacyCoverage * 0.25 + preLaunchReadiness * 0.25 + regulatoryBreadth * 0.25
   );
 
   return {
@@ -531,10 +516,7 @@ function calculateComplianceScore(
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function buildPrivacyHeader(
-  framework: Framework,
-  pixels: TrackingPixel[]
-): string {
+function buildPrivacyHeader(framework: Framework, pixels: TrackingPixel[]): string {
   const frameworkLabel = getFrameworkLabel(framework);
   const pixelLabels = pixels.map(getPixelLabel).join(", ");
 
@@ -661,7 +643,9 @@ export function exportToMarkdown(pkg: CompliancePackage): string {
 
   // Disclaimer
   lines.push("---\n");
-  lines.push("*Disclaimer: Comply-Quick provides automated operational templates based on technical configuration inputs. Comply-Quick is not a law firm, does not provide formal legal counsel, and the outputs generated does not constitute legal advice.*");
+  lines.push(
+    "*Disclaimer: Comply-Quick provides automated operational templates based on technical configuration inputs. Comply-Quick is not a law firm, does not provide formal legal counsel, and the outputs generated does not constitute legal advice.*"
+  );
 
   return lines.join("\n");
 }
