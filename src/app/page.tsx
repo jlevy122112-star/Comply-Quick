@@ -9,12 +9,20 @@ export default function LandingPage() {
           <span className="text-lg font-bold text-white tracking-tight">
             Comply-Quick
           </span>
-          <Link
-            href="/dashboard"
-            className="text-sm font-medium text-gray-400 hover:text-white transition-colors"
-          >
-            Launch App &rarr;
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/dashboard/home"
+              className="text-sm font-medium text-gray-500 hover:text-gray-300 transition-colors hidden sm:inline"
+            >
+              Dashboard
+            </Link>
+            <Link
+              href="/dashboard"
+              className="text-sm font-medium text-gray-400 hover:text-white transition-colors"
+            >
+              Launch App &rarr;
+            </Link>
+          </div>
         </div>
       </nav>
 

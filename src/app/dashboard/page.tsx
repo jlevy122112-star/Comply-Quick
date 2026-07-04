@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import {
   generateCompliancePackage,
   exportToMarkdown,
@@ -13,6 +14,11 @@ import {
   type ComplianceModule,
 } from "@/components/ClauseEngine";
 import { MODULE_OPTIONS } from "@/components/EnterpriseModules";
+import {
+  saveProject,
+  generateProjectId,
+  setPaidTier,
+} from "@/lib/projects";
 
 export default function DashboardPageWrapper() {
   return (
@@ -96,9 +102,14 @@ function DashboardPage() {
   // URL query string listener for ?status=success
   const urlIndicatesPremium = searchParams.get("status") === "success";
   const premiumActive = isPremiumUser || urlIndicatesPremium;
+  const planFromUrl = searchParams.get("plan");
 
   if (urlIndicatesPremium && !isPremiumUser) {
     setIsPremiumUser(true);
+    // Persist the paid tier from Stripe checkout redirect
+    if (planFromUrl === "agency" || planFromUrl === "enterprise" || planFromUrl === "single") {
+      setPaidTier(planFromUrl);
+    }
   }
 
   // Generated result
@@ -106,6 +117,27 @@ function DashboardPage() {
 
   // Clipboard
   const [copiedText, copyToClipboard] = useCopyToClipboard();
+
+  // Stripe checkout handler
+  const handleCheckout = useCallback(async (plan: "single" | "agency" | "enterprise") => {
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else if (data.error === "Stripe is not configured") {
+        // Fallback: simulate success for development
+        window.location.href = `/dashboard?status=success&plan=${plan}`;
+      }
+    } catch {
+      // Fallback for dev/demo mode
+      window.location.href = `/dashboard?status=success&plan=${plan}`;
+    }
+  }, []);
 
   // Generate compliance package when wizard completes
   const handleGenerate = useCallback(() => {
@@ -119,7 +151,25 @@ function DashboardPage() {
     });
     setCompliancePackage(result);
     setStep(6);
-  }, [userType, framework, trackingPixels, targetRegions, complianceModules]);
+
+    // Save project to localStorage if premium
+    if (premiumActive) {
+      const md = exportToMarkdown(result);
+      saveProject({
+        id: generateProjectId(),
+        name: `${FRAMEWORK_OPTIONS.find((f) => f.value === framework)?.label ?? framework} Project`,
+        framework,
+        trackingPixels,
+        targetRegions,
+        complianceModules,
+        complianceScore: result.complianceScore,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        status: "current",
+        packageMarkdown: md,
+      });
+    }
+  }, [userType, framework, trackingPixels, targetRegions, complianceModules, premiumActive]);
 
   // Toggle helpers
   const togglePixel = useCallback((pixel: TrackingPixel) => {
@@ -169,12 +219,22 @@ function DashboardPage() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <header className="mb-8 text-center">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-            Comply-Quick
-          </h1>
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <Link href="/" className="text-2xl sm:text-3xl font-bold text-white tracking-tight hover:text-gray-200 transition-colors">
+              Comply-Quick
+            </Link>
+          </div>
           <p className="mt-2 text-sm text-gray-400">
             Generate your compliance package in minutes
           </p>
+          {premiumActive && (
+            <Link
+              href="/dashboard/home"
+              className="inline-block mt-3 text-xs font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
+            >
+              &larr; Back to Command Center
+            </Link>
+          )}
         </header>
 
         {/* Step Indicator */}
@@ -482,6 +542,7 @@ function DashboardPage() {
                 regionCount={compliancePackage.consumerPrivacyPolicyAddendum.regionalDisclosures.length}
                 hasModules={!!compliancePackage.enterpriseModules && compliancePackage.enterpriseModules.length > 0}
                 pixelCount={compliancePackage.consumerPrivacyPolicyAddendum.scriptDeclarations.length}
+                onCheckout={handleCheckout}
               />
             )}
 
@@ -681,12 +742,14 @@ function PaywallGate({
   regionCount,
   hasModules,
   pixelCount,
+  onCheckout,
 }: {
   clauseCount: number;
   checklistCount: number;
   regionCount: number;
   hasModules: boolean;
   pixelCount: number;
+  onCheckout: (plan: "single" | "agency" | "enterprise") => void;
 }) {
   return (
     <div className="relative">
@@ -807,6 +870,7 @@ function PaywallGate({
           <div className="space-y-3">
             <button
               type="button"
+              onClick={() => onCheckout("single")}
               className="w-full py-3.5 px-4 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition-colors relative overflow-hidden group"
             >
               <span className="relative z-10">Unlock This Package &mdash; $12</span>
@@ -814,12 +878,14 @@ function PaywallGate({
             </button>
             <button
               type="button"
+              onClick={() => onCheckout("agency")}
               className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold hover:from-purple-500 hover:to-indigo-500 transition-all"
             >
               Unlimited Agency Pass &mdash; $29/mo
             </button>
             <button
               type="button"
+              onClick={() => onCheckout("enterprise")}
               className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold hover:from-amber-500 hover:to-orange-500 transition-all"
             >
               Enterprise Tier &mdash; $99/mo
