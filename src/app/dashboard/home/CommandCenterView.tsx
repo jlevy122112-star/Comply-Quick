@@ -7,6 +7,7 @@ import type { ComplianceScore } from "@/components/ClauseEngine";
 import type { Tier } from "@/lib/entitlements";
 import { deleteProjectAction, signOutAction } from "@/app/dashboard/actions";
 import AutopilotPanel from "./AutopilotPanel";
+import ScannerPanel from "./ScannerPanel";
 
 // ─── Framework Display Map ──────────────────────────────────────────────────
 
@@ -102,8 +103,8 @@ const QUICK_TOOLS: QuickTool[] = [
     label: "URL Compliance Scanner",
     description: "Auto-detect stack & issues",
     icon: "🔍",
-    href: "#",
-    available: false,
+    href: "#scanner",
+    available: true,
   },
   {
     label: "API Documentation",
@@ -291,6 +292,11 @@ export default function CommandCenterView({ projects, tier, aggregateScore, user
                 </div>
               )}
             </section>
+
+            {/* Compliance Scanner */}
+            <div id="scanner" className="scroll-mt-8">
+              <ScannerPanel />
+            </div>
 
             {/* Quick-Launch Tools */}
             <section>
