@@ -26,16 +26,15 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-block mb-6 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20">
             <span className="text-xs font-medium text-indigo-400">
-              Built for Shopify, WordPress, Next.js, Wix &amp; Squarespace sites
+              Used by Shopify, WordPress, Next.js, Wix &amp; Squarespace developers
             </span>
           </div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight tracking-tight">
-            Your Entire Compliance Stack, Done in Under a Minute.
+            The 30-Second Liability Shield for Web Agencies &amp; Freelancers.
           </h1>
           <p className="mt-6 text-base sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
-            Answer a few questions about your website and instantly generate everything your business needs to launch
-            with confidence &mdash; a tailored privacy policy, clear customer terms, a pre-launch checklist, and a
-            compliance score your customers can trust.
+            Map your client&apos;s technical stack to ironclad sign-off waivers and store privacy policies. Stop risking
+            personal liability over pixel tracking and web accessibility violations.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
@@ -52,10 +51,38 @@ export default function LandingPage() {
             </a>
           </div>
           <p className="mt-4 text-xs text-gray-500">
-            Free preview included &mdash; see your compliance score and customer terms before you pay.
+            Free preview included &mdash; see your compliance score and contract shield before you pay.
           </p>
         </div>
       </header>
+
+      {/* How It Works — Core Feature */}
+      <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12 sm:mb-16">
+            <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">The Core Feature</span>
+            <h2 className="mt-3 text-2xl sm:text-3xl font-bold text-white">How It Works</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+            <HowItWorksStep
+              number="1"
+              title="Inward Contract Shielding"
+              body="Automatically compiles custom developer-to-merchant liability waivers. It explicitly moves the legal burden of GDPR & ADA compliance from the agency building the site to the business owner running it."
+            />
+            <HowItWorksStep
+              number="2"
+              title="Technical Stack Mapping"
+              body="Instead of giving you a generic template, it dynamically generates disclosure clauses based on the exact tools you install — e.g. Meta Pixel, Google Analytics, Shopify checkout, and more."
+            />
+            <HowItWorksStep
+              number="3"
+              title="Pre-Launch Validation"
+              body="Generates an engineering checklist specific to that tech layout, ensuring you don't miss a mandatory compliance setting before handing over the keys."
+            />
+          </div>
+        </div>
+      </section>
 
       {/* Comparison Section */}
       <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50">
@@ -79,7 +106,7 @@ export default function LandingPage() {
               <ul className="space-y-4">
                 <ComparisonItem negative>Generic fill-in-the-blank forms with no technical context</ComparisonItem>
                 <ComparisonItem negative>Same boilerplate output regardless of your actual stack</ComparisonItem>
-                <ComparisonItem negative>No clear terms defining the relationship with your customers</ComparisonItem>
+                <ComparisonItem negative>No liability separation between developer and merchant</ComparisonItem>
                 <ComparisonItem negative>Manual updates required for every regulatory change</ComparisonItem>
                 <ComparisonItem negative>
                   No awareness of tracking pixels, frameworks, or deployment environments
@@ -101,7 +128,7 @@ export default function LandingPage() {
                 </ComparisonItem>
                 <ComparisonItem>Detects 6 tracking pixels and generates per-script legal disclosures</ComparisonItem>
                 <ComparisonItem>
-                  Generates clear customer-facing terms that set expectations and build trust at checkout
+                  Produces inward contract shields shifting liability from developer to merchant
                 </ComparisonItem>
                 <ComparisonItem>
                   Covers 6 jurisdictions (US, CCPA, GDPR, PIPEDA, LGPD, Australia) automatically
@@ -237,6 +264,18 @@ export default function LandingPage() {
 }
 
 // ─── Sub-Components ─────────────────────────────────────────────────────────
+
+function HowItWorksStep({ number, title, body }: { number: string; title: string; body: string }) {
+  return (
+    <article className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-8">
+      <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-5">
+        <span className="text-indigo-400 font-bold">{number}</span>
+      </div>
+      <h3 className="text-lg font-semibold text-white">{title}</h3>
+      <p className="mt-3 text-sm text-gray-400 leading-relaxed">{body}</p>
+    </article>
+  );
+}
 
 function ComparisonItem({ children, negative = false }: { children: React.ReactNode; negative?: boolean }) {
   return (
