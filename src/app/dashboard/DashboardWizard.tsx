@@ -35,6 +35,10 @@ const FRAMEWORK_OPTIONS: { value: Framework; label: string; icon: string }[] = [
   { value: "wordpress", label: "WordPress", icon: "📝" },
   { value: "wix", label: "Wix", icon: "🌐" },
   { value: "squarespace", label: "Squarespace", icon: "◼" },
+  { value: "woocommerce", label: "WooCommerce", icon: "🛍️" },
+  { value: "bigcommerce", label: "BigCommerce", icon: "🏬" },
+  { value: "webflow", label: "Webflow", icon: "🎨" },
+  { value: "godaddy", label: "GoDaddy", icon: "🌍" },
 ];
 
 const PIXEL_OPTIONS: { value: TrackingPixel; label: string; color: string }[] = [

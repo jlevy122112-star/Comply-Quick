@@ -12,7 +12,8 @@ export type { ComplianceModule, ComplianceModuleOutput };
 
 export type UserType = "developer" | "merchant";
 
-export type Framework = "shopify" | "nextjs" | "wordpress" | "wix" | "squarespace";
+export type Framework =
+  "shopify" | "nextjs" | "wordpress" | "wix" | "squarespace" | "godaddy" | "webflow" | "woocommerce" | "bigcommerce";
 
 export type TrackingPixel = "meta" | "google" | "tiktok" | "linkedin" | "pinterest" | "snapchat";
 
@@ -150,6 +151,62 @@ const FRAMEWORK_LIABILITY_CLAUSES: Record<Framework, ContractShieldClause[]> = {
       body: "Squarespace integrations with third-party services (email marketing, analytics, social media) are configured through Squarespace's built-in integration panel. Developer disclaims liability for data sharing that occurs through Merchant-configured integrations not specified in the original project scope. Each integration's data practices are governed by the respective third party's privacy policy.",
     },
   ],
+  godaddy: [
+    {
+      title: "Managed Builder Platform Disclaimer",
+      body: "GoDaddy Website Builder is a closed, template-driven managed platform. Developer's customizations are limited to the sections, widgets, and HTML/embed blocks GoDaddy exposes. Merchant acknowledges that GoDaddy platform updates, plan changes, or feature deprecations may alter compliance posture at any time without Developer control or ability to remediate.",
+    },
+    {
+      title: "Bundled Marketing & Analytics Exclusion",
+      body: "GoDaddy bundles native tools including InSight analytics, GoDaddy Conversations, and email/SMS marketing that collect visitor and customer data under GoDaddy's own terms. Developer disclaims all liability for data collected, stored, or transmitted by GoDaddy-native marketing and analytics features enabled or configured by the Merchant.",
+    },
+    {
+      title: "Managed Hosting & Domain Responsibility",
+      body: "GoDaddy manages all hosting, SSL, DNS, and email infrastructure, and Developer has no server-level access. Any data breach, misconfiguration, or compliance failure originating in GoDaddy's managed infrastructure or the Merchant's account, domain, or DNS settings is exclusively the Merchant's responsibility.",
+    },
+  ],
+  webflow: [
+    {
+      title: "Visual Builder Scope Limitation",
+      body: "Developer's implementation is authored within the Webflow Designer and is constrained by Webflow's element model, interaction system, and custom-code embed limits. Any modifications made by the Merchant in the Webflow Editor or Designer after handoff void Developer's compliance guarantees for the affected pages.",
+    },
+    {
+      title: "Custom Code Embed Liability Exclusion",
+      body: "Third-party scripts added through Webflow custom code embeds, site-wide head/body code, or native integrations (analytics, chat, forms, marketing) after handoff are the Merchant's responsibility. Developer disclaims liability for any data collection introduced by embeds or integrations not specified in the original project scope.",
+    },
+    {
+      title: "Webflow Hosting & Forms Data Handling",
+      body: "Webflow manages hosting, CDN, SSL, and native Form submission storage. Developer disclaims liability for data processing that occurs within Webflow's managed infrastructure and Form data pipeline, which is governed by Webflow's Terms of Service and Data Processing Addendum.",
+    },
+  ],
+  woocommerce: [
+    {
+      title: "Plugin & Extension Ecosystem Exclusion",
+      body: "WooCommerce operates atop WordPress within an open extension ecosystem. Developer disclaims all liability for compliance violations introduced by WooCommerce extensions, payment gateways, or WordPress plugins and themes not explicitly managed under the project scope. Merchant assumes full responsibility for extension maintenance, updates, and compatibility monitoring.",
+    },
+    {
+      title: "Payment Gateway & Checkout Exclusion",
+      body: "WooCommerce checkout integrates third-party payment gateways (including Stripe, PayPal, and WooPayments) governed by their own PCI-DSS and data-processing terms. Developer disclaims liability for cardholder data handling that occurs within gateway-hosted or gateway-managed checkout flows.",
+    },
+    {
+      title: "Customer Data & Order Storage Responsibility",
+      body: "WooCommerce stores customer, order, and account data in the Merchant's WordPress database on Merchant-controlled hosting. Developer bears no liability for data breaches, retention failures, or unauthorized access attributable to the Merchant's hosting environment, database security, or store configuration after handoff.",
+    },
+  ],
+  bigcommerce: [
+    {
+      title: "SaaS Platform Dependency Disclaimer",
+      body: "BigCommerce is a hosted SaaS commerce platform. Developer's implementation is constrained by BigCommerce's Stencil theme framework, API rate limits, and available platform features. Merchant acknowledges that BigCommerce platform updates, API deprecations, or plan changes may affect compliance posture without Developer intervention.",
+    },
+    {
+      title: "App Marketplace & Integration Exclusion",
+      body: "Applications installed from the BigCommerce App Marketplace and third-party integrations operate under their own data-processing terms. Developer disclaims all liability for data collection, storage, or transmission by apps installed after handoff that are not specified in the original project scope.",
+    },
+    {
+      title: "Managed Checkout & PCI Responsibility",
+      body: "BigCommerce provides PCI-DSS-compliant hosted checkout and manages payment data flows. Developer disclaims liability for data handling within BigCommerce's managed checkout and for the Merchant's configuration of payment providers, tax, and shipping settings.",
+    },
+  ],
 };
 
 const PIXEL_SCRIPT_DECLARATIONS: Record<TrackingPixel, string> = {
@@ -246,6 +303,14 @@ function getFrameworkNotes(framework: Framework): string {
       return "Wix deployment: Verify all custom tracking is added via Wix's Marketing Integrations panel or Velo code. Confirm Wix's built-in cookie consent bar is enabled and configured for applicable jurisdictions. Test that Wix App Market applications respect consent preferences. Note that server-side access is limited — compliance monitoring relies on client-side implementations.";
     case "squarespace":
       return "Squarespace deployment: Verify all tracking scripts are added via Code Injection (Header/Footer) with proper consent gating. Confirm Squarespace's built-in cookie banner is enabled for applicable regions. Test that third-party integrations configured through Squarespace's integration panel respect consent state. Validate that custom CSS/JS injections do not introduce unauthorized data collection.";
+    case "godaddy":
+      return "GoDaddy deployment: Add tracking and consent scripts only through the site's available HTML/embed sections, as GoDaddy Website Builder offers limited code access. Install and configure a compliant cookie-consent solution — the builder has no built-in granular consent manager. Disclose GoDaddy InSight analytics and any bundled marketing tools. Server-side access is unavailable, so compliance relies entirely on client-side implementation.";
+    case "webflow":
+      return "Webflow deployment: Add tracking scripts via Project Settings > Custom Code or per-page code embeds, gated behind consent. Webflow has no built-in consent manager, so integrate a compliant CMP via custom code. Verify native Webflow Forms and interactions do not transmit data before consent. Test that client edits in the Webflow Editor do not remove consent gating.";
+    case "woocommerce":
+      return "WooCommerce deployment: Load tracking scripts via wp_enqueue_script or a consent-aware tag manager, never hardcoded in themes. Confirm the consent solution suppresses WooCommerce marketing/analytics extensions and payment gateway scripts until consent is granted. Verify order and customer data endpoints (REST API, /wp-json/wc) require authentication. Test that consent state persists through page and object caching.";
+    case "bigcommerce":
+      return "BigCommerce deployment: Register scripts through the Script Manager with the correct consent category and page location rather than editing Stencil templates directly. Enable BigCommerce's consent settings or integrate a CMP for GDPR/CCPA. Verify App Marketplace apps honor consent, and confirm no analytics or advertising scripts fire on the hosted checkout before consent.";
   }
 }
 
@@ -285,6 +350,34 @@ function getFrameworkChecks(framework: Framework): string[] {
         "Confirm Code Injection scripts include consent-gating logic before execution",
         "Audit all connected integrations in Settings > Connected Accounts for data sharing",
         "Test that Squarespace Analytics built-in tracking is disclosed in privacy policy",
+      ];
+    case "godaddy":
+      return [
+        "Verify a compliant cookie-consent banner is installed via GoDaddy's available embed/HTML sections",
+        "Confirm GoDaddy InSight analytics and bundled marketing tools are disclosed in the privacy policy",
+        "Audit all embedded third-party scripts for consent gating, given the builder's limited code access",
+        "Test that consent preferences persist across GoDaddy Website Builder pages and sessions",
+      ];
+    case "webflow":
+      return [
+        "Verify a consent management platform is integrated via Project Settings > Custom Code before any tracking fires",
+        "Confirm per-page and site-wide custom code embeds are consent-gated",
+        "Audit native Webflow Forms and integrations for data transmission prior to consent",
+        "Test that client edits in the Webflow Editor do not bypass or remove consent logic",
+      ];
+    case "woocommerce":
+      return [
+        "Verify WooCommerce marketing/analytics extensions load only after consent via a consent-aware tag manager",
+        "Confirm payment gateway scripts (Stripe, PayPal, WooPayments) fire within PCI-compliant, consent-gated contexts",
+        "Audit /wp-json/wc REST endpoints to ensure order and customer data require authentication",
+        "Test that consent state persists through WordPress page and object caching layers",
+      ];
+    case "bigcommerce":
+      return [
+        "Verify tracking scripts are registered in BigCommerce Script Manager with the correct consent category",
+        "Confirm no analytics or advertising scripts fire on the hosted checkout before consent",
+        "Audit installed App Marketplace apps for undeclared data collection and consent compliance",
+        "Test that BigCommerce consent/GDPR settings or the integrated CMP block cookies until opt-in",
       ];
   }
 }
@@ -391,7 +484,17 @@ function getRegionChecks(region: TargetRegion): string[] {
 // ─── Main Export ────────────────────────────────────────────────────────────
 
 const VALID_USER_TYPES: ReadonlySet<string> = new Set(["developer", "merchant"]);
-const VALID_FRAMEWORKS: ReadonlySet<string> = new Set(["shopify", "nextjs", "wordpress", "wix", "squarespace"]);
+const VALID_FRAMEWORKS: ReadonlySet<string> = new Set([
+  "shopify",
+  "nextjs",
+  "wordpress",
+  "wix",
+  "squarespace",
+  "godaddy",
+  "webflow",
+  "woocommerce",
+  "bigcommerce",
+]);
 const VALID_PIXELS: ReadonlySet<string> = new Set(["meta", "google", "tiktok", "linkedin", "pinterest", "snapchat"]);
 const VALID_REGIONS: ReadonlySet<string> = new Set([
   "us_general",
@@ -539,6 +642,14 @@ function getFrameworkLabel(framework: Framework): string {
       return "Wix-built";
     case "squarespace":
       return "Squarespace-powered";
+    case "godaddy":
+      return "GoDaddy Website Builder";
+    case "webflow":
+      return "Webflow-built";
+    case "woocommerce":
+      return "WooCommerce e-commerce";
+    case "bigcommerce":
+      return "BigCommerce e-commerce";
   }
 }
 

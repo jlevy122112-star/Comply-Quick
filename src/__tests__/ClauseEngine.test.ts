@@ -52,7 +52,17 @@ describe("generateCompliancePackage", () => {
   });
 
   it("includes framework-specific clauses for each framework", () => {
-    const frameworks = ["shopify", "nextjs", "wordpress", "wix", "squarespace"] as const;
+    const frameworks = [
+      "shopify",
+      "nextjs",
+      "wordpress",
+      "wix",
+      "squarespace",
+      "godaddy",
+      "webflow",
+      "woocommerce",
+      "bigcommerce",
+    ] as const;
 
     for (const framework of frameworks) {
       const input: ComplianceInput = {
@@ -63,7 +73,24 @@ describe("generateCompliancePackage", () => {
       };
       const result = generateCompliancePackage(input);
       expect(result.inwardContractShield.clauses.length).toBe(3);
+      expect(result.developerPreLaunchChecklist.frameworkNotes).toBeTruthy();
+      expect(result.developerPreLaunchChecklist.items.length).toBeGreaterThan(0);
     }
+  });
+
+  it("includes WooCommerce-specific clauses and notes for WooCommerce framework", () => {
+    const result = generateCompliancePackage({
+      userType: "developer",
+      framework: "woocommerce",
+      trackingPixels: ["meta"],
+      targetRegions: ["eu_gdpr"],
+    });
+
+    const clauseTitles = result.inwardContractShield.clauses.map((c) => c.title);
+    expect(clauseTitles).toContain("Plugin & Extension Ecosystem Exclusion");
+    expect(clauseTitles).toContain("Payment Gateway & Checkout Exclusion");
+    expect(clauseTitles).toContain("Customer Data & Order Storage Responsibility");
+    expect(result.developerPreLaunchChecklist.frameworkNotes).toContain("WooCommerce");
   });
 
   it("generates per-pixel script declarations", () => {

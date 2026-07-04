@@ -11,7 +11,17 @@ import {
 import type { ComplianceModule } from "@/components/EnterpriseModules";
 
 const VALID_USER_TYPES = new Set<string>(["developer", "merchant"]);
-const VALID_FRAMEWORKS = new Set<string>(["shopify", "nextjs", "wordpress", "wix", "squarespace"]);
+const VALID_FRAMEWORKS = new Set<string>([
+  "shopify",
+  "nextjs",
+  "wordpress",
+  "wix",
+  "squarespace",
+  "godaddy",
+  "webflow",
+  "woocommerce",
+  "bigcommerce",
+]);
 const VALID_PIXELS = new Set<string>(["meta", "google", "tiktok", "linkedin", "pinterest", "snapchat"]);
 const VALID_REGIONS = new Set<string>([
   "us_general",
@@ -90,7 +100,7 @@ export async function POST(request: NextRequest) {
         error: "Invalid request body",
         required: {
           userType: "developer | merchant",
-          framework: "shopify | nextjs | wordpress | wix | squarespace",
+          framework: "shopify | nextjs | wordpress | wix | squarespace | godaddy | webflow | woocommerce | bigcommerce",
           trackingPixels: "string[] — meta, google, tiktok, linkedin, pinterest, snapchat",
           targetRegions:
             "string[] — us_general, california_ccpa, eu_gdpr, canada_pipeda, brazil_lgpd, australia_privacy",
