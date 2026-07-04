@@ -6,6 +6,7 @@ import type { DbProject } from "@/lib/projects-db";
 import type { ComplianceScore } from "@/components/ClauseEngine";
 import type { Tier } from "@/lib/entitlements";
 import { deleteProjectAction, signOutAction } from "@/app/dashboard/actions";
+import AutopilotPanel from "./AutopilotPanel";
 
 // ─── Framework Display Map ──────────────────────────────────────────────────
 
@@ -304,6 +305,7 @@ export default function CommandCenterView({ projects, tier, aggregateScore, user
 
           {/* Right: Alerts Feed */}
           <div className="space-y-8">
+            <AutopilotPanel isPremium={tier !== "free"} />
             <section>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-white">Regulatory Alerts</h2>
