@@ -1,0 +1,17 @@
+{
+  "name": "comply-quick-scanner-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Headless-browser rendering worker for the Comply-Quick compliance scanner. Renders a URL, executes its JavaScript, and returns the final HTML plus the outbound network requests so JS-injected trackers (Meta Pixel, TikTok, GA, etc.) are detected.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "postinstall": "playwright install chromium"
+  },
+  "dependencies": {
+    "playwright": "1.49.1"
+  }
+}

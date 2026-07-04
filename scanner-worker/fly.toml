@@ -1,0 +1,30 @@
+# Example Fly.io config for the Comply-Quick scanner worker.
+# Deploy: `fly launch --no-deploy` (or `fly apps create comply-quick-scanner`),
+# set the shared secret, then `fly deploy`.
+#
+#   fly secrets set SCANNER_WORKER_SECRET=<same value as the Next app>
+#
+app = "comply-quick-scanner"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    method = "get"
+    path = "/health"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+
+# Headless Chromium needs memory headroom; 1GB is a safe floor.
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"
