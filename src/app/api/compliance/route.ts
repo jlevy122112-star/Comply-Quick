@@ -9,6 +9,12 @@ import {
   type TargetRegion,
 } from "@/components/ClauseEngine";
 import type { ComplianceModule } from "@/components/EnterpriseModules";
+import { InMemoryRateLimiter, getClientKey, enforceRateLimit, errorResponse, logger } from "@/services";
+
+const log = logger.child({ module: "api/compliance" });
+
+// Public generation endpoint — cap per-client volume to protect the instance.
+const limiter = new InMemoryRateLimiter({ limit: 30, windowMs: 60_000 });
 
 const VALID_USER_TYPES = new Set<string>(["developer", "merchant"]);
 const VALID_FRAMEWORKS = new Set<string>([
@@ -87,6 +93,13 @@ function buildValidationErrors(body: ApiRequestBody): string[] {
 }
 
 export async function POST(request: NextRequest) {
+  let rateHeaders: Record<string, string>;
+  try {
+    rateHeaders = enforceRateLimit(limiter.check(getClientKey(request.headers)));
+  } catch (limitErr) {
+    return errorResponse(limitErr);
+  }
+
   let body: unknown;
   try {
     body = await request.json();
@@ -128,25 +141,34 @@ export async function POST(request: NextRequest) {
   };
 
   const result = generateCompliancePackage(input);
+  log.info("Generated compliance package", {
+    framework: input.framework,
+    regions: input.targetRegions.length,
+    modules: input.complianceModules?.length ?? 0,
+  });
 
   if (body.format === "markdown") {
     const markdown = exportToMarkdown(result);
     return new NextResponse(markdown, {
       status: 200,
       headers: {
+        ...rateHeaders,
         "Content-Type": "text/markdown; charset=utf-8",
         "Content-Disposition": "attachment; filename=compliance-package.md",
       },
     });
   }
 
-  return NextResponse.json({
-    success: true,
-    data: result,
-    meta: {
-      generatedAt: new Date().toISOString(),
-      version: "2.0.0",
-      tier: input.complianceModules && input.complianceModules.length > 0 ? "enterprise" : "standard",
+  return NextResponse.json(
+    {
+      success: true,
+      data: result,
+      meta: {
+        generatedAt: new Date().toISOString(),
+        version: "2.0.0",
+        tier: input.complianceModules && input.complianceModules.length > 0 ? "enterprise" : "standard",
+      },
     },
-  });
+    { headers: rateHeaders }
+  );
 }

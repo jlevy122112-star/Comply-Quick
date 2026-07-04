@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
+import type Stripe from "stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getStripe, logger } from "@/services";
 
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-function getStripe(): Stripe | null {
-  if (!stripeSecretKey) return null;
-  return new Stripe(stripeSecretKey);
-}
+const log = logger.child({ module: "stripe-webhook" });
 
 type Plan = "single" | "agency" | "enterprise";
 
@@ -41,7 +38,7 @@ async function setEntitlement(params: {
     userId = data?.user_id ?? undefined;
   }
   if (!userId) {
-    console.error(`[Stripe] Could not resolve user for customer ${params.stripeCustomerId}`);
+    log.error("Could not resolve user for customer", { stripeCustomerId: params.stripeCustomerId });
     return;
   }
 
@@ -153,7 +150,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Webhook handler error";
-    console.error(`[Stripe] ${event.type} handler failed: ${message}`);
+    log.error("Webhook handler failed", { eventType: event.type, message });
     return NextResponse.json({ error: message }, { status: 500 });
   }
 
