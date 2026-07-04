@@ -26,7 +26,7 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-block mb-6 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20">
             <span className="text-xs font-medium text-indigo-400">
-              Used by Shopify, WordPress, Next.js, Wix &amp; Squarespace developers
+              Used by Shopify, WooCommerce, BigCommerce, WordPress, Webflow &amp; more
             </span>
           </div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight tracking-tight">
@@ -96,7 +96,8 @@ export default function LandingPage() {
               </div>
               <ul className="space-y-4">
                 <ComparisonItem>
-                  Maps 5 frameworks (Shopify, Next.js, WordPress, Wix, Squarespace) to specific clauses
+                  Maps 9 platforms (Shopify, WooCommerce, BigCommerce, WordPress, Next.js, Webflow, Wix, Squarespace,
+                  GoDaddy) to specific clauses
                 </ComparisonItem>
                 <ComparisonItem>Detects 6 tracking pixels and generates per-script legal disclosures</ComparisonItem>
                 <ComparisonItem>
@@ -172,7 +173,7 @@ export default function LandingPage() {
                 <PricingFeature>Team seats included</PricingFeature>
                 <PricingFeature>Automated regulatory clause updates</PricingFeature>
                 <PricingFeature>Priority support</PricingFeature>
-                <PricingFeature>All 5 frameworks, 6 pixels, and 6 regions</PricingFeature>
+                <PricingFeature>All 9 platforms, 6 pixels, and 6 regions</PricingFeature>
               </ul>
               <Link
                 href="/dashboard"
