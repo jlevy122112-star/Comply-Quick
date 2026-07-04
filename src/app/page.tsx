@@ -33,8 +33,8 @@ export default function LandingPage() {
             The 30-Second Liability Shield for Web Agencies &amp; Freelancers.
           </h1>
           <p className="mt-6 text-base sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
-            Answer 4 questions about your tech stack. Get a ready-to-deploy liability shield, privacy policy, and
-            pre-launch checklist &mdash; with a compliance score.
+            Map your client&apos;s technical stack to ironclad sign-off waivers and store privacy policies. Stop risking
+            personal liability over pixel tracking and web accessibility violations.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
@@ -55,6 +55,34 @@ export default function LandingPage() {
           </p>
         </div>
       </header>
+
+      {/* How It Works — Core Feature */}
+      <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12 sm:mb-16">
+            <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">The Core Feature</span>
+            <h2 className="mt-3 text-2xl sm:text-3xl font-bold text-white">How It Works</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+            <HowItWorksStep
+              number="1"
+              title="Inward Contract Shielding"
+              body="Automatically compiles custom developer-to-merchant liability waivers. It explicitly moves the legal burden of GDPR & ADA compliance from the agency building the site to the business owner running it."
+            />
+            <HowItWorksStep
+              number="2"
+              title="Technical Stack Mapping"
+              body="Instead of giving you a generic template, it dynamically generates disclosure clauses based on the exact tools you install — e.g. Meta Pixel, Google Analytics, Shopify checkout, and more."
+            />
+            <HowItWorksStep
+              number="3"
+              title="Pre-Launch Validation"
+              body="Generates an engineering checklist specific to that tech layout, ensuring you don't miss a mandatory compliance setting before handing over the keys."
+            />
+          </div>
+        </div>
+      </section>
 
       {/* Comparison Section */}
       <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50">
@@ -237,6 +265,18 @@ export default function LandingPage() {
 }
 
 // ─── Sub-Components ─────────────────────────────────────────────────────────
+
+function HowItWorksStep({ number, title, body }: { number: string; title: string; body: string }) {
+  return (
+    <article className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-8">
+      <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-5">
+        <span className="text-indigo-400 font-bold">{number}</span>
+      </div>
+      <h3 className="text-lg font-semibold text-white">{title}</h3>
+      <p className="mt-3 text-sm text-gray-400 leading-relaxed">{body}</p>
+    </article>
+  );
+}
 
 function ComparisonItem({ children, negative = false }: { children: React.ReactNode; negative?: boolean }) {
   return (
