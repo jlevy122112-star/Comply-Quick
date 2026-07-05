@@ -8,8 +8,10 @@ const nextConfig: NextConfig = {/* config options here */};
 // a build-time bundler transform are no-ops under Turbopack (Next 16 default),
 // which is fine — runtime error capture is driven by instrumentation.ts.
 export default withSentryConfig(nextConfig, {
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
+  // Org/project slugs are not secret; default to the known Sentry project so
+  // source-map upload resolves correctly once SENTRY_AUTH_TOKEN is present.
+  org: process.env.SENTRY_ORG || "comply-quick",
+  project: process.env.SENTRY_PROJECT || "javascript-nextjs",
   authToken: process.env.SENTRY_AUTH_TOKEN,
   silent: !process.env.CI,
   // Upload a wider set of client source files for better stack-trace resolution.
