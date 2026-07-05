@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createScan, QuotaExceededError } from "@/lib/scanner/service";
+import { validateScanUrl } from "@/lib/security";
 import {
   InMemoryRateLimiter,
   getClientKey,
@@ -35,6 +36,10 @@ export async function POST(request: NextRequest) {
     const url = (body as { url?: unknown } | null)?.url;
     if (typeof url !== "string" || url.trim().length === 0) {
       throw new ValidationError("A website URL is required.");
+    }
+    const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`;
+    if (!validateScanUrl(withScheme)) {
+      throw new ValidationError("That URL cannot be scanned (must be a public http(s) address).");
     }
 
     try {

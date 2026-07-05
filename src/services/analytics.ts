@@ -26,6 +26,7 @@ export type AnalyticsEvent =
   // Expansion / usage
   | "api_call_metered"
   | "extra_scan_metered"
+  | "scan_cache_hit"
   // Retention
   | "nps_submitted";
 
