@@ -1,0 +1,89 @@
+COMPLY-QUICK COMPLETE TECH STACK
+FRONTEND FRAMEWORK & CORE
+Next.js 16.2.10 - React meta-framework
+React 19.2.4 - UI library
+React DOM 19.2.4 - DOM renderer
+TypeScript ^5 - Language & type system
+BACKEND & SERVICES
+Supabase SSR ^0.12.0 - Server-side authentication/database
+Supabase JS Client ^2.110.0 - Frontend database client
+Stripe ^22.2.0 - Payment processing
+Playwright 1.49.1 - Headless browser automation (Scanner Worker)
+STYLING & CSS
+Tailwind CSS ^4 - Utility-first CSS framework
+@tailwindcss/postcss ^4 - PostCSS plugin for Tailwind
+TESTING
+Vitest ^4.1.9 - Unit/component testing framework
+@vitejs/plugin-react ^6.0.3 - Vite React plugin
+@testing-library/react ^16.3.2 - React component testing
+@testing-library/jest-dom ^6.9.1 - Jest DOM matchers
+@testing-library/user-event ^14.6.1 - User interaction simulation
+jsdom ^28.1.0 - DOM implementation for Node.js
+CODE QUALITY & LINTING
+ESLint ^9 - JavaScript linter
+eslint-config-next 16.2.10 - Next.js ESLint rules
+Prettier ^3.9.4 - Code formatter
+Husky ^9.1.7 - Git hooks manager
+lint-staged ^16.4.0 - Pre-commit linting
+TYPE DEFINITIONS
+@types/node ^20 - Node.js types
+@types/react ^19 - React types
+@types/react-dom ^19 - React DOM types
+MONITORING & ANALYTICS
+@vercel/speed-insights ^2.0.0 - Performance monitoring
+PACKAGE MANAGEMENT & NODE
+npm - Package manager
+Node.js ≥20 (Scanner Worker requirement)
+Node.js 22/24 (CI/GitHub Actions)
+CI/CD & DEPLOYMENT
+GitHub Actions - CI/CD orchestration
+actions/checkout@v4 - Repository checkout
+actions/setup-node@v4 - Node.js setup
+GitHub - Version control & repository hosting
+Vercel - Frontend deployment (Homepage: https://comply-quick.vercel.app)
+Fly.io - Scanner Worker deployment (optional)
+Docker - Containerization (optional for Scanner Worker)
+ENVIRONMENT & CONFIGURATION
+Environment Variables (CI):
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
+SCANNER_WORKER_URL (optional)
+SCANNER_WORKER_SECRET (optional)
+PORT (Scanner Worker, default 8080)
+SCAN_NAV_TIMEOUT_MS (Scanner Worker, default 30000)
+SCAN_SETTLE_MS (Scanner Worker, default 2500)
+BUILD & DEVELOPMENT TOOLS
+Vite - Build tooling (via vitest)
+PostCSS - CSS transformation
+Babel/JSX - React JSX compilation
+NPM SCRIPTS (Tasks)
+npm run dev - Development server
+npm run build - Production build
+npm start - Production server
+npm run lint - Code linting
+npm run test - Unit tests (vitest)
+npm run test:watch - Watch mode testing
+npm run test:coverage - Coverage report (v8, lcov format)
+npm run format - Code formatting
+npm run format:check - Format validation
+npm run typecheck - TypeScript type checking
+npm run quality - Full quality pipeline
+ARCHITECTURE & SERVICES
+Main App - Next.js SaaS application (Vercel-deployed)
+Scanner Worker - Standalone headless browser service for JS-injected tracker detection
+Runs on Playwright/Chromium
+Endpoints: /health, /POST /scan
+Can deploy on Fly.io, Railway, Render, Docker hosts
+TESTING & COVERAGE
+Coverage Provider: v8
+Coverage Reporters: text, text-summary, lcov
+Test Files: src/**/*.test.{ts,tsx}
+Setup File: src/__tests__/setup.ts
+PROJECT METADATA
+Repository: jlevy122112-star/Comply-Quick
+Homepage: https://comply-quick.vercel.app
+Type: Private SaaS (auto-generated compliance clauses)
+Primary Language: TypeScript
+Created: 14 days ago
+Default Branch: main
