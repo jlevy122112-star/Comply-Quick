@@ -215,6 +215,9 @@ export default function ScannerPanel() {
 
             {triggers.length > 0 && (
               <div className="mt-4 rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-4">
+                <p className="mb-2 text-sm font-bold text-white">
+                  Ship compliant, close faster — attorney-grade coverage in minutes, not $5,000 in legal bills.
+                </p>
                 <div className="space-y-1.5">
                   {triggers.map((t) => (
                     <div key={t.id}>
