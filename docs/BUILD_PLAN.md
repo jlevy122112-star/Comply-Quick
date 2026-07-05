@@ -123,16 +123,16 @@ payment/E2E integration tests. Shipped as a dedicated hardening PR (§4 step 13)
 
 ## 4. Proposed build order (each = its own PR)
 
-1. **Pricing foundation** — `src/lib/pricing.ts` (`TIER_CONFIG`), rename `single`→`pro` $12/mo subscription, `analytics` events. *(unblocks 2, 5, 6)*
-2. **[Up 1]** Agency billing — seats/scan limits/overage. *(refs PR #14/#15)*
-3. **[Up 3]** Metered API billing — keys, usage, Stripe metered, rate limit, docs. — **needs C-Upload.**
-4. **[Up 5]** Freemium funnel — free-tier caps, paywall triggers, conversion tracking. — **needs C-Scans.**
-5. **[Up 4]** Compliance score improvement path + public score pages + embeddable badges. *(refs PR #10/#13)*
-6. **[Up 8]** Partner program — referrals, 30% recurring, dashboard.
-7. **[Up 7]** Calendar + alerts.
-8. **[Up 9]** Sentry + Slack alerts. *(refs PR #8)* — needs `SENTRY_DSN`, `SLACK_WEBHOOK_URL`.
-9. **[Up 10]** Legal safeguards — disclaimers, ToS liability cap, review-queue tooling.
-10. **[Up 12]** SEO blog engine + initial articles + funnel wiring.
-11. **[Up 11]** PMF tooling — NPS survey, retention/churn dashboards, channel segmentation.
-12. **Verify already-done** — [Up 2] Marketplace (P6), [Up 6] Regulation Autopilot (P2/P4) GDPR/CCPA/HIPAA/ADA coverage. *(refs PR #9/#13/#18)*
-13. **Extra hardening (all 5, owner-approved)** — DB indexes, SSRF scan-URL validation, Redis scan cache, S3/Vercel Blob report storage, payment + E2E integration tests.
+1. ✅ **Pricing foundation** — `src/lib/pricing.ts` (`TIER_CONFIG`), rename `single`→`pro` $12/mo subscription, `analytics` events. — **PR #20 (merged)**
+2. ✅ **[Up 1]** Agency billing — seats/scan limits/overage. — **PR #21 (merged)**
+3. ✅ **[Up 3]** Metered API billing — keys, usage, Stripe metered, rate limit, docs. — **PR #22 (merged)**
+4. ✅ **[Up 5]** Freemium funnel — free-tier caps (1 scan/mo), paywall triggers, conversion tracking. — **PR #24 (merged)**
+5. ✅ **[Up 4]** Compliance score improvement path + public score pages + embeddable badges. — **PR #25 (merged)**
+6. ✅ **[Up 8]** Partner program — referrals, 30% recurring, dashboard. — **PR #26 (merged)**
+7. ✅ **[Up 7]** Calendar + alerts + one-way ICS calendar linking. — **PR #27 (merged)**
+8. ✅ **[Up 9]** Sentry + Slack alerts (live-verified: Sentry ingest + `#revenue-alerts`). — **PR #28 (merged), #29 (slugs)**
+9. ✅ **[Up 10]** Legal safeguards — disclaimers, ToS liability cap, review-queue tooling. — **PR #30 (CI green; awaiting owner legal sign-off before merge)**
+10. ✅ **[Up 12]** SEO blog engine + 3 articles + content→freemium→paid funnel. — **PR #31 (CI green)**
+11. ✅ **[Up 11]** PMF tooling — NPS survey, churn exit survey, retention/channel dashboards. — **PR #32 (CI green)**
+12. ✅ **Verify already-done** — [Up 2] Marketplace (P6, PR #18), [Up 6] Regulation Autopilot (P2/P4, PR #9/#13). *Confirmed present.*
+13. 🟡 **Extra hardening** — ✅ SSRF scan-URL validation, ✅ DB-backed 7-day scan cache, ✅ payment/E2E integration test (**PR #33**); ✅ DB indexes already comprehensive (no migration); ⛔ S3/Vercel Blob report storage **N/A** (reports generated client-side, never server-stored).
