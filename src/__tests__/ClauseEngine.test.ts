@@ -290,6 +290,7 @@ describe("exportToMarkdown", () => {
   it("includes the mandatory disclaimer", () => {
     const md = exportToMarkdown(pkg);
     expect(md).toContain("Comply-Quick is not a law firm");
+    expect(md).toContain("This package is informational only. Consult a legal professional before deployment.");
   });
 
   it("includes enterprise module content when modules are present", () => {
