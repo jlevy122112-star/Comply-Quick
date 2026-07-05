@@ -114,16 +114,16 @@ Build the enabling mechanisms/instrumentation only; numbers not guaranteed.
 review, E&O insurance are human/process items. Scaffold tooling only (survey system, retention
 dashboards, review queue).
 
-**C-Scope (out of the 12-item list) — AWAITING PICK.** Extra codebase improvements in the
-Executive Summary but NOT in the 12 upgrade groups (DB indexes, SSRF scan-URL validation, Redis
-scan cache, S3/Vercel Blob report storage, payment/E2E integration tests). Owner reviewing which
-to pull in.
+**C-Scope (out of the 12-item list) — RESOLVED: pull in ALL 5.** Extra codebase improvements
+in the Executive Summary but NOT in the 12 upgrade groups, now in scope:
+DB indexes, SSRF scan-URL validation, Redis scan cache, S3/Vercel Blob report storage, and
+payment/E2E integration tests. Shipped as a dedicated hardening PR (§4 step 13).
 
 ---
 
 ## 4. Proposed build order (each = its own PR)
 
-1. **Pricing foundation** — `src/lib/pricing.ts` (`TIER_CONFIG`) + `analytics` events. *(unblocks 2, 5, 6)* — **needs C-Pricing.**
+1. **Pricing foundation** — `src/lib/pricing.ts` (`TIER_CONFIG`), rename `single`→`pro` $12/mo subscription, `analytics` events. *(unblocks 2, 5, 6)*
 2. **[Up 1]** Agency billing — seats/scan limits/overage. *(refs PR #14/#15)*
 3. **[Up 3]** Metered API billing — keys, usage, Stripe metered, rate limit, docs. — **needs C-Upload.**
 4. **[Up 5]** Freemium funnel — free-tier caps, paywall triggers, conversion tracking. — **needs C-Scans.**
@@ -135,3 +135,4 @@ to pull in.
 10. **[Up 12]** SEO blog engine + initial articles + funnel wiring.
 11. **[Up 11]** PMF tooling — NPS survey, retention/churn dashboards, channel segmentation.
 12. **Verify already-done** — [Up 2] Marketplace (P6), [Up 6] Regulation Autopilot (P2/P4) GDPR/CCPA/HIPAA/ADA coverage. *(refs PR #9/#13/#18)*
+13. **Extra hardening (all 5, owner-approved)** — DB indexes, SSRF scan-URL validation, Redis scan cache, S3/Vercel Blob report storage, payment + E2E integration tests.
