@@ -6,11 +6,13 @@
 // go through the RLS-scoped server client; the tenant resolver (public landing
 // on a custom domain) uses the admin client since there is no session yet.
 
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getEntitlement } from "@/lib/entitlements";
 import { logger } from "@/services";
 import { UnauthorizedError, ForbiddenError, NotFoundError, ValidationError } from "@/services/errors";
+import { getDomainProvider, type DomainVerification } from "./domain-provider";
 
 const log = logger.child({ module: "agency" });
 
@@ -45,13 +47,15 @@ export interface AgencyDomain {
   domain: string;
   status: "pending" | "verified" | "error";
   verificationToken: string;
+  provider: string | null;
+  dns: DomainVerification[];
   verifiedAt: string | null;
   createdAt: string;
 }
 
 const AGENCY_COLS = "id, owner_id, name, slug, logo_url, primary_color, support_email, created_at";
 const CLIENT_COLS = "id, agency_id, name, contact_email, website_url, notes, status, created_at";
-const DOMAIN_COLS = "id, agency_id, domain, status, verification_token, verified_at, created_at";
+const DOMAIN_COLS = "id, agency_id, domain, status, verification_token, provider, dns, verified_at, created_at";
 
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 
@@ -88,6 +92,8 @@ function mapDomain(row: Record<string, unknown>): AgencyDomain {
     domain: row.domain as string,
     status: (row.status as AgencyDomain["status"]) ?? "pending",
     verificationToken: row.verification_token as string,
+    provider: (row.provider as string | null) ?? null,
+    dns: (row.dns as DomainVerification[] | null) ?? [],
     verifiedAt: (row.verified_at as string | null) ?? null,
     createdAt: row.created_at as string,
   };
@@ -113,8 +119,12 @@ export function slugify(input: string): string {
  * Returns the caller's agency workspace, creating it on first access. Pro-gated
  * (agency/enterprise). The owner is also inserted as an `owner` member row so
  * membership checks are uniform.
+ *
+ * Wrapped in React `cache` so the several callers that run per request (the
+ * portal page and each list helper below all resolve the agency first) share a
+ * single invocation instead of racing to create the row in parallel.
  */
-export async function getOrCreateAgency(): Promise<Agency> {
+export const getOrCreateAgency = cache(async (): Promise<Agency> => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -124,12 +134,17 @@ export async function getOrCreateAgency(): Promise<Agency> {
     throw new ForbiddenError("The client portal is available on the Agency and Enterprise plans.");
   }
 
-  const existing = await supabase.from("agencies").select(AGENCY_COLS).eq("owner_id", user.id).maybeSingle();
+  const owned = async () => supabase.from("agencies").select(AGENCY_COLS).eq("owner_id", user.id).maybeSingle();
+
+  const existing = await owned();
   if (existing.data) return mapAgency(existing.data);
 
-  // Derive a unique slug (retry with a numeric suffix on collision).
+  // Derive a slug and create the workspace. Each user owns at most one agency
+  // (unique owner_id), so a duplicate-key error means either a concurrent
+  // create won the race (from another request/tab) or the slug clashed with a
+  // different owner. Re-read our own row to tell them apart: if it now exists,
+  // use it; otherwise the slug clashed, so retry with a fresh suffix.
   const seed = slugify(user.email?.split("@")[0] ?? "agency");
-  let slug = seed;
   for (let attempt = 0; attempt < 5; attempt++) {
     const candidate = attempt === 0 ? seed : `${seed}-${Math.random().toString(36).slice(2, 6)}`;
     const { data, error } = await supabase
@@ -138,18 +153,19 @@ export async function getOrCreateAgency(): Promise<Agency> {
       .select(AGENCY_COLS)
       .single();
     if (!error && data) {
-      slug = candidate;
       await supabase.from("agency_members").insert({ agency_id: data.id, user_id: user.id, role: "owner" });
-      log.info("Created agency workspace", { agencyId: data.id, slug });
+      log.info("Created agency workspace", { agencyId: data.id, slug: candidate });
       return mapAgency(data);
     }
-    if (error && !error.message.toLowerCase().includes("duplicate")) {
-      log.error("Failed to create agency", { error: error.message });
+    if (!error?.message.toLowerCase().includes("duplicate")) {
+      log.error("Failed to create agency", { error: error?.message });
       throw new Error("Could not create agency workspace.");
     }
+    const mine = await owned();
+    if (mine.data) return mapAgency(mine.data);
   }
-  throw new Error(`Could not allocate a unique agency slug (seed: ${slug}).`);
-}
+  throw new Error(`Could not allocate a unique agency slug (seed: ${seed}).`);
+});
 
 interface BrandingUpdate {
   name?: string;
@@ -361,11 +377,28 @@ export async function addDomain(rawDomain: string): Promise<AgencyDomain> {
   const domain = normalizeDomain(rawDomain);
   if (!isValidDomain(domain)) throw new ValidationError("Enter a valid domain, e.g. compliance.acme.com.");
 
-  const { data, error } = await supabase
-    .from("agency_domains")
-    .insert({ agency_id: agency.id, domain })
-    .select(DOMAIN_COLS)
-    .single();
+  // Register with the active provider (Vercel/Cloudflare) so it issues TLS and
+  // reports the DNS records the client must add. If provisioning fails or no
+  // provider is configured, the domain is still saved as `pending`.
+  const provider = getDomainProvider();
+  const insert: Record<string, unknown> = { agency_id: agency.id, domain };
+  if (provider) {
+    try {
+      const result = await provider.provision(domain);
+      insert.provider = provider.id;
+      insert.dns = result.verifications;
+      insert.status = result.verified ? "verified" : "pending";
+      if (result.verified) insert.verified_at = new Date().toISOString();
+    } catch (err) {
+      log.warn("Domain provisioning failed; saved as pending", {
+        domain,
+        provider: provider.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  const { data, error } = await supabase.from("agency_domains").insert(insert).select(DOMAIN_COLS).single();
   if (error) {
     if (error.message.toLowerCase().includes("duplicate")) {
       throw new ValidationError("That domain is already registered.");
@@ -376,11 +409,66 @@ export async function addDomain(rawDomain: string): Promise<AgencyDomain> {
   return mapDomain(data);
 }
 
+/** Re-checks a domain with the provider and flips it to `verified` once live. */
+export async function verifyDomain(id: string): Promise<AgencyDomain> {
+  const agency = await getOrCreateAgency();
+  const supabase = await createClient();
+  const { data: row } = await supabase
+    .from("agency_domains")
+    .select(DOMAIN_COLS)
+    .eq("id", id)
+    .eq("agency_id", agency.id)
+    .maybeSingle();
+  if (!row) throw new NotFoundError("Domain not found.");
+  const current = mapDomain(row);
+
+  const provider = getDomainProvider();
+  if (!provider) return current;
+
+  let update: Record<string, unknown>;
+  try {
+    const result = await provider.check(current.domain);
+    update = {
+      provider: provider.id,
+      dns: result.verifications,
+      status: result.verified ? "verified" : "pending",
+      verified_at: result.verified ? new Date().toISOString() : null,
+    };
+  } catch (err) {
+    log.warn("Domain verification check failed", {
+      domain: current.domain,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    update = { status: "error" };
+  }
+
+  const { data, error } = await supabase
+    .from("agency_domains")
+    .update(update)
+    .eq("id", id)
+    .eq("agency_id", agency.id)
+    .select(DOMAIN_COLS)
+    .single();
+  if (error || !data) throw new Error("Could not update domain status.");
+  return mapDomain(data);
+}
+
 export async function deleteDomain(id: string): Promise<boolean> {
   const agency = await getOrCreateAgency();
   const supabase = await createClient();
+  const { data: row } = await supabase
+    .from("agency_domains")
+    .select("domain")
+    .eq("id", id)
+    .eq("agency_id", agency.id)
+    .maybeSingle();
+
   const { error } = await supabase.from("agency_domains").delete().eq("id", id).eq("agency_id", agency.id);
-  return !error;
+  if (error) return false;
+
+  const provider = getDomainProvider();
+  if (provider && row?.domain) await provider.remove(row.domain as string);
+  return true;
 }
 
 /**
