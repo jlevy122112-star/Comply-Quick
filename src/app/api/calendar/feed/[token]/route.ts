@@ -25,7 +25,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
       "Content-Disposition": 'inline; filename="comply-quick.ics"',
-      "Cache-Control": "public, max-age=3600",
+      // The token is a revocable capability: resetting it must take effect
+      // immediately, so no shared/browser cache may serve a stale copy.
+      // Calendar apps poll on their own schedule (see REFRESH-INTERVAL in the
+      // body), so `no-cache` costs us nothing but keeps revocation honest.
+      "Cache-Control": "private, no-cache, no-store, must-revalidate",
     },
   });
 }
