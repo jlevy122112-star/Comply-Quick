@@ -1,32 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getStripe } from "@/services";
-
-type Plan = "single" | "agency" | "enterprise";
-type Billing = "monthly" | "annual";
+import { getStripe, analytics } from "@/services";
+import { TIER_CONFIG, isPaidTier, type Billing, type PaidTier } from "@/lib/pricing";
+import { attachReferral } from "@/lib/partners/service";
 
 interface CheckoutRequestBody {
-  plan: Plan;
+  plan: PaidTier;
   billing?: Billing;
 }
-
-// Maps a plan (+ billing cadence for subscriptions) to the Stripe Price env var.
-// The `plan` value is what gets persisted as the entitlement tier by the webhook.
-const PLAN_CONFIG: Record<Plan, { mode: "payment" | "subscription"; priceEnv: Record<Billing, string> }> = {
-  single: {
-    mode: "payment",
-    priceEnv: { monthly: "STRIPE_PRICE_SINGLE", annual: "STRIPE_PRICE_SINGLE" },
-  },
-  agency: {
-    mode: "subscription",
-    priceEnv: { monthly: "STRIPE_PRICE_AGENCY", annual: "STRIPE_PRICE_AGENCY_ANNUAL" },
-  },
-  enterprise: {
-    mode: "subscription",
-    priceEnv: { monthly: "STRIPE_PRICE_ENTERPRISE", annual: "STRIPE_PRICE_ENTERPRISE_ANNUAL" },
-  },
-};
 
 export async function POST(request: NextRequest) {
   const stripe = getStripe();
@@ -63,12 +45,15 @@ export async function POST(request: NextRequest) {
 
   const { plan, billing = "monthly" } = body as CheckoutRequestBody;
 
-  if (!plan || !PLAN_CONFIG[plan]) {
-    return NextResponse.json({ error: "Invalid plan. Must be one of: single, agency, enterprise" }, { status: 400 });
+  if (!plan || !isPaidTier(plan)) {
+    return NextResponse.json({ error: "Invalid plan. Must be one of: pro, agency, enterprise" }, { status: 400 });
   }
 
-  const config = PLAN_CONFIG[plan];
-  const priceEnv = config.priceEnv[billing === "annual" ? "annual" : "monthly"];
+  const config = TIER_CONFIG[plan];
+  const priceEnv = config.priceEnv?.[billing === "annual" ? "annual" : "monthly"];
+  if (!priceEnv) {
+    return NextResponse.json({ error: "Plan is not purchasable." }, { status: 400 });
+  }
   const priceId = process.env[priceEnv];
   if (!priceId) {
     return NextResponse.json(
@@ -81,6 +66,18 @@ export async function POST(request: NextRequest) {
   }
 
   const origin = request.headers.get("origin") ?? "http://localhost:3000";
+
+  // First-touch partner attribution: if this buyer arrived via a referral link,
+  // record it now (before any subscription invoice) so recurring commissions
+  // credit the right partner. Non-fatal — never blocks checkout.
+  const referralCode = request.cookies.get("cq_ref")?.value;
+  if (referralCode) {
+    try {
+      await attachReferral(user.id, referralCode);
+    } catch {
+      /* attribution is best-effort */
+    }
+  }
 
   try {
     // Reuse an existing Stripe customer if we have one recorded for this user.
@@ -104,16 +101,16 @@ export async function POST(request: NextRequest) {
     }
 
     const session = await stripe.checkout.sessions.create({
-      mode: config.mode,
+      mode: "subscription",
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${origin}/dashboard/home?checkout=success`,
       cancel_url: `${origin}/dashboard?checkout=cancelled`,
       metadata: { plan, supabase_user_id: user.id },
-      ...(config.mode === "subscription"
-        ? { subscription_data: { metadata: { plan, supabase_user_id: user.id } } }
-        : {}),
+      subscription_data: { metadata: { plan, supabase_user_id: user.id } },
     });
+
+    analytics.track({ event: "checkout_started", userId: user.id, properties: { plan, billing } });
 
     return NextResponse.json({ url: session.url });
   } catch (err: unknown) {

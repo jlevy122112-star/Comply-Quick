@@ -108,10 +108,10 @@ const QUICK_TOOLS: QuickTool[] = [
     available: true,
   },
   {
-    label: "API Documentation",
-    description: "REST API for automation",
+    label: "Developer API",
+    description: "Keys, usage & docs",
     icon: "⚡",
-    href: "/api/compliance",
+    href: "/dashboard/api",
     available: true,
   },
 ];
@@ -181,18 +181,12 @@ export default function CommandCenterView({ projects, tier, aggregateScore, user
                   ? "bg-amber-500/20 border border-amber-500/30 text-amber-300"
                   : tier === "agency"
                     ? "bg-indigo-500/20 border border-indigo-500/30 text-indigo-300"
-                    : tier === "single"
+                    : tier === "pro"
                       ? "bg-gray-700 text-gray-300"
                       : "bg-gray-800 text-gray-400"
               }`}
             >
-              {tier === "enterprise"
-                ? "Enterprise"
-                : tier === "agency"
-                  ? "Agency"
-                  : tier === "single"
-                    ? "Single"
-                    : "Free"}
+              {tier === "enterprise" ? "Enterprise" : tier === "agency" ? "Agency" : tier === "pro" ? "Pro" : "Free"}
             </span>
             {(tier === "agency" || tier === "enterprise") && (
               <>
@@ -212,6 +206,18 @@ export default function CommandCenterView({ projects, tier, aggregateScore, user
                 </button>
               </>
             )}
+            <Link
+              href="/dashboard/marketplace"
+              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-emerald-500/40 text-emerald-300 text-sm font-medium hover:border-emerald-400 hover:text-emerald-200 transition-colors"
+            >
+              Marketplace
+            </Link>
+            <Link
+              href="/dashboard/partners"
+              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-emerald-500/40 text-emerald-300 text-sm font-medium hover:border-emerald-400 hover:text-emerald-200 transition-colors"
+            >
+              Partners
+            </Link>
             <Link
               href="/dashboard"
               className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors"
@@ -375,13 +381,13 @@ export default function CommandCenterView({ projects, tier, aggregateScore, user
                 Generate compliance packages programmatically via the REST API.
               </p>
               <code className="block text-xs text-indigo-400 bg-gray-800/50 rounded-lg p-3 mb-3 overflow-x-auto">
-                POST /api/compliance
+                POST /api/v1/compliance
               </code>
               <Link
-                href="/api/compliance"
+                href="/dashboard/api"
                 className="text-xs font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
               >
-                View Documentation &rarr;
+                Manage keys & docs &rarr;
               </Link>
             </section>
           </div>

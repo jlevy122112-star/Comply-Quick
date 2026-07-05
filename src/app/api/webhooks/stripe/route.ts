@@ -1,16 +1,89 @@
 import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getStripe, logger } from "@/services";
+import { getStripe, logger, analytics } from "@/services";
+import { isPaidTier, type PaidTier } from "@/lib/pricing";
+import { recordReferralCommission } from "@/lib/partners/service";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 const log = logger.child({ module: "stripe-webhook" });
 
-type Plan = "single" | "agency" | "enterprise";
+type Plan = PaidTier;
 
-function isPlan(value: string | undefined): value is Plan {
-  return value === "single" || value === "agency" || value === "enterprise";
+/** Accepts current plan keys, mapping the retired "single" key to "pro". */
+function toPlan(value: string | undefined): Plan | null {
+  if (value === "single") return "pro";
+  return value && isPaidTier(value) ? value : null;
+}
+
+/**
+ * Marks a marketplace purchase paid and bumps the listing's sales counter. Keyed
+ * on the checkout session id we recorded when the purchase was created pending.
+ */
+async function settleMarketplacePurchase(session: Stripe.Checkout.Session) {
+  const templateId = session.metadata?.marketplace_template_id;
+  const buyerId = session.metadata?.supabase_user_id;
+  if (!templateId || !buyerId) {
+    log.error("Marketplace session missing metadata", { sessionId: session.id });
+    return;
+  }
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("marketplace_purchases")
+    .update({ status: "paid", stripe_session_id: session.id, updated_at: new Date().toISOString() })
+    .eq("template_id", templateId)
+    .eq("buyer_id", buyerId);
+  if (error) {
+    log.error("Failed to settle marketplace purchase", { sessionId: session.id, error: error.message });
+    return;
+  }
+  await admin.rpc("increment_template_sales", { t_id: templateId });
+}
+
+/** Reflects a connected account's charge capability onto the creator profile. */
+async function syncConnectedAccount(account: Stripe.Account) {
+  const admin = createAdminClient();
+  await admin
+    .from("marketplace_creators")
+    .update({ payouts_enabled: account.charges_enabled === true, updated_at: new Date().toISOString() })
+    .eq("stripe_account_id", account.id);
+  // The same connected account may belong to a partner (referral payouts).
+  await admin
+    .from("partners")
+    .update({ payouts_enabled: account.charges_enabled === true, updated_at: new Date().toISOString() })
+    .eq("stripe_account_id", account.id);
+}
+
+/**
+ * Accrues a partner referral commission for a paid subscription invoice. Fires
+ * on every billing cycle (invoice.payment_succeeded), which is what makes the
+ * 30% share recurring. No-op unless the paying customer was referred; idempotent
+ * on the invoice id inside recordReferralCommission.
+ */
+async function accrueReferralCommission(invoice: Stripe.Invoice) {
+  const reason = invoice.billing_reason ?? "";
+  if (!reason.startsWith("subscription")) return; // ignore one-off / marketplace invoices
+  if (!invoice.id || (invoice.amount_paid ?? 0) <= 0) return;
+
+  const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
+  if (!customerId) return;
+
+  // Resolve the paying user from the customer id we recorded at checkout.
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("subscriptions")
+    .select("user_id")
+    .eq("stripe_customer_id", customerId)
+    .maybeSingle();
+  if (!data?.user_id) return;
+
+  await recordReferralCommission({
+    referredUserId: data.user_id,
+    stripeInvoiceId: invoice.id,
+    grossCents: invoice.amount_paid,
+    currency: invoice.currency ?? "usd",
+  });
 }
 
 /**
@@ -80,14 +153,26 @@ export async function POST(request: NextRequest) {
 
   try {
     switch (event.type) {
+      case "account.updated": {
+        await syncConnectedAccount(event.data.object);
+        break;
+      }
+
       case "checkout.session.completed": {
         const session = event.data.object;
-        const plan = session.metadata?.plan;
+
+        // Marketplace purchases carry kind=marketplace and settle a purchase row
+        // instead of a subscription entitlement.
+        if (session.metadata?.kind === "marketplace") {
+          await settleMarketplacePurchase(session);
+          break;
+        }
+
+        const plan = toPlan(session.metadata?.plan);
         const supabaseUserId = session.metadata?.supabase_user_id;
         const customerId = typeof session.customer === "string" ? session.customer : session.customer?.id;
 
-        if (customerId && isPlan(plan)) {
-          // One-time (single) purchases have no subscription; mark active immediately.
+        if (customerId && plan) {
           const subscriptionId = typeof session.subscription === "string" ? session.subscription : null;
           await setEntitlement({
             stripeCustomerId: customerId,
@@ -96,6 +181,7 @@ export async function POST(request: NextRequest) {
             status: "active",
             stripeSubscriptionId: subscriptionId,
           });
+          analytics.track({ event: "checkout_completed", userId: supabaseUserId, properties: { plan } });
         }
         break;
       }
@@ -103,11 +189,11 @@ export async function POST(request: NextRequest) {
       case "customer.subscription.updated":
       case "customer.subscription.created": {
         const subscription = event.data.object;
-        const plan = subscription.metadata?.plan;
+        const plan = toPlan(subscription.metadata?.plan);
         const supabaseUserId = subscription.metadata?.supabase_user_id;
         const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
         const active = subscription.status === "active" || subscription.status === "trialing";
-        if (isPlan(plan)) {
+        if (plan) {
           await setEntitlement({
             stripeCustomerId: customerId,
             supabaseUserId,
@@ -123,12 +209,21 @@ export async function POST(request: NextRequest) {
       case "customer.subscription.deleted": {
         const subscription = event.data.object;
         const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
+        const supabaseUserId = subscription.metadata?.supabase_user_id;
         await setEntitlement({
           stripeCustomerId: customerId,
-          tier: "single",
+          supabaseUserId,
+          // Tier is forced to "free" on cancellation; value here is a placeholder.
+          tier: "pro",
           status: "canceled",
           stripeSubscriptionId: subscription.id,
         });
+        analytics.track({ event: "subscription_canceled", userId: supabaseUserId });
+        break;
+      }
+
+      case "invoice.payment_succeeded": {
+        await accrueReferralCommission(event.data.object);
         break;
       }
 

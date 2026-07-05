@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { computePaywallTriggers } from "@/lib/funnel/triggers";
+import { trackFunnel } from "@/lib/funnel/client";
 import {
   generateCompliancePackage,
   exportToMarkdown,
@@ -15,6 +17,7 @@ import {
 import { MODULE_OPTIONS } from "@/components/EnterpriseModules";
 import { saveProjectAction } from "./actions";
 import type { Tier } from "@/lib/entitlements";
+import { TIER_CONFIG } from "@/lib/pricing";
 
 interface DashboardWizardProps {
   isPremium: boolean;
@@ -101,7 +104,7 @@ export default function DashboardWizard({ isPremium, isAuthenticated }: Dashboar
   // Stripe checkout handler. Requires authentication — unauthenticated users are
   // routed to sign in first, then returned to the wizard.
   const handleCheckout = useCallback(
-    async (plan: "single" | "agency" | "enterprise", billing: "monthly" | "annual" = "monthly") => {
+    async (plan: "pro" | "agency" | "enterprise", billing: "monthly" | "annual" = "monthly") => {
       if (!isAuthenticated) {
         window.location.href = `/login?redirect=${encodeURIComponent("/dashboard")}`;
         return;
@@ -483,6 +486,7 @@ export default function DashboardWizard({ isPremium, isAuthenticated }: Dashboar
                 regionCount={compliancePackage.consumerPrivacyPolicyAddendum.regionalDisclosures.length}
                 hasModules={!!compliancePackage.enterpriseModules && compliancePackage.enterpriseModules.length > 0}
                 pixelCount={compliancePackage.consumerPrivacyPolicyAddendum.scriptDeclarations.length}
+                modules={complianceModules}
                 onCheckout={handleCheckout}
               />
             )}
@@ -652,6 +656,7 @@ function PaywallGate({
   regionCount,
   hasModules,
   pixelCount,
+  modules,
   onCheckout,
 }: {
   clauseCount: number;
@@ -659,11 +664,28 @@ function PaywallGate({
   regionCount: number;
   hasModules: boolean;
   pixelCount: number;
-  onCheckout: (plan: "single" | "agency" | "enterprise", billing?: "monthly" | "annual") => void;
+  modules: ComplianceModule[];
+  onCheckout: (plan: "pro" | "agency" | "enterprise", billing?: "monthly" | "annual") => void;
 }) {
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
-  const agencyPrice = billing === "annual" ? "$290/yr" : "$29/mo";
-  const enterprisePrice = billing === "annual" ? "$990/yr" : "$99/mo";
+
+  const triggers = useMemo(
+    () => computePaywallTriggers({ hasAda: modules.includes("ada_wcag"), hasHipaa: modules.includes("hipaa") }),
+    [modules]
+  );
+
+  useEffect(() => {
+    trackFunnel("paywall_viewed", { surface: "wizard", triggers: triggers.map((t) => t.id).join(",") });
+  }, [triggers]);
+
+  const handleCta = (plan: "pro" | "agency" | "enterprise") => {
+    trackFunnel("upgrade_cta_clicked", { surface: "wizard", plan, billing });
+    onCheckout(plan, billing);
+  };
+  const proPrice = billing === "annual" ? `$${TIER_CONFIG.pro.annual}/yr` : `$${TIER_CONFIG.pro.monthly}/mo`;
+  const agencyPrice = billing === "annual" ? `$${TIER_CONFIG.agency.annual}/yr` : `$${TIER_CONFIG.agency.monthly}/mo`;
+  const enterprisePrice =
+    billing === "annual" ? `$${TIER_CONFIG.enterprise.annual}/yr` : `$${TIER_CONFIG.enterprise.monthly}/mo`;
   return (
     <div className="relative">
       {/* Blurred preview tease — shows what's locked */}
@@ -739,6 +761,24 @@ function PaywallGate({
             {regionCount !== 1 ? "s" : ""} of coverage.
           </p>
 
+          {/* Contextual paywall triggers (missing ADA / HIPAA coverage) */}
+          {triggers.length > 0 && (
+            <div className="mb-4 space-y-2">
+              {triggers.map((t) => (
+                <div
+                  key={t.id}
+                  className="flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 p-2.5"
+                >
+                  <span className="text-amber-400 text-xs mt-0.5">&#9888;</span>
+                  <div>
+                    <p className="text-xs font-medium text-amber-300">{t.headline}</p>
+                    <p className="text-xs text-gray-400">{t.detail}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Pricing anchor */}
           <div className="text-center mb-5">
             <span className="text-xs text-gray-500">Average attorney compliance review: $2,000 &ndash; $5,000</span>
@@ -795,22 +835,22 @@ function PaywallGate({
           <div className="space-y-3">
             <button
               type="button"
-              onClick={() => onCheckout("single")}
+              onClick={() => handleCta("pro")}
               className="w-full py-3.5 px-4 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition-colors relative overflow-hidden group"
             >
-              <span className="relative z-10">Unlock This Package &mdash; $12</span>
+              <span className="relative z-10">Unlock with Pro &mdash; {proPrice}</span>
               <span className="absolute inset-0 bg-white/5 translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-300" />
             </button>
             <button
               type="button"
-              onClick={() => onCheckout("agency", billing)}
+              onClick={() => handleCta("agency")}
               className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold hover:from-purple-500 hover:to-indigo-500 transition-all"
             >
               Unlimited Agency Pass &mdash; {agencyPrice}
             </button>
             <button
               type="button"
-              onClick={() => onCheckout("enterprise", billing)}
+              onClick={() => handleCta("enterprise")}
               className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold hover:from-amber-500 hover:to-orange-500 transition-all"
             >
               Enterprise Tier &mdash; {enterprisePrice}
@@ -824,7 +864,7 @@ function PaywallGate({
               <span>&middot;</span>
               <span>Instant access</span>
             </div>
-            <span className="text-xs text-gray-600">No subscription required on one-time purchases</span>
+            <span className="text-xs text-gray-600">Cancel anytime &middot; billed {billing}</span>
           </div>
         </div>
       </div>

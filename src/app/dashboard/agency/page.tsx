@@ -2,7 +2,15 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getEntitlement } from "@/lib/entitlements";
-import { canUseAgencyPortal, getOrCreateAgency, listClients, listDomains, getClientStats } from "@/lib/agency/service";
+import {
+  canUseAgencyPortal,
+  getOrCreateAgency,
+  listClients,
+  listDomains,
+  getClientStats,
+  listMembers,
+} from "@/lib/agency/service";
+import { getBillingSummary } from "@/lib/billing/usage";
 import AgencyPortalView from "./AgencyPortalView";
 
 export const dynamic = "force-dynamic";
@@ -47,11 +55,13 @@ export default async function AgencyPortalPage() {
     );
   }
 
-  const [agency, clients, domains, stats] = await Promise.all([
+  const [agency, clients, domains, stats, members, billing] = await Promise.all([
     getOrCreateAgency(),
     listClients(),
     listDomains(),
     getClientStats(),
+    listMembers(),
+    getBillingSummary(),
   ]);
 
   return (
@@ -62,6 +72,8 @@ export default async function AgencyPortalPage() {
       stats={stats}
       tier={entitlement.tier}
       appHost={process.env.NEXT_PUBLIC_APP_HOST ?? "comply-quick.vercel.app"}
+      members={members}
+      billing={billing}
     />
   );
 }
