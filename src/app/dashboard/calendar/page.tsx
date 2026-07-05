@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCalendarMonth } from "@/lib/calendar/service";
+import { getOrCreateFeed } from "@/lib/calendar/feed";
 import { canUseAgencyPortal, listClients } from "@/lib/agency/service";
 import { parseDay } from "@/lib/calendar/events";
 import CalendarView from "./CalendarView";
@@ -35,6 +36,7 @@ export default async function CalendarPage({
   const activeClientId = params.client && clients.some((c) => c.id === params.client) ? params.client : null;
 
   const month = await getCalendarMonth(ref, { agencyClientId: activeClientId });
+  const feed = await getOrCreateFeed();
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
@@ -52,6 +54,7 @@ export default async function CalendarPage({
         month={month}
         clients={clients.map((c) => ({ id: c.id, name: c.name }))}
         activeClientId={activeClientId}
+        feedToken={feed.token}
       />
     </div>
   );

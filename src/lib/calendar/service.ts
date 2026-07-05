@@ -182,38 +182,67 @@ export async function getCalendarMonth(
 ): Promise<CalendarMonth> {
   const { supabase, user } = await requireUser();
   const range = monthRange(ref);
+
+  // Client view: only that client's persisted tasks (derived personal events omitted).
+  if (opts.agencyClientId) {
+    const { data: tasks } = await supabase
+      .from("compliance_tasks")
+      .select(TASK_COLS)
+      .eq("user_id", user.id)
+      .eq("agency_client_id", opts.agencyClientId)
+      .gte("due_date", range.gridStart)
+      .lt("due_date", range.gridEnd)
+      .neq("status", "dismissed");
+    return { ...range, events: (tasks ?? []).map((row) => taskToEvent(mapTask(row))) };
+  }
+
+  const events = await collectPersonalEvents(supabase, user.id, range.gridStart, range.gridEnd);
+  return { ...range, events };
+}
+
+/**
+ * A minimal Supabase-like client surface used by {@link collectPersonalEvents},
+ * so it can run against either the RLS session client or the service-role
+ * client (the ICS feed reads with the latter, keyed by user id).
+ */
+type SupabaseLike = { from: (table: string) => any }; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+/**
+ * Collects a user's personal calendar events in `[startInclusive, endExclusive)`:
+ * their non-client tasks plus events derived from renewals, scan schedules, risk
+ * alerts, and regulation notifications. Queries always filter by `userId`, so it
+ * is safe with the service-role client. Shared by the month grid and the ICS feed.
+ */
+export async function collectPersonalEvents(
+  supabase: SupabaseLike,
+  userId: string,
+  startInclusive: string,
+  endExclusive: string
+): Promise<CalendarEvent[]> {
   const events: CalendarEvent[] = [];
 
-  // 1. Persisted tasks in the visible grid (optionally client-scoped).
-  let taskQuery = supabase
+  // 1. Persisted personal tasks (not client-scoped) in the window.
+  const { data: tasks } = await supabase
     .from("compliance_tasks")
     .select(TASK_COLS)
-    .eq("user_id", user.id)
-    .gte("due_date", range.gridStart)
-    .lt("due_date", range.gridEnd)
+    .eq("user_id", userId)
+    .is("agency_client_id", null)
+    .gte("due_date", startInclusive)
+    .lt("due_date", endExclusive)
     .neq("status", "dismissed");
-  taskQuery = opts.agencyClientId
-    ? taskQuery.eq("agency_client_id", opts.agencyClientId)
-    : taskQuery.is("agency_client_id", null);
-  const { data: tasks } = await taskQuery;
   for (const row of tasks ?? []) events.push(taskToEvent(mapTask(row)));
-
-  // Derived events are personal (not client-scoped); skip them in client view.
-  if (opts.agencyClientId) {
-    return { ...range, events };
-  }
 
   // 2. Renewal reminder ← subscription current period end.
   const { data: sub } = await supabase
     .from("subscriptions")
     .select("current_period_end, status, tier")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .maybeSingle();
   if (sub?.current_period_end && sub.status === "active" && sub.tier !== "free") {
     const day = toDayKey(new Date(sub.current_period_end as string));
-    if (inRange(day, range.gridStart, range.gridEnd)) {
+    if (inRange(day, startInclusive, endExclusive)) {
       events.push({
-        id: `renewal:${user.id}`,
+        id: `renewal:${userId}`,
         date: day,
         title: "Subscription renews",
         description: `Your ${sub.tier} plan renews on this date.`,
@@ -231,14 +260,14 @@ export async function getCalendarMonth(
   const { data: monitors } = await supabase
     .from("scan_monitors")
     .select("id, url, label, active, last_scanned_at, created_at")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .eq("active", true);
   for (const m of monitors ?? []) {
     const due = nextScanDue({
       lastScannedAt: (m.last_scanned_at as string | null) ?? null,
       createdAt: m.created_at as string,
     });
-    if (!inRange(due, range.gridStart, range.gridEnd)) continue;
+    if (!inRange(due, startInclusive, endExclusive)) continue;
     const label = (m.label as string) || (m.url as string);
     events.push({
       id: `scan:${m.id as string}:${due}`,
@@ -258,10 +287,10 @@ export async function getCalendarMonth(
   const { data: alerts } = await supabase
     .from("compliance_alerts")
     .select("id, type, severity, title, body, created_at, resolved")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .eq("resolved", false)
-    .gte("created_at", `${range.gridStart}T00:00:00.000Z`)
-    .lt("created_at", `${range.gridEnd}T00:00:00.000Z`);
+    .gte("created_at", `${startInclusive}T00:00:00.000Z`)
+    .lt("created_at", `${endExclusive}T00:00:00.000Z`);
   for (const a of alerts ?? []) {
     events.push({
       id: `alert:${a.id as string}`,
@@ -281,9 +310,9 @@ export async function getCalendarMonth(
   const { data: notes } = await supabase
     .from("notifications")
     .select("id, type, title, body, created_at")
-    .eq("user_id", user.id)
-    .gte("created_at", `${range.gridStart}T00:00:00.000Z`)
-    .lt("created_at", `${range.gridEnd}T00:00:00.000Z`);
+    .eq("user_id", userId)
+    .gte("created_at", `${startInclusive}T00:00:00.000Z`)
+    .lt("created_at", `${endExclusive}T00:00:00.000Z`);
   for (const n of notes ?? []) {
     events.push({
       id: `regulation:${n.id as string}`,
@@ -299,7 +328,7 @@ export async function getCalendarMonth(
     });
   }
 
-  return { ...range, events };
+  return events;
 }
 
 function normalizeSeverity(value: string): CalendarSeverity {

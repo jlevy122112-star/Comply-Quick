@@ -65,10 +65,12 @@ export default function CalendarView({
   month,
   clients,
   activeClientId,
+  feedToken,
 }: {
   month: CalendarMonthData;
   clients: ClientOption[];
   activeClientId: string | null;
+  feedToken: string;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -77,6 +79,48 @@ export default function CalendarView({
   const [title, setTitle] = useState("");
   const [dueDate, setDueDate] = useState(month.monthStart);
   const [category, setCategory] = useState<CalendarCategory>("task");
+
+  // ── One-way calendar linking (ICS subscription) ──
+  const [showLink, setShowLink] = useState(false);
+  const [token, setToken] = useState(feedToken);
+  // Resolved lazily on the client; the link panel that renders it only appears
+  // after hydration (showLink defaults false), so there is no SSR mismatch.
+  const [origin] = useState(() => (typeof window !== "undefined" ? window.location.origin : ""));
+  const [copied, setCopied] = useState(false);
+
+  const feedPath = `/api/calendar/feed/${token}.ics`;
+  const feedUrl = origin ? `${origin}${feedPath}` : feedPath;
+  const webcalUrl = origin ? feedUrl.replace(/^https?:\/\//, "webcal://") : feedPath;
+  const googleUrl = `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcalUrl)}`;
+  const outlookUrl = `https://outlook.live.com/calendar/0/addfromweb?url=${encodeURIComponent(feedUrl)}&name=${encodeURIComponent(
+    "Comply-Quick Compliance"
+  )}`;
+
+  async function copyFeedUrl() {
+    try {
+      await navigator.clipboard.writeText(feedUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError("Could not copy the URL — select and copy it manually.");
+    }
+  }
+
+  async function rotateFeed() {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/calendar/feed", { method: "POST" });
+      if (!res.ok) throw new Error("Could not rotate the feed URL.");
+      const data = await res.json();
+      setToken(data.feed.token);
+      setCopied(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not rotate the feed URL.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   const buckets = useMemo(() => bucketByDay(month.events), [month.events]);
   const days = useMemo(() => gridDays(month.gridStart, month.gridEnd), [month.gridStart, month.gridEnd]);
@@ -186,8 +230,93 @@ export default function CalendarView({
           >
             + Add task
           </button>
+          <button
+            type="button"
+            onClick={() => setShowLink((v) => !v)}
+            className="px-4 py-2 rounded-lg border border-gray-700 text-gray-300 text-sm font-medium hover:border-gray-500 hover:text-white transition-colors"
+          >
+            Link calendar
+          </button>
         </div>
       </div>
+
+      {showLink && (
+        <div className="mb-6 rounded-xl border border-gray-800 bg-gray-900/50 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-white">Link to your calendar</h2>
+              <p className="text-xs text-gray-400 mt-1 max-w-xl">
+                Subscribe from Google, Outlook, or Apple Calendar to see your compliance deadlines, renewals, and scan
+                dates alongside your other events. Updates flow one way (into your calendar) and refresh automatically.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowLink(false)}
+              className="text-gray-500 hover:text-gray-300 text-sm"
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <a
+              href={googleUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-2 rounded-lg border border-gray-700 text-sm text-gray-200 hover:border-sky-500 hover:text-white transition-colors"
+            >
+              Add to Google
+            </a>
+            <a
+              href={outlookUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-2 rounded-lg border border-gray-700 text-sm text-gray-200 hover:border-sky-500 hover:text-white transition-colors"
+            >
+              Add to Outlook
+            </a>
+            <a
+              href={webcalUrl}
+              className="px-3 py-2 rounded-lg border border-gray-700 text-sm text-gray-200 hover:border-sky-500 hover:text-white transition-colors"
+            >
+              Add to Apple Calendar
+            </a>
+          </div>
+
+          <div className="mt-4">
+            <span className="block text-xs text-gray-400 mb-1">Subscription URL (ICS)</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                readOnly
+                value={feedUrl}
+                onFocus={(e) => e.currentTarget.select()}
+                className="flex-1 min-w-[16rem] rounded-lg bg-gray-950 border border-gray-700 px-3 py-2 text-xs text-gray-300 font-mono focus:border-sky-500 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={copyFeedUrl}
+                className="px-3 py-2 rounded-lg bg-sky-600 text-white text-sm font-medium hover:bg-sky-500 transition-colors"
+              >
+                {copied ? "Copied!" : "Copy"}
+              </button>
+              <button
+                type="button"
+                onClick={rotateFeed}
+                disabled={busy}
+                className="px-3 py-2 rounded-lg border border-gray-700 text-gray-300 text-sm hover:border-red-500 hover:text-red-300 transition-colors disabled:opacity-50"
+                title="Generate a new URL and disable the old one"
+              >
+                Reset URL
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Anyone with this link can view your calendar events. Reset it if it is ever exposed.
+            </p>
+          </div>
+        </div>
+      )}
 
       {clients.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 mb-4">
