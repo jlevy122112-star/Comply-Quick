@@ -1,0 +1,499 @@
+"use client";
+
+import { useState, useCallback } from "react";
+import Link from "next/link";
+import type { Tier } from "@/lib/entitlements";
+import type { Agency, AgencyClient, AgencyDomain, ClientStats } from "@/lib/agency/service";
+
+interface Props {
+  agency: Agency;
+  clients: AgencyClient[];
+  domains: AgencyDomain[];
+  stats: Record<string, ClientStats>;
+  tier: Tier;
+  appHost: string;
+}
+
+type Tab = "clients" | "branding" | "domains";
+
+export default function AgencyPortalView({
+  agency: initialAgency,
+  clients: initialClients,
+  domains: initialDomains,
+  stats,
+  tier,
+  appHost,
+}: Props) {
+  const [tab, setTab] = useState<Tab>("clients");
+  const [agency, setAgency] = useState(initialAgency);
+  const [clients, setClients] = useState(initialClients);
+  const [domains, setDomains] = useState(initialDomains);
+
+  return (
+    <div className="min-h-screen bg-gray-950 text-gray-100" style={{ ["--brand" as string]: agency.primaryColor }}>
+      <header className="border-b border-gray-800/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard/home" className="text-lg font-bold text-white tracking-tight">
+              Comply-Quick
+            </Link>
+            <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-xs font-medium text-indigo-300">
+              Agency Portal
+            </span>
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-800 text-gray-300">
+              {tier === "enterprise" ? "Enterprise" : "Agency"}
+            </span>
+          </div>
+          <Link href="/dashboard/home" className="text-sm text-gray-400 hover:text-white transition-colors">
+            &larr; Command Center
+          </Link>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        <div className="flex items-center gap-3">
+          <div
+            className="h-11 w-11 rounded-xl flex items-center justify-center text-lg font-bold text-white shrink-0"
+            style={{ backgroundColor: agency.primaryColor }}
+          >
+            {agency.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={agency.logoUrl} alt={agency.name} className="h-11 w-11 rounded-xl object-cover" />
+            ) : (
+              agency.name.charAt(0).toUpperCase()
+            )}
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-white">{agency.name}</h1>
+            <p className="text-xs text-gray-500">
+              {clients.length} client{clients.length !== 1 ? "s" : ""} · workspace <code>{agency.slug}</code>
+            </p>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 border-b border-gray-800">
+          {(["clients", "branding", "domains"] as Tab[]).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTab(t)}
+              className={`px-4 py-2 text-sm font-medium capitalize transition-colors border-b-2 -mb-px ${
+                tab === t ? "border-indigo-500 text-white" : "border-transparent text-gray-400 hover:text-gray-200"
+              }`}
+            >
+              {t === "domains" ? "Custom Domains" : t}
+            </button>
+          ))}
+        </div>
+
+        {tab === "clients" && <ClientsTab clients={clients} setClients={setClients} stats={stats} />}
+        {tab === "branding" && <BrandingTab agency={agency} setAgency={setAgency} />}
+        {tab === "domains" && (
+          <DomainsTab domains={domains} setDomains={setDomains} slug={agency.slug} appHost={appHost} />
+        )}
+      </main>
+    </div>
+  );
+}
+
+function scoreColor(score: number | null): string {
+  if (score === null) return "text-gray-500";
+  return score >= 80 ? "text-emerald-400" : score >= 60 ? "text-yellow-400" : "text-red-400";
+}
+
+// ─── Clients ───────────────────────────────────────────────────────────────
+
+function ClientsTab({
+  clients,
+  setClients,
+  stats,
+}: {
+  clients: AgencyClient[];
+  setClients: React.Dispatch<React.SetStateAction<AgencyClient[]>>;
+  stats: Record<string, ClientStats>;
+}) {
+  const [name, setName] = useState("");
+  const [website, setWebsite] = useState("");
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const addClient = useCallback(async () => {
+    if (name.trim().length === 0) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/agency/clients", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name, websiteUrl: website, contactEmail: email }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? "Could not add client.");
+      setClients((prev) => [data.client, ...prev]);
+      setName("");
+      setWebsite("");
+      setEmail("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not add client.");
+    } finally {
+      setBusy(false);
+    }
+  }, [name, website, email, setClients]);
+
+  const removeClient = useCallback(
+    async (id: string) => {
+      setClients((prev) => prev.filter((c) => c.id !== id));
+      await fetch(`/api/agency/clients/${id}`, { method: "DELETE" });
+    },
+    [setClients]
+  );
+
+  return (
+    <div className="space-y-6">
+      <section className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+        <h2 className="text-sm font-semibold text-white mb-3">Add a client</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Client name *"
+            className="px-3 py-2 rounded-lg bg-gray-950 border border-gray-700 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none"
+          />
+          <input
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            placeholder="https://client-site.com"
+            className="px-3 py-2 rounded-lg bg-gray-950 border border-gray-700 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none"
+          />
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="contact@client.com"
+            className="px-3 py-2 rounded-lg bg-gray-950 border border-gray-700 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none"
+          />
+        </div>
+        <div className="flex items-center gap-3 mt-3">
+          <button
+            type="button"
+            onClick={addClient}
+            disabled={busy || name.trim().length === 0}
+            className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors disabled:opacity-40"
+          >
+            {busy ? "Adding…" : "Add client"}
+          </button>
+          {error && <span className="text-sm text-red-400">{error}</span>}
+        </div>
+      </section>
+
+      {clients.length === 0 ? (
+        <div className="bg-gray-900 border border-gray-800 border-dashed rounded-xl p-8 text-center text-sm text-gray-500">
+          No clients yet. Add your first client above to start managing their compliance.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {clients.map((c) => {
+            const s = stats[c.id] ?? { monitors: 0, projects: 0, lowestScore: null };
+            return (
+              <div
+                key={c.id}
+                className="bg-gray-900 border border-gray-800 rounded-xl p-4 hover:border-gray-700 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-semibold text-white truncate">{c.name}</h3>
+                    {c.websiteUrl && <p className="text-xs text-gray-500 truncate">{c.websiteUrl}</p>}
+                  </div>
+                  {c.status === "archived" && (
+                    <span className="px-2 py-0.5 rounded-full bg-gray-800 text-xs text-gray-400">Archived</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-800 text-xs text-gray-400">
+                  <span>
+                    {s.monitors} monitor{s.monitors !== 1 ? "s" : ""}
+                  </span>
+                  <span>
+                    {s.projects} project{s.projects !== 1 ? "s" : ""}
+                  </span>
+                  <span className={`ml-auto font-semibold ${scoreColor(s.lowestScore)}`}>
+                    {s.lowestScore === null ? "—" : `${s.lowestScore}`}
+                  </span>
+                </div>
+                <div className="mt-3 text-right">
+                  <button
+                    type="button"
+                    onClick={() => removeClient(c.id)}
+                    className="text-xs text-gray-500 hover:text-red-400 transition-colors"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Branding ──────────────────────────────────────────────────────────────
+
+function BrandingTab({
+  agency,
+  setAgency,
+}: {
+  agency: Agency;
+  setAgency: React.Dispatch<React.SetStateAction<Agency>>;
+}) {
+  const [name, setName] = useState(agency.name);
+  const [logoUrl, setLogoUrl] = useState(agency.logoUrl ?? "");
+  const [primaryColor, setPrimaryColor] = useState(agency.primaryColor);
+  const [supportEmail, setSupportEmail] = useState(agency.supportEmail ?? "");
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const save = useCallback(async () => {
+    setBusy(true);
+    setSaved(false);
+    setError(null);
+    try {
+      const res = await fetch("/api/agency", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name, logoUrl, primaryColor, supportEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? "Could not save branding.");
+      setAgency(data.agency);
+      setSaved(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not save branding.");
+    } finally {
+      setBusy(false);
+    }
+  }, [name, logoUrl, primaryColor, supportEmail, setAgency]);
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <section className="bg-gray-900 border border-gray-800 rounded-2xl p-5 space-y-4">
+        <h2 className="text-sm font-semibold text-white">White-label branding</h2>
+        <Field label="Agency name">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg bg-gray-950 border border-gray-700 text-sm text-white focus:border-indigo-500 focus:outline-none"
+          />
+        </Field>
+        <Field label="Logo URL">
+          <input
+            value={logoUrl}
+            onChange={(e) => setLogoUrl(e.target.value)}
+            placeholder="https://…/logo.png"
+            className="w-full px-3 py-2 rounded-lg bg-gray-950 border border-gray-700 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none"
+          />
+        </Field>
+        <Field label="Primary color">
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              value={primaryColor}
+              onChange={(e) => setPrimaryColor(e.target.value)}
+              className="h-9 w-12 rounded bg-transparent border border-gray-700"
+            />
+            <input
+              value={primaryColor}
+              onChange={(e) => setPrimaryColor(e.target.value)}
+              className="w-28 px-3 py-2 rounded-lg bg-gray-950 border border-gray-700 text-sm text-white focus:border-indigo-500 focus:outline-none"
+            />
+          </div>
+        </Field>
+        <Field label="Support email">
+          <input
+            value={supportEmail}
+            onChange={(e) => setSupportEmail(e.target.value)}
+            placeholder="support@youragency.com"
+            className="w-full px-3 py-2 rounded-lg bg-gray-950 border border-gray-700 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none"
+          />
+        </Field>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={save}
+            disabled={busy}
+            className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors disabled:opacity-40"
+          >
+            {busy ? "Saving…" : "Save branding"}
+          </button>
+          {saved && <span className="text-sm text-emerald-400">Saved ✓</span>}
+          {error && <span className="text-sm text-red-400">{error}</span>}
+        </div>
+      </section>
+
+      <section className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+        <h2 className="text-sm font-semibold text-white mb-4">Preview</h2>
+        <div className="rounded-xl border border-gray-800 overflow-hidden">
+          <div className="px-4 py-3 flex items-center gap-3" style={{ backgroundColor: primaryColor }}>
+            <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center text-white font-bold">
+              {logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logoUrl} alt="logo" className="h-8 w-8 rounded-lg object-cover" />
+              ) : (
+                (name || "A").charAt(0).toUpperCase()
+              )}
+            </div>
+            <span className="text-white font-semibold text-sm">{name || "Your Agency"}</span>
+          </div>
+          <div className="p-4 bg-gray-950">
+            <p className="text-sm text-gray-300 mb-3">Client compliance dashboard</p>
+            <button
+              type="button"
+              className="px-3 py-1.5 rounded-lg text-white text-sm font-medium"
+              style={{ backgroundColor: primaryColor }}
+            >
+              Run scan
+            </button>
+            <p className="text-xs text-gray-600 mt-4">Support: {supportEmail || "support@youragency.com"}</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="block text-xs text-gray-400 mb-1">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+// ─── Domains ───────────────────────────────────────────────────────────────
+
+function DomainsTab({
+  domains,
+  setDomains,
+  slug,
+  appHost,
+}: {
+  domains: AgencyDomain[];
+  setDomains: React.Dispatch<React.SetStateAction<AgencyDomain[]>>;
+  slug: string;
+  appHost: string;
+}) {
+  const [domain, setDomain] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const add = useCallback(async () => {
+    if (domain.trim().length === 0) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/agency/domains", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ domain }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? "Could not add domain.");
+      setDomains((prev) => [data.domain, ...prev]);
+      setDomain("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not add domain.");
+    } finally {
+      setBusy(false);
+    }
+  }, [domain, setDomains]);
+
+  const remove = useCallback(
+    async (id: string) => {
+      setDomains((prev) => prev.filter((d) => d.id !== id));
+      await fetch(`/api/agency/domains/${id}`, { method: "DELETE" });
+    },
+    [setDomains]
+  );
+
+  const statusStyle: Record<AgencyDomain["status"], string> = {
+    pending: "bg-yellow-500/10 text-yellow-400",
+    verified: "bg-emerald-500/10 text-emerald-400",
+    error: "bg-red-500/10 text-red-400",
+  };
+
+  return (
+    <div className="space-y-6">
+      <section className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+        <h2 className="text-sm font-semibold text-white mb-1">Custom domains</h2>
+        <p className="text-xs text-gray-500 mb-3">
+          Serve the white-label portal on your client&apos;s own domain. Add it here, then point a CNAME at{" "}
+          <code className="text-indigo-400">{appHost}</code>. It stays <em>pending</em> until DNS + certificate are
+          verified.
+        </p>
+        <div className="flex gap-3">
+          <input
+            value={domain}
+            onChange={(e) => setDomain(e.target.value)}
+            placeholder="compliance.acme.com"
+            className="flex-1 px-3 py-2 rounded-lg bg-gray-950 border border-gray-700 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={add}
+            disabled={busy || domain.trim().length === 0}
+            className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors disabled:opacity-40"
+          >
+            {busy ? "Adding…" : "Add domain"}
+          </button>
+        </div>
+        {error && <p className="text-sm text-red-400 mt-2">{error}</p>}
+      </section>
+
+      {domains.length === 0 ? (
+        <div className="bg-gray-900 border border-gray-800 border-dashed rounded-xl p-8 text-center text-sm text-gray-500">
+          No custom domains yet. Your portal is available at{" "}
+          <code className="text-indigo-400">
+            {appHost}/portal/{slug}
+          </code>
+          .
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {domains.map((d) => (
+            <div key={d.id} className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-white truncate">{d.domain}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    CNAME → <code className="text-gray-400">{appHost}</code>
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${statusStyle[d.status]}`}>
+                    {d.status}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => remove(d.id)}
+                    className="text-xs text-gray-500 hover:text-red-400 transition-colors"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+              {d.status === "pending" && (
+                <p className="text-xs text-gray-600 mt-2 pt-2 border-t border-gray-800">
+                  Add a TXT record <code className="text-gray-400">_comply-verify.{d.domain}</code> ={" "}
+                  <code className="text-gray-400">{d.verificationToken}</code> to verify ownership.
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
