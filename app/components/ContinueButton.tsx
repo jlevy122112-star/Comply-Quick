@@ -1,5 +1,6 @@
 // app/components/ContinueButton.tsx
 import React from 'react';
++import { copyToClipboard } from "@/app/lib/utils/copyToClipboard";
 
 interface ContinueButtonProps {
   onClick: () => void;
