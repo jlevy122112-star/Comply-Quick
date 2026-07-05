@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { computePaywallTriggers } from "@/lib/funnel/triggers";
+import { computeImprovementPath } from "@/lib/score/improvement";
 import { trackFunnel } from "@/lib/funnel/client";
 
 interface DetectedTool {
@@ -59,6 +60,9 @@ export default function ScannerPanel() {
   const [history, setHistory] = useState<ScanRecord[]>([]);
   const [quota, setQuota] = useState<Quota | null>(null);
   const [active, setActive] = useState<ScanRecord | null>(null);
+  const [published, setPublished] = useState<{ scanId: string; slug: string } | null>(null);
+  const [publishing, setPublishing] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -130,6 +134,45 @@ export default function ScannerPanel() {
       trackFunnel("paywall_viewed", { surface: "scanner", triggers: triggers.map((t) => t.id).join(",") });
     }
   }, [triggers]);
+
+  // Ordered remediation plan for the active scan (highest-impact fixes first).
+  const improvement = useMemo(() => {
+    if (!active || active.score === null) return null;
+    return computeImprovementPath(active.score, active.findings);
+  }, [active]);
+
+  const publish = useCallback(async () => {
+    if (!active?.id) return;
+    setPublishing(true);
+    try {
+      const res = await fetch("/api/score/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scanId: active.id, label: active.url }),
+      });
+      const data = await res.json();
+      if (res.ok && data.published?.slug) setPublished({ scanId: active.id, slug: data.published.slug });
+    } catch {
+      /* non-fatal */
+    } finally {
+      setPublishing(false);
+    }
+  }, [active]);
+
+  // Only surface a published slug for the scan it belongs to.
+  const publishedSlug = published && published.scanId === active?.id ? published.slug : null;
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const embedSnippet = publishedSlug
+    ? `<a href="${origin}/score/${publishedSlug}"><img src="${origin}/api/badge/${publishedSlug}?variant=certified" alt="Comply-Quick Certified" /></a>`
+    : "";
+
+  const copyEmbed = useCallback(() => {
+    if (!embedSnippet) return;
+    navigator.clipboard.writeText(embedSnippet).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [embedSnippet]);
 
   return (
     <section>
@@ -235,6 +278,74 @@ export default function ScannerPanel() {
                 </Link>
               </div>
             )}
+
+            {improvement && improvement.steps.length > 0 && (
+              <div className="mt-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-gray-300">Improvement path</p>
+                  <p className="text-xs text-gray-500">
+                    {improvement.currentScore} &rarr;{" "}
+                    <span className="font-semibold text-emerald-400">{improvement.potentialScore}</span> potential
+                  </p>
+                </div>
+                <ol className="mt-2 space-y-1.5">
+                  {improvement.steps.map((s) => (
+                    <li
+                      key={s.findingId}
+                      className="flex items-center justify-between gap-3 rounded-lg bg-gray-800/50 border border-gray-700 px-3 py-2"
+                    >
+                      <span className="text-xs text-gray-300">{s.recommendation}</span>
+                      <span className="shrink-0 text-xs font-semibold text-emerald-400">+{s.scoreGain} pts</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
+            <div className="mt-4 border-t border-gray-800 pt-4">
+              {!publishedSlug ? (
+                <button
+                  type="button"
+                  onClick={publish}
+                  disabled={publishing}
+                  className="px-4 py-2 rounded-lg border border-gray-700 text-gray-200 text-xs font-medium hover:border-gray-500 transition-colors disabled:opacity-40"
+                >
+                  {publishing ? "Publishing\u2026" : "Publish public score page & badge"}
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-400">
+                    Public page:{" "}
+                    <a
+                      href={`/score/${publishedSlug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-indigo-400 hover:text-indigo-300"
+                    >
+                      /score/{publishedSlug}
+                    </a>
+                  </p>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- dynamic SVG badge from an API route, not a static asset */}
+                  <img
+                    src={`/api/badge/${publishedSlug}?variant=certified`}
+                    alt="Comply-Quick Certified badge"
+                    height={20}
+                  />
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 truncate rounded bg-gray-800 border border-gray-700 px-2 py-1 text-[11px] text-gray-400">
+                      {embedSnippet}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={copyEmbed}
+                      className="shrink-0 px-3 py-1 rounded-lg text-xs font-medium border border-gray-700 text-gray-300 hover:border-gray-500 transition-colors"
+                    >
+                      {copied ? "Copied!" : "Copy embed"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

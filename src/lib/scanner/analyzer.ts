@@ -97,7 +97,7 @@ const FINGERPRINTS: Fingerprint[] = [
   { id: "osano", name: "Osano", category: "consent", patterns: [/cmp\.osano\.com/i] },
 ];
 
-const SEVERITY_PENALTY: Record<Severity, number> = { info: 3, warning: 12, critical: 25 };
+export const SEVERITY_PENALTY: Record<Severity, number> = { info: 3, warning: 12, critical: 25 };
 
 /**
  * Fingerprints the third-party tools referenced in the page.

@@ -213,6 +213,12 @@ export default function CommandCenterView({ projects, tier, aggregateScore, user
               Marketplace
             </Link>
             <Link
+              href="/dashboard/partners"
+              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-emerald-500/40 text-emerald-300 text-sm font-medium hover:border-emerald-400 hover:text-emerald-200 transition-colors"
+            >
+              Partners
+            </Link>
+            <Link
               href="/dashboard"
               className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors"
             >
