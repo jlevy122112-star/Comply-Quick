@@ -142,6 +142,7 @@ function TeamTab({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const seatsUsed = members.length;
   const seatLabel = Number.isFinite(billing.seats.limit) ? String(billing.seats.limit) : "Unlimited";
   const scanLabel = Number.isFinite(billing.scans.limit) ? String(billing.scans.limit) : "Unlimited";
   const overageDollars = (billing.scans.overageCents / 100).toFixed(2);
@@ -183,10 +184,10 @@ function TeamTab({
           <div className="flex items-baseline justify-between">
             <h2 className="text-sm font-semibold text-white">Seats</h2>
             <span className="text-xs text-gray-500">
-              {billing.seats.used} / {seatLabel}
+              {seatsUsed} / {seatLabel}
             </span>
           </div>
-          <UsageBar used={billing.seats.used} limit={billing.seats.limit} />
+          <UsageBar used={seatsUsed} limit={billing.seats.limit} />
           <p className="mt-2 text-xs text-gray-500">Team members with access to this workspace.</p>
         </div>
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
