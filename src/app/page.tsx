@@ -259,6 +259,11 @@ export default function LandingPage() {
             &copy; {new Date().getFullYear()} Comply-Quick. All rights reserved. This tool does not constitute legal
             advice.
           </p>
+          <p className="mt-2 text-xs text-gray-500">
+            <Link href="/blog" className="hover:text-gray-300 transition-colors">
+              Compliance Guides
+            </Link>
+          </p>
         </div>
       </footer>
     </div>
