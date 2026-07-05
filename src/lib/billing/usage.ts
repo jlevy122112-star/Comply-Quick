@@ -45,6 +45,12 @@ export function currentPeriod(now: Date = new Date()): string {
   return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
+/** Previous calendar-month bucket in UTC, e.g. "2026-06" when now is July. */
+export function previousPeriod(now: Date = new Date()): string {
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+  return currentPeriod(d);
+}
+
 /** UTC start-of-month ISO timestamp for the given period bucket. */
 function periodStartIso(period: string): string {
   const [year, month] = period.split("-").map(Number);
