@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
+import * as Sentry from "@sentry/nextjs";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getStripe, logger, analytics } from "@/services";
+import { getStripe, logger, analytics, sendRevenueAlert } from "@/services";
 import { isPaidTier, type PaidTier } from "@/lib/pricing";
 import { recordReferralCommission } from "@/lib/partners/service";
 
@@ -129,6 +130,19 @@ async function setEntitlement(params: {
   );
 }
 
+/** Formats a Stripe minor-unit amount (e.g. cents) as a currency string. */
+function formatAmount(amount: number | null | undefined, currency: string | null | undefined): string {
+  if (amount == null) return "unknown";
+  const value = amount / 100;
+  const code = (currency ?? "usd").toUpperCase();
+  return `${value.toFixed(2)} ${code}`;
+}
+
+function customerIdOf(customer: string | { id: string } | null | undefined): string | undefined {
+  if (!customer) return undefined;
+  return typeof customer === "string" ? customer : customer.id;
+}
+
 export async function POST(request: NextRequest) {
   const stripe = getStripe();
 
@@ -148,6 +162,7 @@ export async function POST(request: NextRequest) {
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Signature verification failed";
+    log.error("Webhook signature verification failed", { message });
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
@@ -229,14 +244,44 @@ export async function POST(request: NextRequest) {
 
       case "invoice.payment_failed": {
         const invoice = event.data.object;
-        const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
-        if (customerId) {
+        const customer = customerIdOf(invoice.customer);
+        if (customer) {
           const admin = createAdminClient();
           await admin
             .from("subscriptions")
             .update({ status: "past_due", updated_at: new Date().toISOString() })
-            .eq("stripe_customer_id", customerId);
+            .eq("stripe_customer_id", customer);
         }
+        const amount = formatAmount(invoice.amount_due, invoice.currency);
+        log.warn("Invoice payment failed", { customer, amount, attempt: invoice.attempt_count });
+        await sendRevenueAlert({
+          title: "Invoice payment failed",
+          message: `A subscription invoice failed to collect (${amount}). The account was marked past_due.`,
+          fields: {
+            Customer: customer,
+            Amount: amount,
+            Attempt: invoice.attempt_count ?? undefined,
+            Invoice: invoice.id,
+          },
+        });
+        break;
+      }
+
+      case "charge.failed": {
+        const charge = event.data.object;
+        const customer = customerIdOf(charge.customer);
+        const amount = formatAmount(charge.amount, charge.currency);
+        log.warn("Charge failed", { customer, amount, reason: charge.failure_message });
+        await sendRevenueAlert({
+          title: "Charge failed",
+          message: charge.failure_message ?? "A charge could not be completed.",
+          fields: {
+            Customer: customer,
+            Amount: amount,
+            Reason: charge.failure_code ?? charge.failure_message ?? undefined,
+            Charge: charge.id,
+          },
+        });
         break;
       }
 
@@ -246,6 +291,7 @@ export async function POST(request: NextRequest) {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Webhook handler error";
     log.error("Webhook handler failed", { eventType: event.type, message });
+    Sentry.captureException(err, { tags: { module: "stripe-webhook", eventType: event.type } });
     return NextResponse.json({ error: message }, { status: 500 });
   }
 

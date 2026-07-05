@@ -77,7 +77,7 @@ services layer** beneath it and **feature modules** above it. Modules never call
                             │                                │                  │
             ┌───────────────┴────────────────────────────────┴──────────────────┴──────────┐
             │  Shared services (@/services): logger · errors/Result · rate-limit ·          │
-            │  api-response · stripe client                                                 │
+            │  api-response · stripe client · slack alerts · Sentry (instrumentation)       │
             └───────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -90,10 +90,19 @@ services layer** beneath it and **feature modules** above it. Modules never call
 | `services/rate-limit.ts` | `RateLimiter` interface + `InMemoryRateLimiter` (fixed window, injectable clock). Swap for Upstash/Durable Objects when multi-instance. |
 | `services/api-response.ts` | Next glue: `errorResponse(err)`, `enforceRateLimit(result)`, `rateLimitHeaders(result)`. Kept separate so errors/rate-limit stay framework-agnostic (reusable in Edge Functions). |
 | `services/stripe/client.ts` | Memoized `getStripe()` (was duplicated across 3 routes). One place for API version + future Connect config. |
+| `services/slack.ts` | `SlackClient` / `sendRevenueAlert()` → Slack Incoming Webhook (`#revenue-alerts`). Env-gated on `SLACK_WEBHOOK_URL` (or `SLACK_REVENUE_WEBHOOK_URL`); never throws, so it is safe on the webhook hot path. Delivers on `charge.failed` + `invoice.payment_failed`. |
+| `sentry.{server,edge}.config.ts` + `instrumentation*.ts` | Sentry error/perf monitoring, loaded via the Next instrumentation hook. Env-gated on `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` (inert without them). `errorResponse()` reports every API 5xx; webhook + checkout capture explicitly. Source maps upload only when `SENTRY_AUTH_TOKEN` is set. |
 
 Reference integration: `api/compliance` now rate-limits per client
 (`30 req / 60s`), attaches `X-RateLimit-*` headers, and logs generations. The
-Stripe webhook logs through the structured logger.
+Stripe webhook logs through the structured logger, captures handler exceptions
+to Sentry, and fires Slack revenue alerts on `charge.failed` /
+`invoice.payment_failed`.
+
+**Observability env vars:** `SENTRY_DSN` (server/edge), `NEXT_PUBLIC_SENTRY_DSN`
+(browser), optional `SENTRY_ORG`/`SENTRY_PROJECT`/`SENTRY_AUTH_TOKEN` (source-map
+upload on deploy), `SLACK_WEBHOOK_URL` or `SLACK_REVENUE_WEBHOOK_URL`,
+`LOG_LEVEL`. All alerting is inert when the corresponding var is unset.
 
 ### 2.2 Data model direction
 
