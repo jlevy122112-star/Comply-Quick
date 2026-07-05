@@ -95,10 +95,13 @@ export function isValidCategory(value: string): value is TemplateCategory {
 
 /** Turns a listing title into a URL-safe slug seed (empty → "template"). */
 export function slugifyTitle(input: string): string {
+  // The first replace collapses every run of non-alphanumerics to a single "-",
+  // so at most one leading/trailing dash can exist — trimming a single dash (no
+  // "+") avoids the polynomial backtracking CodeQL flags on user input.
   const base = input
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
+    .replace(/^-|-$/g, "")
     .slice(0, 60);
   return base || "template";
 }
