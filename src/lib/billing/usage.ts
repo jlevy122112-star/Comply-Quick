@@ -52,7 +52,7 @@ export function previousPeriod(now: Date = new Date()): string {
 }
 
 /** UTC start-of-month ISO timestamp for the given period bucket. */
-function periodStartIso(period: string): string {
+export function periodStartIso(period: string): string {
   const [year, month] = period.split("-").map(Number);
   return new Date(Date.UTC(year, month - 1, 1)).toISOString();
 }
