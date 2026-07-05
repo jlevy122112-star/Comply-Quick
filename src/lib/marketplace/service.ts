@@ -8,21 +8,26 @@
 
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getEntitlement } from "@/lib/entitlements";
 import { logger } from "@/services";
 import { UnauthorizedError, ForbiddenError, NotFoundError, ValidationError } from "@/services/errors";
 import {
   isValidCategory,
+  isValidType,
   isValidPrice,
   slugifyTitle,
   normalizeSearch,
   type TemplateCategory,
+  type TemplateType,
   type TemplateContent,
   type Creator,
   type Template,
   type TemplateListing,
   type Purchase,
   type TemplateInput,
+  type CreatorEarnings,
+  type MarketplaceRevenue,
 } from "./shared";
 
 // Re-export the server-free types/helpers so existing importers of this module
@@ -33,7 +38,11 @@ const log = logger.child({ module: "marketplace" });
 
 const CREATOR_COLS = "id, user_id, display_name, slug, bio, stripe_account_id, payouts_enabled, created_at";
 const TEMPLATE_COLS =
-  "id, creator_id, title, slug, summary, description, category, price_cents, currency, content, preview, status, sales_count, created_at, updated_at";
+  "id, creator_id, title, slug, summary, description, category, type, price_cents, currency, content, preview, body, status, sales_count, created_at, updated_at";
+// Public listing columns omit `body` (the paid deliverable) so it is never
+// exposed to non-purchasers browsing the marketplace.
+const LISTING_COLS =
+  "id, creator_id, title, slug, summary, description, category, type, price_cents, currency, content, preview, status, sales_count, created_at, updated_at";
 const PURCHASE_COLS = "id, template_id, buyer_id, amount_cents, platform_fee_cents, currency, status, created_at";
 
 function mapCreator(row: Record<string, unknown>): Creator {
@@ -58,10 +67,12 @@ function mapTemplate(row: Record<string, unknown>): Template {
     summary: (row.summary as string) ?? "",
     description: (row.description as string) ?? "",
     category: (row.category as TemplateCategory) ?? "general",
+    type: (row.type as TemplateType) ?? "custom",
     priceCents: (row.price_cents as number) ?? 0,
     currency: (row.currency as string) ?? "usd",
     content: (row.content as TemplateContent | null) ?? {},
     preview: (row.preview as string) ?? "",
+    body: (row.body as string) ?? "",
     status: (row.status as Template["status"]) ?? "draft",
     salesCount: (row.sales_count as number) ?? 0,
     createdAt: row.created_at as string,
@@ -184,6 +195,8 @@ export async function createTemplate(input: TemplateInput): Promise<Template> {
   if (!title) throw new ValidationError("A title is required.");
   const category = input.category ?? "general";
   if (!isValidCategory(category)) throw new ValidationError("Invalid category.");
+  const type = input.type ?? "custom";
+  if (!isValidType(type)) throw new ValidationError("Invalid template type.");
   const priceCents = input.priceCents ?? 0;
   if (!isValidPrice(priceCents))
     throw new ValidationError("Price must be a whole number of cents between 0 and 1,000,000.");
@@ -200,9 +213,11 @@ export async function createTemplate(input: TemplateInput): Promise<Template> {
         summary: (input.summary ?? "").slice(0, 200),
         description: (input.description ?? "").slice(0, 5000),
         category,
+        type,
         price_cents: priceCents,
         content: input.content ?? {},
         preview: (input.preview ?? "").slice(0, 2000),
+        body: (input.body ?? "").slice(0, 50_000),
       })
       .select(TEMPLATE_COLS)
       .single();
@@ -230,12 +245,17 @@ export async function updateTemplate(id: string, patch: Partial<TemplateInput>):
     if (!isValidCategory(patch.category)) throw new ValidationError("Invalid category.");
     update.category = patch.category;
   }
+  if (patch.type !== undefined) {
+    if (!isValidType(patch.type)) throw new ValidationError("Invalid template type.");
+    update.type = patch.type;
+  }
   if (patch.priceCents !== undefined) {
     if (!isValidPrice(patch.priceCents)) throw new ValidationError("Invalid price.");
     update.price_cents = patch.priceCents;
   }
   if (patch.content !== undefined) update.content = patch.content;
   if (patch.preview !== undefined) update.preview = patch.preview.slice(0, 2000);
+  if (patch.body !== undefined) update.body = patch.body.slice(0, 50_000);
 
   const { data, error } = await supabase
     .from("marketplace_templates")
@@ -287,15 +307,16 @@ export async function listMyTemplates(): Promise<Template[]> {
 
 /** Lists published templates, optionally filtered by search text and category. */
 export async function listPublishedTemplates(
-  opts: { search?: string; category?: string } = {}
+  opts: { search?: string; category?: string; type?: string } = {}
 ): Promise<TemplateListing[]> {
   const supabase = await createClient();
   let query = supabase
     .from("marketplace_templates")
-    .select(`${TEMPLATE_COLS}, marketplace_creators!inner(display_name)`)
+    .select(`${LISTING_COLS}, marketplace_creators!inner(display_name)`)
     .eq("status", "published");
 
   if (opts.category && isValidCategory(opts.category)) query = query.eq("category", opts.category);
+  if (opts.type && isValidType(opts.type)) query = query.eq("type", opts.type);
   const search = normalizeSearch(opts.search ?? "");
   if (search) query = query.ilike("title", `%${search}%`);
 
@@ -307,7 +328,11 @@ export async function listPublishedTemplates(
   });
 }
 
-/** A single published (or caller-owned) template by slug. */
+/**
+ * A single published (or caller-owned) template by slug. The full `body`
+ * (paid deliverable) is only included when the caller is the creator or has
+ * purchased it; other viewers get an empty body and only see the preview.
+ */
 export async function getTemplateBySlug(slug: string): Promise<TemplateListing | null> {
   const supabase = await createClient();
   const { data } = await supabase
@@ -318,7 +343,28 @@ export async function getTemplateBySlug(slug: string): Promise<TemplateListing |
   if (!data) return null;
   const rec = data as Record<string, unknown>;
   const creator = rec.marketplace_creators as { display_name?: string } | null;
-  return { ...mapTemplate(rec), creatorName: creator?.display_name ?? "Unknown" };
+  const listing: TemplateListing = { ...mapTemplate(rec), creatorName: creator?.display_name ?? "Unknown" };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  let entitled = false;
+  if (user) {
+    const [{ data: ownRow }, { data: purchaseRow }] = await Promise.all([
+      supabase.from("marketplace_creators").select("id").eq("user_id", user.id).maybeSingle(),
+      supabase
+        .from("marketplace_purchases")
+        .select("id")
+        .eq("template_id", listing.id)
+        .eq("buyer_id", user.id)
+        .eq("status", "paid")
+        .maybeSingle(),
+    ]);
+    const isOwner = Boolean(ownRow && (ownRow as { id: string }).id === listing.creatorId);
+    entitled = isOwner || Boolean(purchaseRow);
+  }
+  if (!entitled) listing.body = "";
+  return listing;
 }
 
 /** Template ids the caller has already purchased (status paid). */
@@ -349,4 +395,77 @@ export async function listMyPurchases(): Promise<Purchase[]> {
     .eq("buyer_id", user.id)
     .order("created_at", { ascending: false });
   return (data ?? []).map(mapPurchase);
+}
+
+// ─── Earnings + revenue reporting ────────────────────────────────────────────
+
+/**
+ * The caller's creator earnings across all paid sales of their listings. RLS lets
+ * a creator read purchases of their own templates, so this aggregates the rows
+ * that policy already exposes — gross, platform fee retained, and net take-home.
+ */
+export async function getCreatorEarnings(): Promise<CreatorEarnings> {
+  const creator = await getMyCreator();
+  if (!creator) return { grossCents: 0, platformFeeCents: 0, netCents: 0, sales: 0 };
+  const supabase = await createClient();
+  // Purchases of the caller's templates (creator-visible via RLS), paid only.
+  const { data } = await supabase
+    .from("marketplace_purchases")
+    .select("amount_cents, platform_fee_cents, marketplace_templates!inner(creator_id)")
+    .eq("status", "paid")
+    .eq("marketplace_templates.creator_id", creator.id);
+
+  return (data ?? []).reduce<CreatorEarnings>(
+    (acc, row) => {
+      const rec = row as { amount_cents?: number; platform_fee_cents?: number };
+      const gross = rec.amount_cents ?? 0;
+      const fee = rec.platform_fee_cents ?? 0;
+      return {
+        grossCents: acc.grossCents + gross,
+        platformFeeCents: acc.platformFeeCents + fee,
+        netCents: acc.netCents + (gross - fee),
+        sales: acc.sales + 1,
+      };
+    },
+    { grossCents: 0, platformFeeCents: 0, netCents: 0, sales: 0 }
+  );
+}
+
+/** True when the caller's email is on the platform-admin allowlist (env-configured). */
+export async function isPlatformAdmin(): Promise<boolean> {
+  const allowlist = (process.env.MARKETPLACE_ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  if (allowlist.length === 0) return false;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const email = user?.email?.toLowerCase();
+  return Boolean(email && allowlist.includes(email));
+}
+
+/**
+ * Platform-wide marketplace revenue: gross sales, the platform's retained fees,
+ * and total creator payouts. Uses the service-role client (aggregates across all
+ * creators, past RLS) and is gated to platform admins by the caller/route.
+ */
+export async function getMarketplaceRevenue(): Promise<MarketplaceRevenue> {
+  if (!(await isPlatformAdmin())) throw new ForbiddenError("Marketplace revenue is restricted to platform admins.");
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc("marketplace_revenue_totals").maybeSingle();
+  if (error) throw new Error("Could not load marketplace revenue.");
+  const rec = (data ?? {}) as {
+    gross_cents?: number;
+    platform_fee_cents?: number;
+    creator_net_cents?: number;
+    sales?: number;
+  };
+  return {
+    grossCents: Number(rec.gross_cents ?? 0),
+    platformRevenueCents: Number(rec.platform_fee_cents ?? 0),
+    creatorPayoutCents: Number(rec.creator_net_cents ?? 0),
+    sales: Number(rec.sales ?? 0),
+  };
 }

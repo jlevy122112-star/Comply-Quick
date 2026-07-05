@@ -1,18 +1,22 @@
 import { describe, it, expect } from "vitest";
 import {
   platformFeeCents,
+  creatorNetCents,
   isValidPrice,
   isValidCategory,
+  isValidType,
   slugifyTitle,
   normalizeSearch,
   PLATFORM_FEE_BPS,
+  CREATOR_SHARE_BPS,
   TEMPLATE_CATEGORIES,
+  TEMPLATE_TYPES,
 } from "@/lib/marketplace/service";
 
 describe("platformFeeCents", () => {
-  it("takes 15% of the sale, rounded to the nearest cent", () => {
-    expect(platformFeeCents(10000)).toBe(1500); // $100 -> $15
-    expect(platformFeeCents(2999)).toBe(450); // $29.99 -> 449.85 -> 450
+  it("takes 50% of the sale, rounded to the nearest cent", () => {
+    expect(platformFeeCents(10000)).toBe(5000); // $100 -> $50
+    expect(platformFeeCents(2999)).toBe(1500); // $29.99 -> 1499.5 -> 1500
   });
 
   it("is zero for free or invalid amounts", () => {
@@ -23,6 +27,34 @@ describe("platformFeeCents", () => {
 
   it("matches the exported basis points", () => {
     expect(platformFeeCents(10000)).toBe((10000 * PLATFORM_FEE_BPS) / 10000);
+  });
+});
+
+describe("creatorNetCents", () => {
+  it("is the sale price minus the platform fee (50/50 split)", () => {
+    expect(creatorNetCents(10000)).toBe(5000);
+    expect(creatorNetCents(2999)).toBe(2999 - platformFeeCents(2999));
+  });
+
+  it("is zero for free or invalid amounts", () => {
+    expect(creatorNetCents(0)).toBe(0);
+    expect(creatorNetCents(-1)).toBe(0);
+    expect(creatorNetCents(Number.NaN)).toBe(0);
+  });
+
+  it("complements the platform fee for the full price", () => {
+    expect(creatorNetCents(10000) + platformFeeCents(10000)).toBe(10000);
+    expect(CREATOR_SHARE_BPS + PLATFORM_FEE_BPS).toBe(10000);
+  });
+});
+
+describe("isValidType", () => {
+  it.each([...TEMPLATE_TYPES])("accepts %s", (t) => {
+    expect(isValidType(t)).toBe(true);
+  });
+
+  it.each(["", "privacy", "Cookie_Banner", "gdpr"])("rejects %s", (t) => {
+    expect(isValidType(t)).toBe(false);
   });
 });
 

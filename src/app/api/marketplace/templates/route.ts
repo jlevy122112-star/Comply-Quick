@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
     const templates = await listPublishedTemplates({
       search: searchParams.get("q") ?? undefined,
       category: searchParams.get("category") ?? undefined,
+      type: searchParams.get("type") ?? undefined,
     });
     return NextResponse.json({ templates });
   } catch (err) {
@@ -51,10 +52,12 @@ export async function POST(request: NextRequest) {
       summary: typeof body.summary === "string" ? body.summary : undefined,
       description: typeof body.description === "string" ? body.description : undefined,
       category: typeof body.category === "string" ? body.category : undefined,
+      type: typeof body.type === "string" ? body.type : undefined,
       priceCents: typeof body.priceCents === "number" ? body.priceCents : undefined,
       content:
         typeof body.content === "object" && body.content !== null ? (body.content as TemplateContent) : undefined,
       preview: typeof body.preview === "string" ? body.preview : undefined,
+      body: typeof body.body === "string" ? body.body : undefined,
     });
     return NextResponse.json({ template }, { headers: rateHeaders });
   } catch (err) {

@@ -2,7 +2,12 @@
 
 import { useState, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { TEMPLATE_CATEGORIES, type TemplateListing } from "@/lib/marketplace/shared";
+import {
+  TEMPLATE_CATEGORIES,
+  TEMPLATE_TYPES,
+  TEMPLATE_TYPE_LABELS,
+  type TemplateListing,
+} from "@/lib/marketplace/shared";
 
 interface Props {
   templates: TemplateListing[];
@@ -19,18 +24,21 @@ function formatPrice(cents: number, currency: string): string {
 export default function MarketplaceView({ templates, purchasedIds, canSell }: Props) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string>("all");
+  const [type, setType] = useState<string>("all");
   const [owned, setOwned] = useState<Set<string>>(new Set(purchasedIds));
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [previewOf, setPreviewOf] = useState<TemplateListing | null>(null);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return templates.filter((t) => {
       if (category !== "all" && t.category !== category) return false;
+      if (type !== "all" && t.type !== type) return false;
       if (q && !t.title.toLowerCase().includes(q) && !t.summary.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [templates, search, category]);
+  }, [templates, search, category, type]);
 
   const buy = useCallback(async (template: TemplateListing) => {
     setBusyId(template.id);
@@ -41,8 +49,8 @@ export default function MarketplaceView({ templates, purchasedIds, canSell }: Pr
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ templateId: template.id }),
       });
-      const data = (await res.json()) as { url?: string; claimed?: boolean; error?: string };
-      if (!res.ok) throw new Error(data.error ?? "Purchase failed.");
+      const data = (await res.json()) as { url?: string; claimed?: boolean; error?: string; message?: string };
+      if (!res.ok) throw new Error(data.message ?? data.error ?? "Purchase failed.");
       if (data.url) {
         window.location.href = data.url;
         return;
@@ -96,6 +104,18 @@ export default function MarketplaceView({ templates, purchasedIds, canSell }: Pr
             className="flex-1 px-3 py-2 rounded-lg bg-gray-900 border border-gray-800 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-emerald-500"
           />
           <select
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            className="px-3 py-2 rounded-lg bg-gray-900 border border-gray-800 text-sm text-gray-100 focus:outline-none focus:border-emerald-500"
+          >
+            <option value="all">All types</option>
+            {TEMPLATE_TYPES.map((k) => (
+              <option key={k} value={k}>
+                {TEMPLATE_TYPE_LABELS[k]}
+              </option>
+            ))}
+          </select>
+          <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             className="px-3 py-2 rounded-lg bg-gray-900 border border-gray-800 text-sm text-gray-100 focus:outline-none focus:border-emerald-500 capitalize"
@@ -123,12 +143,21 @@ export default function MarketplaceView({ templates, purchasedIds, canSell }: Pr
                 <div key={t.id} className="rounded-xl border border-gray-800 bg-gray-900/40 p-5 flex flex-col">
                   <div className="flex items-start justify-between gap-2">
                     <h2 className="font-semibold text-white">{t.title}</h2>
-                    <span className="shrink-0 px-2 py-0.5 rounded-full bg-gray-800 text-xs text-gray-300 capitalize">
-                      {t.category}
+                    <span className="shrink-0 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-xs text-emerald-300">
+                      {TEMPLATE_TYPE_LABELS[t.type]}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">by {t.creatorName}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    by {t.creatorName} · <span className="capitalize">{t.category}</span>
+                  </p>
                   <p className="text-sm text-gray-400 mt-2 flex-1">{t.summary || "No description provided."}</p>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewOf(t)}
+                    className="mt-3 self-start text-xs text-emerald-300 hover:text-emerald-200"
+                  >
+                    Preview
+                  </button>
                   <div className="flex items-center justify-between mt-4">
                     <span className="text-sm font-semibold text-white">{formatPrice(t.priceCents, t.currency)}</span>
                     {isOwned ? (
@@ -152,6 +181,69 @@ export default function MarketplaceView({ templates, purchasedIds, canSell }: Pr
           </div>
         )}
       </main>
+
+      {previewOf && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setPreviewOf(null)}
+        >
+          <div
+            className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-xl border border-gray-800 bg-gray-900 p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-white">{previewOf.title}</h2>
+                  <span className="shrink-0 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-xs text-emerald-300">
+                    {TEMPLATE_TYPE_LABELS[previewOf.type]}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  by {previewOf.creatorName} · <span className="capitalize">{previewOf.category}</span> ·{" "}
+                  {formatPrice(previewOf.priceCents, previewOf.currency)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewOf(null)}
+                className="text-gray-500 hover:text-white text-xl leading-none"
+                aria-label="Close preview"
+              >
+                &times;
+              </button>
+            </div>
+            {previewOf.summary && <p className="text-sm text-gray-300 mt-4">{previewOf.summary}</p>}
+            <div className="mt-4 border-t border-gray-800 pt-4">
+              <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Preview</p>
+              <p className="text-sm text-gray-300 whitespace-pre-wrap">
+                {previewOf.preview || "The seller hasn't added a preview for this template yet."}
+              </p>
+              <p className="text-xs text-gray-600 mt-4">The full deliverable is delivered after purchase.</p>
+            </div>
+            <div className="mt-6 flex justify-end">
+              {owned.has(previewOf.id) ? (
+                <span className="px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-xs font-medium text-emerald-300">
+                  Owned
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const t = previewOf;
+                    setPreviewOf(null);
+                    void buy(t);
+                  }}
+                  disabled={busyId === previewOf.id}
+                  className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-500 disabled:opacity-50 transition-colors"
+                >
+                  {previewOf.priceCents === 0 ? "Get" : "Buy"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

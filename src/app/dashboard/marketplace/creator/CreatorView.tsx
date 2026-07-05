@@ -2,7 +2,16 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
-import { TEMPLATE_CATEGORIES, type Creator, type Template } from "@/lib/marketplace/shared";
+import {
+  TEMPLATE_CATEGORIES,
+  TEMPLATE_TYPES,
+  TEMPLATE_TYPE_LABELS,
+  CREATOR_SHARE_BPS,
+  type Creator,
+  type Template,
+  type CreatorEarnings,
+  type MarketplaceRevenue,
+} from "@/lib/marketplace/shared";
 
 interface Props {
   creator: Creator | null;
@@ -10,11 +19,19 @@ interface Props {
   payoutsEnabled: boolean;
   connected: boolean;
   connectConfigured: boolean;
+  earnings: CreatorEarnings;
+  revenue: MarketplaceRevenue | null;
 }
+
+const CREATOR_SHARE_PCT = Math.round(CREATOR_SHARE_BPS / 100);
 
 function formatPrice(cents: number, currency: string): string {
   if (cents === 0) return "Free";
   return new Intl.NumberFormat("en-US", { style: "currency", currency: currency.toUpperCase() }).format(cents / 100);
+}
+
+function formatUsd(cents: number): string {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
 }
 
 export default function CreatorView({
@@ -22,6 +39,8 @@ export default function CreatorView({
   payoutsEnabled,
   connected,
   connectConfigured,
+  earnings,
+  revenue,
 }: Props) {
   const [templates, setTemplates] = useState(initialTemplates);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +50,10 @@ export default function CreatorView({
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [category, setCategory] = useState<string>("general");
+  const [type, setType] = useState<string>("privacy_policy");
   const [price, setPrice] = useState("0");
+  const [preview, setPreview] = useState("");
+  const [templateBody, setTemplateBody] = useState("");
 
   const onboard = useCallback(async () => {
     setBusy(true);
@@ -42,8 +64,8 @@ export default function CreatorView({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ action: "onboard" }),
       });
-      const data = (await res.json()) as { url?: string; error?: string };
-      if (!res.ok || !data.url) throw new Error(data.error ?? "Could not start onboarding.");
+      const data = (await res.json()) as { url?: string; error?: string; message?: string };
+      if (!res.ok || !data.url) throw new Error(data.message ?? data.error ?? "Could not start onboarding.");
       window.location.href = data.url;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not start onboarding.");
@@ -67,21 +89,32 @@ export default function CreatorView({
       const res = await fetch("/api/marketplace/templates", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ title, summary, category, priceCents: Math.round(dollars * 100) }),
+        body: JSON.stringify({
+          title,
+          summary,
+          category,
+          type,
+          priceCents: Math.round(dollars * 100),
+          preview,
+          body: templateBody,
+        }),
       });
-      const data = (await res.json()) as { template?: Template; error?: string };
-      if (!res.ok || !data.template) throw new Error(data.error ?? "Could not create template.");
+      const data = (await res.json()) as { template?: Template; error?: string; message?: string };
+      if (!res.ok || !data.template) throw new Error(data.message ?? data.error ?? "Could not create template.");
       setTemplates((prev) => [data.template as Template, ...prev]);
       setTitle("");
       setSummary("");
       setPrice("0");
       setCategory("general");
+      setType("privacy_policy");
+      setPreview("");
+      setTemplateBody("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create template.");
     } finally {
       setBusy(false);
     }
-  }, [title, summary, category, price]);
+  }, [title, summary, category, type, price, preview, templateBody]);
 
   const setStatus = useCallback(async (id: string, status: Template["status"]) => {
     setError(null);
@@ -91,8 +124,8 @@ export default function CreatorView({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ status }),
       });
-      const data = (await res.json()) as { template?: Template; error?: string };
-      if (!res.ok || !data.template) throw new Error(data.error ?? "Could not update status.");
+      const data = (await res.json()) as { template?: Template; error?: string; message?: string };
+      if (!res.ok || !data.template) throw new Error(data.message ?? data.error ?? "Could not update status.");
       setTemplates((prev) => prev.map((t) => (t.id === id ? (data.template as Template) : t)));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not update status.");
@@ -104,8 +137,8 @@ export default function CreatorView({
     try {
       const res = await fetch(`/api/marketplace/templates/${id}`, { method: "DELETE" });
       if (!res.ok) {
-        const data = (await res.json()) as { error?: string };
-        throw new Error(data.error ?? "Could not delete template.");
+        const data = (await res.json()) as { error?: string; message?: string };
+        throw new Error(data.message ?? data.error ?? "Could not delete template.");
       }
       setTemplates((prev) => prev.filter((t) => t.id !== id));
     } catch (err) {
@@ -134,6 +167,60 @@ export default function CreatorView({
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         <h1 className="text-2xl font-bold text-white">Creator Studio</h1>
 
+        {/* Your earnings */}
+        <section className="rounded-xl border border-gray-800 bg-gray-900/40 p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-white">Your earnings</h2>
+            <span className="text-xs text-gray-500">You keep {CREATOR_SHARE_PCT}% of each sale</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="rounded-lg bg-gray-950 border border-gray-800 p-3">
+              <p className="text-xs text-gray-500">Gross revenue</p>
+              <p className="text-lg font-bold text-white">{formatUsd(earnings.grossCents)}</p>
+            </div>
+            <div className="rounded-lg bg-gray-950 border border-gray-800 p-3">
+              <p className="text-xs text-gray-500">Platform fees</p>
+              <p className="text-lg font-bold text-gray-300">{formatUsd(earnings.platformFeeCents)}</p>
+            </div>
+            <div className="rounded-lg bg-gray-950 border border-emerald-500/30 p-3">
+              <p className="text-xs text-emerald-400">Your net</p>
+              <p className="text-lg font-bold text-emerald-300">{formatUsd(earnings.netCents)}</p>
+            </div>
+            <div className="rounded-lg bg-gray-950 border border-gray-800 p-3">
+              <p className="text-xs text-gray-500">Sales</p>
+              <p className="text-lg font-bold text-white">{earnings.sales}</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Marketplace revenue (platform admins only) */}
+        {revenue && (
+          <section className="rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold text-white">Marketplace revenue</h2>
+              <span className="text-xs text-indigo-300">Platform admin</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="rounded-lg bg-gray-950 border border-gray-800 p-3">
+                <p className="text-xs text-gray-500">Gross sales</p>
+                <p className="text-lg font-bold text-white">{formatUsd(revenue.grossCents)}</p>
+              </div>
+              <div className="rounded-lg bg-gray-950 border border-indigo-500/30 p-3">
+                <p className="text-xs text-indigo-400">Platform revenue</p>
+                <p className="text-lg font-bold text-indigo-300">{formatUsd(revenue.platformRevenueCents)}</p>
+              </div>
+              <div className="rounded-lg bg-gray-950 border border-gray-800 p-3">
+                <p className="text-xs text-gray-500">Creator payouts</p>
+                <p className="text-lg font-bold text-gray-300">{formatUsd(revenue.creatorPayoutCents)}</p>
+              </div>
+              <div className="rounded-lg bg-gray-950 border border-gray-800 p-3">
+                <p className="text-xs text-gray-500">Total sales</p>
+                <p className="text-lg font-bold text-white">{revenue.sales}</p>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Payouts / Connect status */}
         <section className="rounded-xl border border-gray-800 bg-gray-900/40 p-5">
           <h2 className="font-semibold text-white mb-1">Payouts</h2>
@@ -144,14 +231,15 @@ export default function CreatorView({
             </p>
           ) : payoutsEnabled ? (
             <p className="text-sm text-emerald-300">
-              ✓ Connected — your Stripe account is ready to receive payouts (you keep 85% of each sale).
+              ✓ Connected — your Stripe account is ready to receive payouts (you keep {CREATOR_SHARE_PCT}% of each
+              sale).
             </p>
           ) : (
             <div className="space-y-3">
               <p className="text-sm text-gray-400">
                 {connected
                   ? "Finish your Stripe onboarding to start receiving payouts."
-                  : "Connect a Stripe account to receive payouts on paid templates. You keep 85% of each sale."}
+                  : `Connect a Stripe account to receive payouts on paid templates. You keep ${CREATOR_SHARE_PCT}% of each sale.`}
               </p>
               <button
                 type="button"
@@ -180,7 +268,32 @@ export default function CreatorView({
             placeholder="Short summary"
             className="w-full px-3 py-2 rounded-lg bg-gray-950 border border-gray-800 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-emerald-500"
           />
+          <textarea
+            value={preview}
+            onChange={(e) => setPreview(e.target.value)}
+            placeholder="Public preview / teaser (shown to everyone before purchase)"
+            rows={3}
+            className="w-full px-3 py-2 rounded-lg bg-gray-950 border border-gray-800 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-emerald-500"
+          />
+          <textarea
+            value={templateBody}
+            onChange={(e) => setTemplateBody(e.target.value)}
+            placeholder="Full deliverable body (delivered to buyers after purchase)"
+            rows={5}
+            className="w-full px-3 py-2 rounded-lg bg-gray-950 border border-gray-800 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-emerald-500"
+          />
           <div className="flex flex-col sm:flex-row gap-3">
+            <select
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+              className="px-3 py-2 rounded-lg bg-gray-950 border border-gray-800 text-sm text-gray-100 focus:outline-none focus:border-emerald-500"
+            >
+              {TEMPLATE_TYPES.map((k) => (
+                <option key={k} value={k}>
+                  {TEMPLATE_TYPE_LABELS[k]}
+                </option>
+              ))}
+            </select>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
@@ -244,7 +357,8 @@ export default function CreatorView({
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    {formatPrice(t.priceCents, t.currency)} · {t.category} · {t.salesCount} sold
+                    {formatPrice(t.priceCents, t.currency)} · {TEMPLATE_TYPE_LABELS[t.type]} · {t.category} ·{" "}
+                    {t.salesCount} sold
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">

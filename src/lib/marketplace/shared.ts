@@ -4,12 +4,32 @@
 // so client components can import these constants/types/helpers without pulling
 // server code into the browser bundle.
 
-/** Platform commission retained on each paid sale, in basis points (15%). */
-export const PLATFORM_FEE_BPS = 1500;
+/**
+ * Platform commission retained on each paid sale, in basis points. Creators keep
+ * the remainder, so at 5000 bps (50%) the revenue split is 50/50 — the top of the
+ * 30–50% creator-share range.
+ */
+export const PLATFORM_FEE_BPS = 5000;
+
+/** The creator's share of each sale, in basis points (complements the platform fee). */
+export const CREATOR_SHARE_BPS = 10_000 - PLATFORM_FEE_BPS;
 
 /** Categories a template may be listed under (kept in sync with the DB check). */
 export const TEMPLATE_CATEGORIES = ["general", "ecommerce", "saas", "healthcare", "finance", "agency"] as const;
 export type TemplateCategory = (typeof TEMPLATE_CATEGORIES)[number];
+
+/** The type of compliance deliverable a template provides (kept in sync with the DB check). */
+export const TEMPLATE_TYPES = ["privacy_policy", "cookie_banner", "ada_pack", "hipaa_pack", "custom"] as const;
+export type TemplateType = (typeof TEMPLATE_TYPES)[number];
+
+/** Human-readable labels for each template type, for menus and badges. */
+export const TEMPLATE_TYPE_LABELS: Record<TemplateType, string> = {
+  privacy_policy: "Privacy Policy",
+  cookie_banner: "Cookie Banner",
+  ada_pack: "ADA Compliance Pack",
+  hipaa_pack: "HIPAA Pack",
+  custom: "Custom",
+};
 
 /** The reusable wizard preset a template applies when a buyer uses it. */
 export interface TemplateContent {
@@ -39,14 +59,32 @@ export interface Template {
   summary: string;
   description: string;
   category: TemplateCategory;
+  type: TemplateType;
   priceCents: number;
   currency: string;
   content: TemplateContent;
   preview: string;
+  body: string;
   status: "draft" | "published" | "unlisted";
   salesCount: number;
   createdAt: string;
   updatedAt: string;
+}
+
+/** Aggregated earnings for a creator across their paid sales, in whole cents. */
+export interface CreatorEarnings {
+  grossCents: number;
+  platformFeeCents: number;
+  netCents: number;
+  sales: number;
+}
+
+/** Platform-wide marketplace revenue, in whole cents. */
+export interface MarketplaceRevenue {
+  grossCents: number;
+  platformRevenueCents: number;
+  creatorPayoutCents: number;
+  sales: number;
 }
 
 /** A published template joined with its seller's public display name. */
@@ -70,9 +108,11 @@ export interface TemplateInput {
   summary?: string;
   description?: string;
   category?: string;
+  type?: string;
   priceCents?: number;
   content?: TemplateContent;
   preview?: string;
+  body?: string;
 }
 
 // ─── Pure helpers (unit-tested; no DB) ──────────────────────────────────────
@@ -81,6 +121,17 @@ export interface TemplateInput {
 export function platformFeeCents(amountCents: number): number {
   if (!Number.isFinite(amountCents) || amountCents <= 0) return 0;
   return Math.round((amountCents * PLATFORM_FEE_BPS) / 10_000);
+}
+
+/** The creator's take-home for a sale, in whole cents (price minus platform fee). */
+export function creatorNetCents(amountCents: number): number {
+  if (!Number.isFinite(amountCents) || amountCents <= 0) return 0;
+  return amountCents - platformFeeCents(amountCents);
+}
+
+/** True when `value` is one of the allowed template types. */
+export function isValidType(value: string): value is TemplateType {
+  return (TEMPLATE_TYPES as readonly string[]).includes(value);
 }
 
 /** True for a whole-cent price within the allowed 0–$10,000 range. */
