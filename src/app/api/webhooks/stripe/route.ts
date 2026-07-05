@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getStripe, logger } from "@/services";
+import { getStripe, logger, analytics } from "@/services";
+import { isPaidTier, type PaidTier } from "@/lib/pricing";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 const log = logger.child({ module: "stripe-webhook" });
 
-type Plan = "single" | "agency" | "enterprise";
+type Plan = PaidTier;
 
-function isPlan(value: string | undefined): value is Plan {
-  return value === "single" || value === "agency" || value === "enterprise";
+/** Accepts current plan keys, mapping the retired "single" key to "pro". */
+function toPlan(value: string | undefined): Plan | null {
+  if (value === "single") return "pro";
+  return value && isPaidTier(value) ? value : null;
 }
 
 /**
@@ -82,12 +85,11 @@ export async function POST(request: NextRequest) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object;
-        const plan = session.metadata?.plan;
+        const plan = toPlan(session.metadata?.plan);
         const supabaseUserId = session.metadata?.supabase_user_id;
         const customerId = typeof session.customer === "string" ? session.customer : session.customer?.id;
 
-        if (customerId && isPlan(plan)) {
-          // One-time (single) purchases have no subscription; mark active immediately.
+        if (customerId && plan) {
           const subscriptionId = typeof session.subscription === "string" ? session.subscription : null;
           await setEntitlement({
             stripeCustomerId: customerId,
@@ -96,6 +98,7 @@ export async function POST(request: NextRequest) {
             status: "active",
             stripeSubscriptionId: subscriptionId,
           });
+          analytics.track({ event: "checkout_completed", userId: supabaseUserId, properties: { plan } });
         }
         break;
       }
@@ -103,11 +106,11 @@ export async function POST(request: NextRequest) {
       case "customer.subscription.updated":
       case "customer.subscription.created": {
         const subscription = event.data.object;
-        const plan = subscription.metadata?.plan;
+        const plan = toPlan(subscription.metadata?.plan);
         const supabaseUserId = subscription.metadata?.supabase_user_id;
         const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
         const active = subscription.status === "active" || subscription.status === "trialing";
-        if (isPlan(plan)) {
+        if (plan) {
           await setEntitlement({
             stripeCustomerId: customerId,
             supabaseUserId,
@@ -123,12 +126,16 @@ export async function POST(request: NextRequest) {
       case "customer.subscription.deleted": {
         const subscription = event.data.object;
         const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
+        const supabaseUserId = subscription.metadata?.supabase_user_id;
         await setEntitlement({
           stripeCustomerId: customerId,
-          tier: "single",
+          supabaseUserId,
+          // Tier is forced to "free" on cancellation; value here is a placeholder.
+          tier: "pro",
           status: "canceled",
           stripeSubscriptionId: subscription.id,
         });
+        analytics.track({ event: "subscription_canceled", userId: supabaseUserId });
         break;
       }
 

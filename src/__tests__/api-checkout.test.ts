@@ -51,7 +51,7 @@ describe("POST /api/checkout", () => {
     vi.stubEnv("STRIPE_SECRET_KEY", "");
     const { POST } = await loadRoute();
 
-    const res = await POST(makeRequest({ plan: "single" }));
+    const res = await POST(makeRequest({ plan: "pro" }));
 
     expect(res.status).toBe(503);
     const data = await res.json();
