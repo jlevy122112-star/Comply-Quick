@@ -14,6 +14,39 @@ function isPlan(value: string | undefined): value is Plan {
 }
 
 /**
+ * Marks a marketplace purchase paid and bumps the listing's sales counter. Keyed
+ * on the checkout session id we recorded when the purchase was created pending.
+ */
+async function settleMarketplacePurchase(session: Stripe.Checkout.Session) {
+  const templateId = session.metadata?.marketplace_template_id;
+  const buyerId = session.metadata?.supabase_user_id;
+  if (!templateId || !buyerId) {
+    log.error("Marketplace session missing metadata", { sessionId: session.id });
+    return;
+  }
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("marketplace_purchases")
+    .update({ status: "paid", stripe_session_id: session.id, updated_at: new Date().toISOString() })
+    .eq("template_id", templateId)
+    .eq("buyer_id", buyerId);
+  if (error) {
+    log.error("Failed to settle marketplace purchase", { sessionId: session.id, error: error.message });
+    return;
+  }
+  await admin.rpc("increment_template_sales", { t_id: templateId });
+}
+
+/** Reflects a connected account's charge capability onto the creator profile. */
+async function syncConnectedAccount(account: Stripe.Account) {
+  const admin = createAdminClient();
+  await admin
+    .from("marketplace_creators")
+    .update({ payouts_enabled: account.charges_enabled === true, updated_at: new Date().toISOString() })
+    .eq("stripe_account_id", account.id);
+}
+
+/**
  * Persists a user's entitlement based on Stripe events. Uses the service-role
  * client to write past RLS. The user is resolved via the Stripe customer id or
  * the supabase_user_id metadata we attach at checkout.
@@ -80,8 +113,21 @@ export async function POST(request: NextRequest) {
 
   try {
     switch (event.type) {
+      case "account.updated": {
+        await syncConnectedAccount(event.data.object);
+        break;
+      }
+
       case "checkout.session.completed": {
         const session = event.data.object;
+
+        // Marketplace purchases carry kind=marketplace and settle a purchase row
+        // instead of a subscription entitlement.
+        if (session.metadata?.kind === "marketplace") {
+          await settleMarketplacePurchase(session);
+          break;
+        }
+
         const plan = session.metadata?.plan;
         const supabaseUserId = session.metadata?.supabase_user_id;
         const customerId = typeof session.customer === "string" ? session.customer : session.customer?.id;
