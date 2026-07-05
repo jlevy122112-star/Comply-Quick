@@ -91,42 +91,33 @@ from the profitability list.
 
 ---
 
-## 3. ⚠️ Contextual errors / conflicts needing an owner decision
+## 3. Contextual conflicts — RESOLVED (owner decisions 2026-07-03)
 
-**C-Pricing (blocks [Up 1] agency billing & [Up 5] freemium).** The Executive Summary
-contains **three different definitions of the "single" tier**:
-1. `TIER_CONFIG` snippet: `single { monthly: 29, annual: 290, seats: 1, scanLimit: 10 }`.
-2. "Option A (recommended)": **Pro = $12/month** (rename single→pro), unlimited scans.
-3. **Current code**: `single` is a **one-time $12 payment** (`PLAN_CONFIG.single.mode="payment"`).
-Question: which is canonical, and should `single` be converted from a one-time payment to a
-**recurring subscription** (needs new Stripe prices `STRIPE_PRICE_SINGLE_MONTHLY/ANNUAL`)?
+**C-Pricing — RESOLVED.** Rename `single` → **`pro` = $12/month subscription**. Convert from the
+current one-time payment to a recurring subscription (needs new Stripe prices
+`STRIPE_PRICE_PRO_MONTHLY` / `STRIPE_PRICE_PRO_ANNUAL`). `TIER_CONFIG` canonical: `free`, `pro`
+($12/mo), `agency`, `enterprise`.
 
-**C-Scans (blocks [Up 5]).** Free-tier scan cap conflicts: your Phase-5 prompt and Exec §B say
-**"2 scans/month"**; the "Option A" box and the code snippet say **"1 scan/month"**. Which?
+**C-Scans — RESOLVED.** Free tier = **1 scan / month**.
 
-**C-Upload (blocks [Up 3]).** "$50 per template upload" (metered API) conflicts with the
-Marketplace model, where **creators upload templates for free to sell them**. Is the $50 charge
-meant only for **programmatic/API uploads** (enterprise/agency integrations), and NOT for
-Creator-Studio marketplace listings? Otherwise it would kill marketplace supply.
+**C-Upload — RESOLVED.** The **$50/template-upload** metered charge applies to
+**API/programmatic uploads only** — NOT Creator-Studio marketplace listings (those stay free to list).
 
-**C-Legal (affects [Up 6]).** Autopilot currently **proposes** regenerated documents pending
-review (deliberate, for liability). [Up 6] says "regenerate documents automatically". Auto-publish
-legal text without human review raises the exact liability [Up 10] tries to cap. Recommend
-keeping **propose-only** with one-click apply. Confirm?
+**C-Legal — RESOLVED.** Autopilot stays **propose-only with one-click apply**. No silent
+auto-publish of regenerated legal text.
 
-**C-Outcomes (not code).** Targets — NPS ≥ 40, 60% 30-day retention, 20–30% trial→paid,
-100k/mo organic traffic, 50–100 partners, LTV:CAC ≥ 10:1 — are **business outcomes**, not
-features. I will build the mechanisms/instrumentation that *enable* them; I cannot guarantee the
-numbers themselves.
+**C-Outcomes (not code, acknowledged).** Targets — NPS ≥ 40, 60% 30-day retention, 20–30%
+trial→paid, 100k/mo organic traffic, 50–100 partners, LTV:CAC ≥ 10:1 — are business outcomes.
+Build the enabling mechanisms/instrumentation only; numbers not guaranteed.
 
-**C-Process (not code).** 20 user interviews, 50-user closed beta, quarterly lawyer review, and
-E&O insurance are **human/process** items. I will scaffold supporting tooling (survey system,
-retention dashboards, a review queue), but cannot execute the interviews/legal review.
+**C-Process (not code, acknowledged).** 20 user interviews, 50-user closed beta, quarterly lawyer
+review, E&O insurance are human/process items. Scaffold tooling only (survey system, retention
+dashboards, review queue).
 
-**C-Scope (out of the 12-item list).** The Executive Summary also lists codebase improvements
-that are **not** in the 12 upgrade groups: DB indexes, SSRF scan-URL validation, Redis scan cache,
-S3/Vercel Blob for report storage, and payment/E2E integration tests. Per "implement only what's
-listed" I've left these **out of scope**. Want any pulled in?
+**C-Scope (out of the 12-item list) — AWAITING PICK.** Extra codebase improvements in the
+Executive Summary but NOT in the 12 upgrade groups (DB indexes, SSRF scan-URL validation, Redis
+scan cache, S3/Vercel Blob report storage, payment/E2E integration tests). Owner reviewing which
+to pull in.
 
 ---
 
