@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe, logger, analytics } from "@/services";
 import { isPaidTier, type PaidTier } from "@/lib/pricing";
+import { recordReferralCommission } from "@/lib/partners/service";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -47,6 +48,42 @@ async function syncConnectedAccount(account: Stripe.Account) {
     .from("marketplace_creators")
     .update({ payouts_enabled: account.charges_enabled === true, updated_at: new Date().toISOString() })
     .eq("stripe_account_id", account.id);
+  // The same connected account may belong to a partner (referral payouts).
+  await admin
+    .from("partners")
+    .update({ payouts_enabled: account.charges_enabled === true, updated_at: new Date().toISOString() })
+    .eq("stripe_account_id", account.id);
+}
+
+/**
+ * Accrues a partner referral commission for a paid subscription invoice. Fires
+ * on every billing cycle (invoice.payment_succeeded), which is what makes the
+ * 30% share recurring. No-op unless the paying customer was referred; idempotent
+ * on the invoice id inside recordReferralCommission.
+ */
+async function accrueReferralCommission(invoice: Stripe.Invoice) {
+  const reason = invoice.billing_reason ?? "";
+  if (!reason.startsWith("subscription")) return; // ignore one-off / marketplace invoices
+  if (!invoice.id || (invoice.amount_paid ?? 0) <= 0) return;
+
+  const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
+  if (!customerId) return;
+
+  // Resolve the paying user from the customer id we recorded at checkout.
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("subscriptions")
+    .select("user_id")
+    .eq("stripe_customer_id", customerId)
+    .maybeSingle();
+  if (!data?.user_id) return;
+
+  await recordReferralCommission({
+    referredUserId: data.user_id,
+    stripeInvoiceId: invoice.id,
+    grossCents: invoice.amount_paid,
+    currency: invoice.currency ?? "usd",
+  });
 }
 
 /**
@@ -182,6 +219,11 @@ export async function POST(request: NextRequest) {
           stripeSubscriptionId: subscription.id,
         });
         analytics.track({ event: "subscription_canceled", userId: supabaseUserId });
+        break;
+      }
+
+      case "invoice.payment_succeeded": {
+        await accrueReferralCommission(event.data.object);
         break;
       }
 

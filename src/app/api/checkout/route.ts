@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe, analytics } from "@/services";
 import { TIER_CONFIG, isPaidTier, type Billing, type PaidTier } from "@/lib/pricing";
+import { attachReferral } from "@/lib/partners/service";
 
 interface CheckoutRequestBody {
   plan: PaidTier;
@@ -65,6 +66,18 @@ export async function POST(request: NextRequest) {
   }
 
   const origin = request.headers.get("origin") ?? "http://localhost:3000";
+
+  // First-touch partner attribution: if this buyer arrived via a referral link,
+  // record it now (before any subscription invoice) so recurring commissions
+  // credit the right partner. Non-fatal — never blocks checkout.
+  const referralCode = request.cookies.get("cq_ref")?.value;
+  if (referralCode) {
+    try {
+      await attachReferral(user.id, referralCode);
+    } catch {
+      /* attribution is best-effort */
+    }
+  }
 
   try {
     // Reuse an existing Stripe customer if we have one recorded for this user.

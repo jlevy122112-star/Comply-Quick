@@ -8,6 +8,29 @@ import { NextResponse, type NextRequest } from "next/server";
  */
 const PROTECTED_PREFIXES = ["/dashboard/home"];
 
+/** Cookie that carries a partner referral code from first touch until checkout. */
+const REFERRAL_COOKIE = "cq_ref";
+const REFERRAL_TTL_SECONDS = 60 * 60 * 24 * 90; // 90 days
+
+/**
+ * Persists a partner referral code (?ref=<code>) into a first-party cookie so it
+ * survives navigation and (eventual) sign-up until the referred user checks out.
+ * First touch wins — an existing referral cookie is not overwritten.
+ */
+function captureReferral(request: NextRequest, response: NextResponse) {
+  const code = request.nextUrl.searchParams.get("ref");
+  if (!code) return;
+  if (request.cookies.get(REFERRAL_COOKIE)) return; // first touch wins
+  const trimmed = code.trim().slice(0, 64);
+  if (!trimmed) return;
+  response.cookies.set(REFERRAL_COOKIE, trimmed, {
+    maxAge: REFERRAL_TTL_SECONDS,
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+  });
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -39,8 +62,11 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("redirect", path);
-    return NextResponse.redirect(url);
+    const redirectResponse = NextResponse.redirect(url);
+    captureReferral(request, redirectResponse);
+    return redirectResponse;
   }
 
+  captureReferral(request, supabaseResponse);
   return supabaseResponse;
 }
