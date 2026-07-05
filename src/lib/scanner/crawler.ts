@@ -5,14 +5,39 @@
 // hostnames that resolve to loopback/private/link-local space by name.
 
 import { ValidationError, ServiceUnavailableError } from "@/services/errors";
+import { lookup } from "node:dns/promises";
 
 const MAX_BYTES = 2_000_000; // 2 MB cap — enough for markup, avoids huge payloads.
 const FETCH_TIMEOUT_MS = 10_000;
 
 const BLOCKED_HOSTNAMES = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"]);
 
+function isPrivateOrLocalIpv4(ip: string): boolean {
+  const parts = ip.split(".").map((p) => Number(p));
+  if (parts.length !== 4 || parts.some((p) => !Number.isInteger(p) || p < 0 || p > 255)) return true;
+  const [a, b] = parts;
+  if (a === 10) return true;
+  if (a === 127) return true;
+  if (a === 169 && b === 254) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 0) return true;
+  return false;
+}
+
+function isPrivateOrLocalIpv6(ip: string): boolean {
+  const normalized = ip.toLowerCase();
+  return (
+    normalized === "::1" ||
+    normalized === "::" ||
+    normalized.startsWith("fe80:") || // link-local
+    normalized.startsWith("fc") || // unique local (fc00::/7)
+    normalized.startsWith("fd")
+  );
+}
+
 /** Validates and normalizes a target URL, rejecting non-public destinations. */
-export function normalizeScanUrl(raw: string): URL {
+export async function normalizeScanUrl(raw: string): Promise<URL> {
   let url: URL;
   const trimmed = raw.trim();
   const hasScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed);
@@ -25,17 +50,37 @@ export function normalizeScanUrl(raw: string): URL {
   if (url.protocol !== "http:" && url.protocol !== "https:") {
     throw new ValidationError("Only http and https URLs can be scanned.");
   }
+  if (url.username || url.password) {
+    throw new ValidationError("URLs with embedded credentials are not allowed.");
+  }
+
   const host = url.hostname.toLowerCase();
-  const isPrivate =
+  const isPrivateByName =
     BLOCKED_HOSTNAMES.has(host) ||
     host.endsWith(".local") ||
     /^10\./.test(host) ||
     /^192\.168\./.test(host) ||
     /^169\.254\./.test(host) ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(host);
-  if (isPrivate) {
+  if (isPrivateByName) {
     throw new ValidationError("That address points to a private network and cannot be scanned.");
   }
+
+  try {
+    const resolved = await lookup(host, { all: true, verbatim: true });
+    if (!resolved.length) throw new ValidationError("Could not resolve that website host.");
+
+    const hasBlockedAddress = resolved.some((entry) =>
+      entry.family === 4 ? isPrivateOrLocalIpv4(entry.address) : isPrivateOrLocalIpv6(entry.address)
+    );
+    if (hasBlockedAddress) {
+      throw new ValidationError("That address points to a private network and cannot be scanned.");
+    }
+  } catch (err) {
+    if (err instanceof ValidationError) throw err;
+    throw new ValidationError("Could not resolve that website host.");
+  }
+
   return url;
 }
 
@@ -51,7 +96,7 @@ export interface FetchedPage {
 
 /** Fetches the HTML of a public page, enforcing timeout and size limits. */
 export async function fetchPageHtml(raw: string, fetchImpl: typeof fetch = fetch): Promise<FetchedPage> {
-  const url = normalizeScanUrl(raw);
+  const url = await normalizeScanUrl(raw);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
