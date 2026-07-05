@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
+import { isTier, type PaidTier, type Tier } from "@/lib/pricing";
 
-export type PaidTier = "single" | "agency" | "enterprise";
-export type Tier = "free" | PaidTier;
+export type { PaidTier, Tier };
 
 export interface Entitlement {
   tier: Tier;
@@ -41,9 +41,10 @@ export async function getEntitlement(): Promise<Entitlement> {
 
   if (error || !data) return DEFAULT_ENTITLEMENT;
 
-  const tier = (data.tier ?? "free") as Tier;
+  const rawTier = data.tier ?? "free";
+  // Legacy rows may still carry the retired "single" key — map it to "pro".
+  const tier: Tier = rawTier === "single" ? "pro" : isTier(rawTier) ? rawTier : "free";
   const status = (data.status ?? "inactive") as Entitlement["status"];
-  // "single" is a one-time purchase — treat as active regardless of period end.
   const isPremium = status === "active" && tier !== "free";
   const isEnterprise = isPremium && tier === "enterprise";
 

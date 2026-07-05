@@ -181,18 +181,12 @@ export default function CommandCenterView({ projects, tier, aggregateScore, user
                   ? "bg-amber-500/20 border border-amber-500/30 text-amber-300"
                   : tier === "agency"
                     ? "bg-indigo-500/20 border border-indigo-500/30 text-indigo-300"
-                    : tier === "single"
+                    : tier === "pro"
                       ? "bg-gray-700 text-gray-300"
                       : "bg-gray-800 text-gray-400"
               }`}
             >
-              {tier === "enterprise"
-                ? "Enterprise"
-                : tier === "agency"
-                  ? "Agency"
-                  : tier === "single"
-                    ? "Single"
-                    : "Free"}
+              {tier === "enterprise" ? "Enterprise" : tier === "agency" ? "Agency" : tier === "pro" ? "Pro" : "Free"}
             </span>
             {(tier === "agency" || tier === "enterprise") && (
               <>

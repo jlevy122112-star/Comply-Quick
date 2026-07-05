@@ -157,19 +157,20 @@ export default function LandingPage() {
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
-            {/* Single Project Pass */}
+            {/* Pro Plan */}
             <article className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-8 flex flex-col">
               <div className="mb-6">
-                <h3 className="text-lg font-semibold text-white">Single Project Pass</h3>
-                <p className="mt-1 text-xs text-gray-500">One project. Lifetime access. No subscription.</p>
+                <h3 className="text-lg font-semibold text-white">Pro</h3>
+                <p className="mt-1 text-xs text-gray-500">For solo founders. Cancel anytime.</p>
                 <div className="mt-3 flex items-baseline gap-1">
                   <span className="text-4xl font-bold text-white">$12</span>
-                  <span className="text-sm text-gray-400">one-time</span>
+                  <span className="text-sm text-gray-400">/month</span>
                 </div>
+                <p className="mt-1 text-xs text-emerald-400">or $120/yr &mdash; save ~17%</p>
               </div>
               <ul className="space-y-3 mb-8 flex-1">
-                <PricingFeature>One-time payment</PricingFeature>
-                <PricingFeature>Lifetime access to one configuration snapshot</PricingFeature>
+                <PricingFeature>Unlimited project generations</PricingFeature>
+                <PricingFeature>10 compliance scans / month</PricingFeature>
                 <PricingFeature>Direct markdown download</PricingFeature>
                 <PricingFeature>Full contract shield + privacy addendum + checklist</PricingFeature>
                 <PricingFeature>Compliance score breakdown</PricingFeature>

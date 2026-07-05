@@ -15,6 +15,7 @@ import {
 import { MODULE_OPTIONS } from "@/components/EnterpriseModules";
 import { saveProjectAction } from "./actions";
 import type { Tier } from "@/lib/entitlements";
+import { TIER_CONFIG } from "@/lib/pricing";
 
 interface DashboardWizardProps {
   isPremium: boolean;
@@ -101,7 +102,7 @@ export default function DashboardWizard({ isPremium, isAuthenticated }: Dashboar
   // Stripe checkout handler. Requires authentication — unauthenticated users are
   // routed to sign in first, then returned to the wizard.
   const handleCheckout = useCallback(
-    async (plan: "single" | "agency" | "enterprise", billing: "monthly" | "annual" = "monthly") => {
+    async (plan: "pro" | "agency" | "enterprise", billing: "monthly" | "annual" = "monthly") => {
       if (!isAuthenticated) {
         window.location.href = `/login?redirect=${encodeURIComponent("/dashboard")}`;
         return;
@@ -659,11 +660,13 @@ function PaywallGate({
   regionCount: number;
   hasModules: boolean;
   pixelCount: number;
-  onCheckout: (plan: "single" | "agency" | "enterprise", billing?: "monthly" | "annual") => void;
+  onCheckout: (plan: "pro" | "agency" | "enterprise", billing?: "monthly" | "annual") => void;
 }) {
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
-  const agencyPrice = billing === "annual" ? "$290/yr" : "$29/mo";
-  const enterprisePrice = billing === "annual" ? "$990/yr" : "$99/mo";
+  const proPrice = billing === "annual" ? `$${TIER_CONFIG.pro.annual}/yr` : `$${TIER_CONFIG.pro.monthly}/mo`;
+  const agencyPrice = billing === "annual" ? `$${TIER_CONFIG.agency.annual}/yr` : `$${TIER_CONFIG.agency.monthly}/mo`;
+  const enterprisePrice =
+    billing === "annual" ? `$${TIER_CONFIG.enterprise.annual}/yr` : `$${TIER_CONFIG.enterprise.monthly}/mo`;
   return (
     <div className="relative">
       {/* Blurred preview tease — shows what's locked */}
@@ -795,10 +798,10 @@ function PaywallGate({
           <div className="space-y-3">
             <button
               type="button"
-              onClick={() => onCheckout("single")}
+              onClick={() => onCheckout("pro", billing)}
               className="w-full py-3.5 px-4 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition-colors relative overflow-hidden group"
             >
-              <span className="relative z-10">Unlock This Package &mdash; $12</span>
+              <span className="relative z-10">Unlock with Pro &mdash; {proPrice}</span>
               <span className="absolute inset-0 bg-white/5 translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-300" />
             </button>
             <button
@@ -824,7 +827,7 @@ function PaywallGate({
               <span>&middot;</span>
               <span>Instant access</span>
             </div>
-            <span className="text-xs text-gray-600">No subscription required on one-time purchases</span>
+            <span className="text-xs text-gray-600">Cancel anytime &middot; billed {billing}</span>
           </div>
         </div>
       </div>
