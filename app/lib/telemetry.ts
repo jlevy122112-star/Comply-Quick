@@ -2,13 +2,18 @@
 
 export type TelemetryPayload = Record<string, unknown>;
 
-const TELEMETRY_ENABLED = true; // flip if you want to disable in dev
+const TELEMETRY_ENABLED = true;
 
-function logEvent(kind: "event" | "error", name: string, payload: TelemetryPayload = {}) {
+function log(kind: "event" | "error", name: string, payload: TelemetryPayload = {}) {
   if (!TELEMETRY_ENABLED) return;
-  // Wire this to Posthog, Supabase, Segment, etc. later.
-  // For now, keep it non-breaking and console-based.
-  const data = { name, ...payload, kind, ts: new Date().toISOString() };
+
+  const data = {
+    name,
+    ...payload,
+    kind,
+    ts: new Date().toISOString(),
+  };
+
   if (kind === "event") {
     console.debug("[telemetry:event]", data);
   } else {
@@ -16,19 +21,22 @@ function logEvent(kind: "event" | "error", name: string, payload: TelemetryPaylo
   }
 }
 
-export function trackEvent(name: string, payload: TelemetryPayload = {}): void {
-  logEvent("event", name, payload);
+export function trackEvent(name: string, payload: TelemetryPayload = {}) {
+  log("event", name, payload);
 }
 
-export function trackError(error: unknown, context: TelemetryPayload = {}): void {
-  const payload = { ...context, error: error instanceof Error ? error.message : String(error) };
-  logEvent("error", "error", payload);
+export function trackError(error: unknown, context: TelemetryPayload = {}) {
+  const payload = {
+    ...context,
+    error: error instanceof Error ? error.message : String(error),
+  };
+  log("error", "error", payload);
 }
 
-export function trackTierAccess(tier: string, feature: string): void {
+export function trackTierAccess(tier: string, feature: string) {
   trackEvent("tier_access", { tier, feature });
 }
 
-export function trackAutopilotUsage(feature: string): void {
+export function trackAutopilotUsage(feature: string) {
   trackEvent("autopilot_usage", { feature });
 }
