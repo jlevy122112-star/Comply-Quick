@@ -5,6 +5,7 @@
 // scripts, and tests.
 
 import { NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { serializeError, RateLimitError } from "./errors";
 import type { RateLimitResult } from "./rate-limit";
 import { logger } from "./logger";
@@ -14,6 +15,9 @@ export function errorResponse(err: unknown): NextResponse {
   const { status, body } = serializeError(err);
   if (status >= 500) {
     logger.error(body.error, { code: body.code, cause: err instanceof Error ? err.message : String(err) });
+    // Only report genuine server faults (5xx). 4xx are client errors and would
+    // be noise in Sentry. Inert when SENTRY_DSN is unset.
+    Sentry.captureException(err, { tags: { code: body.code } });
   }
   const res = NextResponse.json(body, { status });
   if (err instanceof RateLimitError) {

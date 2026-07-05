@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getStripe, analytics } from "@/services";
+import * as Sentry from "@sentry/nextjs";
+import { getStripe, analytics, logger } from "@/services";
 import { TIER_CONFIG, isPaidTier, type Billing, type PaidTier } from "@/lib/pricing";
 import { attachReferral } from "@/lib/partners/service";
 
@@ -115,6 +116,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: session.url });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
+    logger.child({ module: "checkout" }).error("Checkout session failed", { userId: user.id, plan, message });
+    Sentry.captureException(err, { tags: { module: "checkout" }, extra: { userId: user.id, plan, billing } });
     return NextResponse.json({ error: "Checkout session failed", message }, { status: 500 });
   }
 }

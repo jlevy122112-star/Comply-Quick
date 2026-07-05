@@ -7,4 +7,5 @@ export * from "./errors";
 export * from "./rate-limit";
 export * from "./api-response";
 export * from "./analytics";
+export * from "./slack";
 export { getStripe, resetStripeClientForTests } from "./stripe/client";

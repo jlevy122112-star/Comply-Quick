@@ -24,8 +24,15 @@ export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
   // On a custom domain, serve the branded white-label portal at the root and let
-  // app internals (portal pages, static assets) pass through untouched.
-  if (host && !isPrimaryHost(host) && !path.startsWith("/portal") && !path.startsWith("/_next")) {
+  // app internals (portal pages, static assets, the Sentry tunnel) pass through
+  // untouched.
+  if (
+    host &&
+    !isPrimaryHost(host) &&
+    !path.startsWith("/portal") &&
+    !path.startsWith("/_next") &&
+    !path.startsWith("/monitoring")
+  ) {
     const url = request.nextUrl.clone();
     url.pathname = `/portal/domain/${encodeURIComponent(host.split(":")[0].toLowerCase())}`;
     return NextResponse.rewrite(url);
