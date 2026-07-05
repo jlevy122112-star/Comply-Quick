@@ -418,6 +418,21 @@ function DomainsTab({
     [setDomains]
   );
 
+  const [verifying, setVerifying] = useState<string | null>(null);
+  const verify = useCallback(
+    async (id: string) => {
+      setVerifying(id);
+      try {
+        const res = await fetch(`/api/agency/domains/${id}/verify`, { method: "POST" });
+        const data = await res.json();
+        if (res.ok) setDomains((prev) => prev.map((d) => (d.id === id ? data.domain : d)));
+      } finally {
+        setVerifying(null);
+      }
+    },
+    [setDomains]
+  );
+
   const statusStyle: Record<AgencyDomain["status"], string> = {
     pending: "bg-yellow-500/10 text-yellow-400",
     verified: "bg-emerald-500/10 text-emerald-400",
@@ -475,6 +490,16 @@ function DomainsTab({
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${statusStyle[d.status]}`}>
                     {d.status}
                   </span>
+                  {d.status !== "verified" && (
+                    <button
+                      type="button"
+                      onClick={() => verify(d.id)}
+                      disabled={verifying === d.id}
+                      className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors disabled:opacity-40"
+                    >
+                      {verifying === d.id ? "Checking…" : "Verify"}
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => remove(d.id)}
@@ -484,11 +509,24 @@ function DomainsTab({
                   </button>
                 </div>
               </div>
-              {d.status === "pending" && (
-                <p className="text-xs text-gray-600 mt-2 pt-2 border-t border-gray-800">
-                  Add a TXT record <code className="text-gray-400">_comply-verify.{d.domain}</code> ={" "}
-                  <code className="text-gray-400">{d.verificationToken}</code> to verify ownership.
-                </p>
+              {d.status !== "verified" && (
+                <div className="text-xs text-gray-600 mt-2 pt-2 border-t border-gray-800 space-y-1">
+                  {d.dns.length > 0 ? (
+                    <>
+                      <p className="text-gray-500">Add these DNS records at your registrar, then click Verify:</p>
+                      {d.dns.map((r, i) => (
+                        <p key={i} className="font-mono text-gray-400">
+                          {r.type} <span className="text-gray-500">{r.name}</span> → {r.value}
+                        </p>
+                      ))}
+                    </>
+                  ) : (
+                    <p>
+                      Point a CNAME for <code className="text-gray-400">{d.domain}</code> at{" "}
+                      <code className="text-gray-400">{appHost}</code>, then click Verify.
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           ))}
