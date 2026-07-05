@@ -123,9 +123,16 @@ interface CommandCenterViewProps {
   tier: Tier;
   aggregateScore: ComplianceScore | null;
   userEmail: string | null;
+  isLegalAdmin?: boolean;
 }
 
-export default function CommandCenterView({ projects, tier, aggregateScore, userEmail }: CommandCenterViewProps) {
+export default function CommandCenterView({
+  projects,
+  tier,
+  aggregateScore,
+  userEmail,
+  isLegalAdmin,
+}: CommandCenterViewProps) {
   const [isPending, startTransition] = useTransition();
   const [portalLoading, setPortalLoading] = useState(false);
   const projectsNeedingAttention = projects.filter((p) => p.status !== "current").length;
@@ -224,6 +231,14 @@ export default function CommandCenterView({ projects, tier, aggregateScore, user
             >
               Calendar
             </Link>
+            {isLegalAdmin && (
+              <Link
+                href="/dashboard/legal-review"
+                className="hidden sm:inline-block px-3 py-2 rounded-lg border border-amber-500/40 text-amber-300 text-sm font-medium hover:border-amber-400 hover:text-amber-200 transition-colors"
+              >
+                Legal Review
+              </Link>
+            )}
             <Link
               href="/dashboard"
               className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors"

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getPublicScore } from "@/lib/score/publish";
+import { REPORT_DISCLAIMER } from "@/lib/legal";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +65,7 @@ export default async function PublicScorePage({ params }: { params: Promise<{ sl
         </div>
       </div>
       <p className="mt-6 text-xs text-gray-600">Published {new Date(published.createdAt).toLocaleDateString()}</p>
+      <p className="mt-2 max-w-md text-center text-[11px] leading-relaxed text-gray-600">{REPORT_DISCLAIMER}</p>
     </main>
   );
 }
