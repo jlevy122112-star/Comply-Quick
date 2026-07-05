@@ -6,6 +6,7 @@
 // go through the RLS-scoped server client; the tenant resolver (public landing
 // on a custom domain) uses the admin client since there is no session yet.
 
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getEntitlement } from "@/lib/entitlements";
@@ -118,8 +119,12 @@ export function slugify(input: string): string {
  * Returns the caller's agency workspace, creating it on first access. Pro-gated
  * (agency/enterprise). The owner is also inserted as an `owner` member row so
  * membership checks are uniform.
+ *
+ * Wrapped in React `cache` so the several callers that run per request (the
+ * portal page and each list helper below all resolve the agency first) share a
+ * single invocation instead of racing to create the row in parallel.
  */
-export async function getOrCreateAgency(): Promise<Agency> {
+export const getOrCreateAgency = cache(async (): Promise<Agency> => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -129,12 +134,17 @@ export async function getOrCreateAgency(): Promise<Agency> {
     throw new ForbiddenError("The client portal is available on the Agency and Enterprise plans.");
   }
 
-  const existing = await supabase.from("agencies").select(AGENCY_COLS).eq("owner_id", user.id).maybeSingle();
+  const owned = async () => supabase.from("agencies").select(AGENCY_COLS).eq("owner_id", user.id).maybeSingle();
+
+  const existing = await owned();
   if (existing.data) return mapAgency(existing.data);
 
-  // Derive a unique slug (retry with a numeric suffix on collision).
+  // Derive a slug and create the workspace. Each user owns at most one agency
+  // (unique owner_id), so a duplicate-key error means either a concurrent
+  // create won the race (from another request/tab) or the slug clashed with a
+  // different owner. Re-read our own row to tell them apart: if it now exists,
+  // use it; otherwise the slug clashed, so retry with a fresh suffix.
   const seed = slugify(user.email?.split("@")[0] ?? "agency");
-  let slug = seed;
   for (let attempt = 0; attempt < 5; attempt++) {
     const candidate = attempt === 0 ? seed : `${seed}-${Math.random().toString(36).slice(2, 6)}`;
     const { data, error } = await supabase
@@ -143,18 +153,19 @@ export async function getOrCreateAgency(): Promise<Agency> {
       .select(AGENCY_COLS)
       .single();
     if (!error && data) {
-      slug = candidate;
       await supabase.from("agency_members").insert({ agency_id: data.id, user_id: user.id, role: "owner" });
-      log.info("Created agency workspace", { agencyId: data.id, slug });
+      log.info("Created agency workspace", { agencyId: data.id, slug: candidate });
       return mapAgency(data);
     }
-    if (error && !error.message.toLowerCase().includes("duplicate")) {
-      log.error("Failed to create agency", { error: error.message });
+    if (!error?.message.toLowerCase().includes("duplicate")) {
+      log.error("Failed to create agency", { error: error?.message });
       throw new Error("Could not create agency workspace.");
     }
+    const mine = await owned();
+    if (mine.data) return mapAgency(mine.data);
   }
-  throw new Error(`Could not allocate a unique agency slug (seed: ${slug}).`);
-}
+  throw new Error(`Could not allocate a unique agency slug (seed: ${seed}).`);
+});
 
 interface BrandingUpdate {
   name?: string;
