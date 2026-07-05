@@ -219,6 +219,12 @@ export default function CommandCenterView({ projects, tier, aggregateScore, user
               Partners
             </Link>
             <Link
+              href="/dashboard/calendar"
+              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-sky-500/40 text-sky-300 text-sm font-medium hover:border-sky-400 hover:text-sky-200 transition-colors"
+            >
+              Calendar
+            </Link>
+            <Link
               href="/dashboard"
               className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors"
             >
