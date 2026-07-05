@@ -3,7 +3,8 @@
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import type { Tier } from "@/lib/entitlements";
-import type { Agency, AgencyClient, AgencyDomain, ClientStats } from "@/lib/agency/service";
+import type { Agency, AgencyClient, AgencyDomain, ClientStats, AgencyMember } from "@/lib/agency/service";
+import type { BillingSummary } from "@/lib/billing/usage";
 
 interface Props {
   agency: Agency;
@@ -12,9 +13,11 @@ interface Props {
   stats: Record<string, ClientStats>;
   tier: Tier;
   appHost: string;
+  members: AgencyMember[];
+  billing: BillingSummary;
 }
 
-type Tab = "clients" | "branding" | "domains";
+type Tab = "clients" | "team" | "branding" | "domains";
 
 export default function AgencyPortalView({
   agency: initialAgency,
@@ -23,11 +26,14 @@ export default function AgencyPortalView({
   stats,
   tier,
   appHost,
+  members: initialMembers,
+  billing,
 }: Props) {
   const [tab, setTab] = useState<Tab>("clients");
   const [agency, setAgency] = useState(initialAgency);
   const [clients, setClients] = useState(initialClients);
   const [domains, setDomains] = useState(initialDomains);
+  const [members, setMembers] = useState(initialMembers);
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100" style={{ ["--brand" as string]: agency.primaryColor }}>
@@ -73,7 +79,7 @@ export default function AgencyPortalView({
 
         {/* Tabs */}
         <div className="flex gap-1 border-b border-gray-800">
-          {(["clients", "branding", "domains"] as Tab[]).map((t) => (
+          {(["clients", "team", "branding", "domains"] as Tab[]).map((t) => (
             <button
               key={t}
               type="button"
@@ -88,6 +94,9 @@ export default function AgencyPortalView({
         </div>
 
         {tab === "clients" && <ClientsTab clients={clients} setClients={setClients} stats={stats} />}
+        {tab === "team" && (
+          <TeamTab members={members} setMembers={setMembers} billing={billing} ownerId={agency.ownerId} />
+        )}
         {tab === "branding" && <BrandingTab agency={agency} setAgency={setAgency} />}
         {tab === "domains" && (
           <DomainsTab domains={domains} setDomains={setDomains} slug={agency.slug} appHost={appHost} />
@@ -100,6 +109,156 @@ export default function AgencyPortalView({
 function scoreColor(score: number | null): string {
   if (score === null) return "text-gray-500";
   return score >= 80 ? "text-emerald-400" : score >= 60 ? "text-yellow-400" : "text-red-400";
+}
+
+// ─── Team & billing ──────────────────────────────────────────────────────────
+
+function UsageBar({ used, limit }: { used: number; limit: number }) {
+  const unlimited = !Number.isFinite(limit);
+  const pct = unlimited ? 0 : Math.min(100, limit === 0 ? 100 : Math.round((used / limit) * 100));
+  const over = !unlimited && used > limit;
+  return (
+    <div className="mt-2 h-2 w-full rounded-full bg-gray-800 overflow-hidden">
+      <div
+        className={`h-full rounded-full ${over ? "bg-red-500" : pct >= 80 ? "bg-amber-500" : "bg-indigo-500"}`}
+        style={{ width: unlimited ? "12%" : `${pct}%` }}
+      />
+    </div>
+  );
+}
+
+function TeamTab({
+  members,
+  setMembers,
+  billing,
+  ownerId,
+}: {
+  members: AgencyMember[];
+  setMembers: React.Dispatch<React.SetStateAction<AgencyMember[]>>;
+  billing: BillingSummary;
+  ownerId: string;
+}) {
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const seatsUsed = members.length;
+  const seatLabel = Number.isFinite(billing.seats.limit) ? String(billing.seats.limit) : "Unlimited";
+  const scanLabel = Number.isFinite(billing.scans.limit) ? String(billing.scans.limit) : "Unlimited";
+  const overageDollars = (billing.scans.overageCents / 100).toFixed(2);
+
+  const addMember = useCallback(async () => {
+    if (email.trim().length === 0) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/agency/members", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? "Could not add member.");
+      setMembers((prev) => (prev.some((m) => m.userId === data.member.userId) ? prev : [...prev, data.member]));
+      setEmail("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not add member.");
+    } finally {
+      setBusy(false);
+    }
+  }, [email, setMembers]);
+
+  const removeMember = useCallback(
+    async (userId: string) => {
+      setMembers((prev) => prev.filter((m) => m.userId !== userId));
+      await fetch(`/api/agency/members/${userId}`, { method: "DELETE" });
+    },
+    [setMembers]
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Usage summary */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-sm font-semibold text-white">Seats</h2>
+            <span className="text-xs text-gray-500">
+              {seatsUsed} / {seatLabel}
+            </span>
+          </div>
+          <UsageBar used={seatsUsed} limit={billing.seats.limit} />
+          <p className="mt-2 text-xs text-gray-500">Team members with access to this workspace.</p>
+        </div>
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-sm font-semibold text-white">Scans this month</h2>
+            <span className="text-xs text-gray-500">
+              {billing.scans.used} / {scanLabel}
+            </span>
+          </div>
+          <UsageBar used={billing.scans.used} limit={billing.scans.limit} />
+          {billing.scans.over > 0 ? (
+            <p className="mt-2 text-xs text-amber-400">
+              {billing.scans.over} scan{billing.scans.over !== 1 ? "s" : ""} over — ${overageDollars} overage this
+              month.
+            </p>
+          ) : (
+            <p className="mt-2 text-xs text-gray-500">Included scans reset at the start of each month.</p>
+          )}
+        </div>
+      </section>
+
+      {/* Add seat */}
+      <section className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+        <h2 className="text-sm font-semibold text-white mb-3">Invite a team member</h2>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="colleague@youragency.com"
+            className="flex-1 px-3 py-2 rounded-lg bg-gray-950 border border-gray-700 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={addMember}
+            disabled={busy || email.trim().length === 0}
+            className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors disabled:opacity-40"
+          >
+            {busy ? "Adding…" : "Add seat"}
+          </button>
+        </div>
+        {error && <p className="text-sm text-red-400 mt-3">{error}</p>}
+        <p className="text-xs text-gray-500 mt-3">They must already have a Comply-Quick account.</p>
+      </section>
+
+      {/* Roster */}
+      <div className="space-y-2">
+        {members.map((m) => (
+          <div
+            key={m.id}
+            className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl px-4 py-3"
+          >
+            <div className="min-w-0">
+              <p className="text-sm text-white truncate">{m.email ?? m.userId}</p>
+              <p className="text-xs text-gray-500 capitalize">{m.role}</p>
+            </div>
+            {m.userId === ownerId ? (
+              <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-xs text-indigo-300">Owner</span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => removeMember(m.userId)}
+                className="text-xs text-gray-400 hover:text-red-400 transition-colors"
+              >
+                Remove
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 // ─── Clients ───────────────────────────────────────────────────────────────
