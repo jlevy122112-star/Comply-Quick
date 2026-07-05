@@ -41,12 +41,25 @@ interface Fingerprint {
 // compliance risk; extend as new tools appear (mirrors the wizard's pixel list
 // plus higher-risk session-replay/chat tools driving CIPA wiretapping suits).
 const FINGERPRINTS: Fingerprint[] = [
-  { id: "meta", name: "Meta Pixel", category: "advertising", patterns: [/connect\.facebook\.net/i, /fbq\(/] },
+  {
+    id: "meta",
+    name: "Meta Pixel",
+    category: "advertising",
+    patterns: [/connect\.facebook\.net/i, /fbq\(/, /facebook\.com\/tr\b/i],
+  },
   {
     id: "google",
     name: "Google Analytics / Ads",
     category: "analytics",
-    patterns: [/google-analytics\.com/i, /gtag\(/, /googletagmanager\.com\/gtag/i],
+    patterns: [
+      /google-analytics\.com/i,
+      /gtag\(/,
+      /googletagmanager\.com\/gtag/i,
+      /\/(g|r|j|collect)\/collect\b/i,
+      /region\d+\.google-analytics\.com/i,
+      /\.googlesyndication\.com/i,
+      /\.doubleclick\.net/i,
+    ],
   },
   { id: "gtm", name: "Google Tag Manager", category: "tag_manager", patterns: [/googletagmanager\.com\/gtm\.js/i] },
   { id: "tiktok", name: "TikTok Pixel", category: "advertising", patterns: [/analytics\.tiktok\.com/i, /ttq\./] },
@@ -54,10 +67,20 @@ const FINGERPRINTS: Fingerprint[] = [
     id: "linkedin",
     name: "LinkedIn Insight",
     category: "advertising",
-    patterns: [/snap\.licdn\.com/i, /_linkedin_partner_id/i],
+    patterns: [/snap\.licdn\.com/i, /_linkedin_partner_id/i, /px\.ads\.linkedin\.com/i],
   },
-  { id: "pinterest", name: "Pinterest Tag", category: "advertising", patterns: [/s\.pinimg\.com/i, /pintrk\(/] },
-  { id: "snapchat", name: "Snapchat Pixel", category: "advertising", patterns: [/sc-static\.net/i, /snaptr\(/] },
+  {
+    id: "pinterest",
+    name: "Pinterest Tag",
+    category: "advertising",
+    patterns: [/s\.pinimg\.com/i, /pintrk\(/, /ct\.pinterest\.com/i],
+  },
+  {
+    id: "snapchat",
+    name: "Snapchat Pixel",
+    category: "advertising",
+    patterns: [/sc-static\.net/i, /snaptr\(/, /tr\.snapchat\.com/i],
+  },
   { id: "hotjar", name: "Hotjar", category: "session_replay", patterns: [/static\.hotjar\.com/i, /hjSetting/] },
   {
     id: "fullstory",
@@ -76,11 +99,19 @@ const FINGERPRINTS: Fingerprint[] = [
 
 const SEVERITY_PENALTY: Record<Severity, number> = { info: 3, warning: 12, critical: 25 };
 
-/** Fingerprints the third-party tools referenced in the HTML. */
-export function detectTools(html: string): DetectedTool[] {
+/**
+ * Fingerprints the third-party tools referenced in the page.
+ *
+ * `html` is the rendered/served markup. `requestUrls` are outbound network
+ * requests captured while the page loaded (only available when the page was
+ * rendered by the headless scanner worker) — these reveal JS-injected pixels
+ * (Meta, TikTok, etc.) that never appear in the static HTML.
+ */
+export function detectTools(html: string, requestUrls: string[] = []): DetectedTool[] {
+  const haystack = requestUrls.length > 0 ? `${html}\n${requestUrls.join("\n")}` : html;
   const found: DetectedTool[] = [];
   for (const fp of FINGERPRINTS) {
-    if (fp.patterns.some((p) => p.test(html))) {
+    if (fp.patterns.some((p) => p.test(haystack))) {
       found.push({ id: fp.id, name: fp.name, category: fp.category });
     }
   }
@@ -99,8 +130,8 @@ function hasTermsLink(html: string): boolean {
  * Analyzes fetched HTML: detects tools, derives compliance findings, and scores.
  * Deterministic; the score starts at 100 and is reduced by finding severity.
  */
-export function analyzeHtml(html: string): ScanAnalysis {
-  const detectedTools = detectTools(html);
+export function analyzeHtml(html: string, requestUrls: string[] = []): ScanAnalysis {
+  const detectedTools = detectTools(html, requestUrls);
   const findings: Finding[] = [];
 
   const consentTools = detectedTools.filter((t) => t.category === "consent");

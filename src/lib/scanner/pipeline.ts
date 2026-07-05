@@ -5,7 +5,7 @@
 // scan). No DB access here; the caller persists the outcome.
 
 import type { AiClient } from "@/services/ai";
-import { fetchPageHtml } from "./crawler";
+import { scanPage } from "./crawler";
 import { analyzeHtml, type DetectedTool, type Finding } from "./analyzer";
 
 export interface ScanOutcome {
@@ -14,6 +14,8 @@ export interface ScanOutcome {
   detectedTools: DetectedTool[];
   findings: Finding[];
   summary: string;
+  /** True when a headless render executed the page's JS (deeper tracker detection). */
+  rendered: boolean;
 }
 
 function buildSummaryPrompt(url: string, tools: DetectedTool[], findings: Finding[], score: number): string {
@@ -46,8 +48,8 @@ function fallbackSummary(tools: DetectedTool[], findings: Finding[], score: numb
 /** Runs a full scan: fetch → analyze → summarize. */
 export async function runScan(params: { url: string; ai: AiClient; fetchImpl?: typeof fetch }): Promise<ScanOutcome> {
   const { url, ai, fetchImpl } = params;
-  const page = await fetchPageHtml(url, fetchImpl ?? fetch);
-  const analysis = analyzeHtml(page.html);
+  const page = await scanPage(url, fetchImpl ?? fetch);
+  const analysis = analyzeHtml(page.html, page.requestUrls);
 
   let summary: string;
   if (ai.live) {
@@ -74,5 +76,6 @@ export async function runScan(params: { url: string; ai: AiClient; fetchImpl?: t
     detectedTools: analysis.detectedTools,
     findings: analysis.findings,
     summary,
+    rendered: page.rendered,
   };
 }

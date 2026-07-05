@@ -101,7 +101,7 @@ Current tables: `subscriptions`, `projects`. Planned additions (one migration
 per phase, additive + RLS-first):
 
 - **P2 Autopilot:** `regulations`, `regulation_versions`, `document_versions` (history of regenerated packages), `notifications`.
-- **P3 Scanner:** `scans` (URL, detected tools + findings as jsonb, score, timestamp; RLS owner-scoped). ✅ implemented.
+- **P3 Scanner:** `scans` (URL, detected tools + findings as jsonb, score, timestamp; RLS owner-scoped). ✅ implemented. Rendering is provided by a standalone headless-browser **scanner worker** (`/scanner-worker`, Playwright/Chromium) that executes page JS and captures outbound network requests, so JS-injected trackers (Meta Pixel, TikTok, GA, etc.) are detected. Configured via `SCANNER_WORKER_URL` + `SCANNER_WORKER_SECRET`; the app falls back to a static fetch when the worker is unset/unreachable.
 - **P4 Intelligence:** `monitors` (schedule), `alerts`, reuse `scans`.
 - **P5 Agency:** `organizations`, `org_members`, `clients`; add `org_id` to scoped tables; RLS keyed on org membership for white-label multi-tenancy.
 - **P6 Marketplace:** `templates`, `template_purchases`, `creator_accounts` (Stripe Connect account id + payout status).
@@ -130,7 +130,7 @@ Functions. Requires the Supabase access token / CLI login to deploy.
 |---|---|---|---|
 | 1 | Foundation | `@/services` layer, this doc, RLS review | — (done) |
 | 2 | Autopilot | Regulation diff engine, cron, version history, notifications, Pro gate | AI provider key; **legal review of auto-regeneration** |
-| 3 | Scanner | URL crawler (server-side fetch), tool/violation detection, scoring, `scans` | ✅ done — AI provider key (summary only; deterministic fallback) |
+| 3 | Scanner | Headless-render crawler (worker) + static-fetch fallback, tool/violation detection, scoring, `scans` | ✅ done — AI provider key (summary only); scanner worker deploy for JS-injected tracker detection |
 | 4 | Intelligence | Weekly re-scan jobs, alerts, "Fix It", timeline | cron; AI provider |
 | 5 | Agency Portal | `organizations`/multi-tenant RLS, white-label, custom domains, agency billing | Cloudflare API token (domain routing) |
 | 6 | Marketplace | Creator accounts, template upload/preview, **Stripe Connect** payouts, search | Stripe Connect enablement |

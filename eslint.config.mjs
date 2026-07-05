@@ -15,6 +15,9 @@ const eslintConfig = defineConfig([
     // Supabase Edge Functions run on Deno (remote imports, Deno globals) and are
     // not part of the Next app's TS project.
     "supabase/functions/**",
+    // The scanner worker is a standalone Node/Playwright service with its own
+    // deploy lifecycle; it is not part of the Next app's TS project.
+    "scanner-worker/**",
   ]),
 ]);
 

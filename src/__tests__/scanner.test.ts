@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import { detectTools, analyzeHtml } from "@/lib/scanner/analyzer";
-import { normalizeScanUrl, fetchPageHtml } from "@/lib/scanner/crawler";
+import { normalizeScanUrl, fetchPageHtml, renderPageViaWorker, scanPage } from "@/lib/scanner/crawler";
 import { runScan } from "@/lib/scanner/pipeline";
 import { DeterministicAiClient, type AiClient } from "@/services/ai";
 import { ValidationError, ServiceUnavailableError } from "@/services/errors";
@@ -38,6 +38,20 @@ describe("detectTools", () => {
 
   it("finds nothing on a clean page", () => {
     expect(detectTools(CLEAN_PAGE)).toEqual([]);
+  });
+
+  it("detects JS-injected pixels from captured network requests, not the HTML", () => {
+    // The static markup is clean; the trackers are only visible as outbound
+    // requests fired at runtime (what the headless worker captures).
+    const requests = [
+      "https://www.facebook.com/tr?id=123&ev=PageView",
+      "https://analytics.tiktok.com/api/v2/pixel",
+      "https://region1.google-analytics.com/g/collect?v=2",
+    ];
+    const ids = detectTools(CLEAN_PAGE, requests).map((t) => t.id);
+    expect(ids).toContain("meta");
+    expect(ids).toContain("tiktok");
+    expect(ids).toContain("google");
   });
 });
 
@@ -91,6 +105,66 @@ describe("fetchPageHtml", () => {
       throw new Error("network down");
     }) as unknown as typeof fetch;
     await expect(fetchPageHtml("example.com", failing)).rejects.toBeInstanceOf(ServiceUnavailableError);
+  });
+});
+
+describe("renderPageViaWorker", () => {
+  it("posts to the worker and returns rendered html + captured requests", async () => {
+    const workerFetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe("https://worker.test/scan");
+      expect(init?.method).toBe("POST");
+      expect((init?.headers as Record<string, string>).authorization).toBe("Bearer sekret");
+      return new Response(
+        JSON.stringify({
+          url: "https://example.com/",
+          status: 200,
+          html: CLEAN_PAGE,
+          requestUrls: ["https://www.facebook.com/tr?id=1"],
+        }),
+        { status: 200 }
+      );
+    }) as unknown as typeof fetch;
+    const page = await renderPageViaWorker("example.com", "https://worker.test", "sekret", workerFetch);
+    expect(page.rendered).toBe(true);
+    expect(page.requestUrls).toContain("https://www.facebook.com/tr?id=1");
+  });
+
+  it("throws ServiceUnavailableError when the worker errors", async () => {
+    const workerFetch = (async () => new Response("nope", { status: 502 })) as unknown as typeof fetch;
+    await expect(
+      renderPageViaWorker("example.com", "https://worker.test", undefined, workerFetch)
+    ).rejects.toBeInstanceOf(ServiceUnavailableError);
+  });
+});
+
+describe("scanPage", () => {
+  afterEach(() => {
+    delete process.env.SCANNER_WORKER_URL;
+    delete process.env.SCANNER_WORKER_SECRET;
+  });
+
+  it("uses the worker render when SCANNER_WORKER_URL is set", async () => {
+    process.env.SCANNER_WORKER_URL = "https://worker.test";
+    const workerFetch = (async () =>
+      new Response(JSON.stringify({ url: "https://example.com/", status: 200, html: CLEAN_PAGE, requestUrls: [] }), {
+        status: 200,
+      })) as unknown as typeof fetch;
+    const page = await scanPage("example.com", workerFetch);
+    expect(page.rendered).toBe(true);
+  });
+
+  it("falls back to a static fetch when the worker is unreachable", async () => {
+    process.env.SCANNER_WORKER_URL = "https://worker.test";
+    let calls = 0;
+    const flakyFetch = (async (input: RequestInfo | URL) => {
+      calls += 1;
+      if (String(input).includes("/scan")) throw new Error("worker down");
+      return new Response(CLEAN_PAGE, { status: 200 });
+    }) as unknown as typeof fetch;
+    const page = await scanPage("example.com", flakyFetch);
+    expect(page.rendered).toBe(false);
+    expect(page.html).toContain("Privacy Policy");
+    expect(calls).toBe(2); // worker attempt, then fallback fetch
   });
 });
 
