@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { computePaywallTriggers } from "@/lib/funnel/triggers";
+import { trackFunnel } from "@/lib/funnel/client";
 
 interface DetectedTool {
   id: string;
@@ -111,6 +113,24 @@ export default function ScannerPanel() {
 
   const outOfQuota = quota && !quota.isPremium && quota.remaining !== null && quota.remaining <= 0;
 
+  // Contextual paywall triggers for free users, derived from the active scan.
+  const triggers = useMemo(() => {
+    if (!active || quota?.isPremium) return [];
+    const prior = history.find((s) => s.url === active.url && s.createdAt < active.createdAt);
+    const unresolvedFindings = active.findings.filter((f) => f.severity !== "info").length;
+    return computePaywallTriggers({
+      score: active.score,
+      previousScore: prior?.score ?? null,
+      unresolvedFindings,
+    });
+  }, [active, history, quota]);
+
+  useEffect(() => {
+    if (triggers.length > 0) {
+      trackFunnel("paywall_viewed", { surface: "scanner", triggers: triggers.map((t) => t.id).join(",") });
+    }
+  }, [triggers]);
+
   return (
     <section>
       <div className="flex items-center justify-between mb-4">
@@ -190,6 +210,29 @@ export default function ScannerPanel() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {triggers.length > 0 && (
+              <div className="mt-4 rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-4">
+                <p className="mb-2 text-sm font-bold text-white">
+                  Ship compliant, close faster — attorney-grade coverage in minutes, not $5,000 in legal bills.
+                </p>
+                <div className="space-y-1.5">
+                  {triggers.map((t) => (
+                    <div key={t.id}>
+                      <p className="text-xs font-semibold text-indigo-200">{t.headline}</p>
+                      <p className="text-xs text-gray-400">{t.detail}</p>
+                    </div>
+                  ))}
+                </div>
+                <Link
+                  href="/#pricing"
+                  onClick={() => trackFunnel("upgrade_cta_clicked", { surface: "scanner" })}
+                  className="mt-3 inline-block px-4 py-2 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-500 transition-colors"
+                >
+                  Upgrade to fix these &rarr;
+                </Link>
               </div>
             )}
           </div>
