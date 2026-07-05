@@ -195,14 +195,22 @@ export default function CommandCenterView({ projects, tier, aggregateScore, user
                     : "Free"}
             </span>
             {(tier === "agency" || tier === "enterprise") && (
-              <button
-                type="button"
-                onClick={handleManageBilling}
-                disabled={portalLoading}
-                className="hidden sm:inline-block px-3 py-2 rounded-lg border border-gray-700 text-gray-300 text-sm font-medium hover:border-gray-600 hover:text-white transition-colors disabled:opacity-40"
-              >
-                {portalLoading ? "Opening…" : "Manage Billing"}
-              </button>
+              <>
+                <Link
+                  href="/dashboard/agency"
+                  className="hidden sm:inline-block px-3 py-2 rounded-lg border border-indigo-500/40 text-indigo-300 text-sm font-medium hover:border-indigo-400 hover:text-indigo-200 transition-colors"
+                >
+                  Agency Portal
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleManageBilling}
+                  disabled={portalLoading}
+                  className="hidden sm:inline-block px-3 py-2 rounded-lg border border-gray-700 text-gray-300 text-sm font-medium hover:border-gray-600 hover:text-white transition-colors disabled:opacity-40"
+                >
+                  {portalLoading ? "Opening…" : "Manage Billing"}
+                </button>
+              </>
             )}
             <Link
               href="/dashboard"
