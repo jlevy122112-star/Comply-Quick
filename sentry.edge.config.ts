@@ -9,6 +9,7 @@ Sentry.init({
   dsn,
   enabled: Boolean(dsn),
   environment: process.env.NODE_ENV,
-  tracesSampleRate: 0.1,
+  tracesSampleRate: process.env.NODE_ENV === "development" ? 1.0 : 0.1,
+  enableLogs: true,
   sendDefaultPii: false,
 });

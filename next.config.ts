@@ -12,6 +12,12 @@ export default withSentryConfig(nextConfig, {
   project: process.env.SENTRY_PROJECT,
   authToken: process.env.SENTRY_AUTH_TOKEN,
   silent: !process.env.CI,
+  // Upload a wider set of client source files for better stack-trace resolution.
+  widenClientFileUpload: true,
+  // Proxy Sentry ingestion through a same-origin route so ad-blockers don't drop
+  // events. The proxy (src/proxy.ts) excludes this path from its rewrite/session
+  // logic.
+  tunnelRoute: "/monitoring",
   // Only upload source maps when an auth token is present (deploys); keeps
   // local/CI builds without the token fast and side-effect free.
   sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },

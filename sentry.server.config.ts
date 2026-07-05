@@ -13,7 +13,12 @@ Sentry.init({
   dsn,
   enabled: Boolean(dsn),
   environment: process.env.NODE_ENV,
-  tracesSampleRate: 0.1,
+  // 100% of traces in dev for local visibility, 10% in production.
+  tracesSampleRate: process.env.NODE_ENV === "development" ? 1.0 : 0.1,
+  // Attach local variable values to server stack frames for richer debugging.
+  includeLocalVariables: true,
+  // Route the app's structured logs into Sentry Logs.
+  enableLogs: true,
   // Don't capture PII by default; compliance data must not leak into traces.
   sendDefaultPii: false,
 });

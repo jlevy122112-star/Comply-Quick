@@ -10,8 +10,14 @@ Sentry.init({
   dsn,
   enabled: Boolean(dsn),
   environment: process.env.NODE_ENV,
-  tracesSampleRate: 0.1,
+  // 100% of traces in dev, 10% in production.
+  tracesSampleRate: process.env.NODE_ENV === "development" ? 1.0 : 0.1,
+  // Session Replay: sample 10% of sessions, 100% of sessions that hit an error.
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
+  enableLogs: true,
   sendDefaultPii: false,
+  integrations: [Sentry.replayIntegration()],
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
