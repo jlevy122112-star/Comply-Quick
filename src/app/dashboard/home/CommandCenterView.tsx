@@ -8,6 +8,7 @@ import type { Tier } from "@/lib/entitlements";
 import { deleteProjectAction, signOutAction } from "@/app/dashboard/actions";
 import AutopilotPanel from "./AutopilotPanel";
 import ScannerPanel from "./ScannerPanel";
+import IntelligencePanel from "./IntelligencePanel";
 
 // ─── Framework Display Map ──────────────────────────────────────────────────
 
@@ -297,6 +298,9 @@ export default function CommandCenterView({ projects, tier, aggregateScore, user
             <div id="scanner" className="scroll-mt-8">
               <ScannerPanel />
             </div>
+
+            {/* Compliance Intelligence — proactive monitoring + alerts */}
+            <IntelligencePanel isPremium={tier !== "free"} />
 
             {/* Quick-Launch Tools */}
             <section>
