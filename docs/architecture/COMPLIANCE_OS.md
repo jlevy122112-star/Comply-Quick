@@ -126,6 +126,12 @@ Functions. Requires the Supabase access token / CLI login to deploy.
 
 ## 3. Roadmap → architecture mapping
 
+> **Integrated plan:** the profitability upgrade list (12 "⭐ PHASE" groups in the
+> Executive Summary) is folded into this roadmap in
+> [`docs/BUILD_PLAN.md`](../BUILD_PLAN.md), with per-phase status and open conflicts.
+> This table remains the architectural source of truth for the original phases.
+
+
 | Phase | Feature | Primary new pieces | External deps / blockers |
 |---|---|---|---|
 | 1 | Foundation | `@/services` layer, this doc, RLS review | — (done) |
