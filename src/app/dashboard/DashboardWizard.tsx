@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { computePaywallTriggers } from "@/lib/funnel/triggers";
+import { trackFunnel } from "@/lib/funnel/client";
 import {
   generateCompliancePackage,
   exportToMarkdown,
@@ -484,6 +486,7 @@ export default function DashboardWizard({ isPremium, isAuthenticated }: Dashboar
                 regionCount={compliancePackage.consumerPrivacyPolicyAddendum.regionalDisclosures.length}
                 hasModules={!!compliancePackage.enterpriseModules && compliancePackage.enterpriseModules.length > 0}
                 pixelCount={compliancePackage.consumerPrivacyPolicyAddendum.scriptDeclarations.length}
+                modules={complianceModules}
                 onCheckout={handleCheckout}
               />
             )}
@@ -653,6 +656,7 @@ function PaywallGate({
   regionCount,
   hasModules,
   pixelCount,
+  modules,
   onCheckout,
 }: {
   clauseCount: number;
@@ -660,9 +664,24 @@ function PaywallGate({
   regionCount: number;
   hasModules: boolean;
   pixelCount: number;
+  modules: ComplianceModule[];
   onCheckout: (plan: "pro" | "agency" | "enterprise", billing?: "monthly" | "annual") => void;
 }) {
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
+
+  const triggers = useMemo(
+    () => computePaywallTriggers({ hasAda: modules.includes("ada_wcag"), hasHipaa: modules.includes("hipaa") }),
+    [modules]
+  );
+
+  useEffect(() => {
+    trackFunnel("paywall_viewed", { surface: "wizard", triggers: triggers.map((t) => t.id).join(",") });
+  }, [triggers]);
+
+  const handleCta = (plan: "pro" | "agency" | "enterprise") => {
+    trackFunnel("upgrade_cta_clicked", { surface: "wizard", plan, billing });
+    onCheckout(plan, billing);
+  };
   const proPrice = billing === "annual" ? `$${TIER_CONFIG.pro.annual}/yr` : `$${TIER_CONFIG.pro.monthly}/mo`;
   const agencyPrice = billing === "annual" ? `$${TIER_CONFIG.agency.annual}/yr` : `$${TIER_CONFIG.agency.monthly}/mo`;
   const enterprisePrice =
@@ -742,6 +761,24 @@ function PaywallGate({
             {regionCount !== 1 ? "s" : ""} of coverage.
           </p>
 
+          {/* Contextual paywall triggers (missing ADA / HIPAA coverage) */}
+          {triggers.length > 0 && (
+            <div className="mb-4 space-y-2">
+              {triggers.map((t) => (
+                <div
+                  key={t.id}
+                  className="flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 p-2.5"
+                >
+                  <span className="text-amber-400 text-xs mt-0.5">&#9888;</span>
+                  <div>
+                    <p className="text-xs font-medium text-amber-300">{t.headline}</p>
+                    <p className="text-xs text-gray-400">{t.detail}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Pricing anchor */}
           <div className="text-center mb-5">
             <span className="text-xs text-gray-500">Average attorney compliance review: $2,000 &ndash; $5,000</span>
@@ -798,7 +835,7 @@ function PaywallGate({
           <div className="space-y-3">
             <button
               type="button"
-              onClick={() => onCheckout("pro", billing)}
+              onClick={() => handleCta("pro")}
               className="w-full py-3.5 px-4 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition-colors relative overflow-hidden group"
             >
               <span className="relative z-10">Unlock with Pro &mdash; {proPrice}</span>
@@ -806,14 +843,14 @@ function PaywallGate({
             </button>
             <button
               type="button"
-              onClick={() => onCheckout("agency", billing)}
+              onClick={() => handleCta("agency")}
               className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold hover:from-purple-500 hover:to-indigo-500 transition-all"
             >
               Unlimited Agency Pass &mdash; {agencyPrice}
             </button>
             <button
               type="button"
-              onClick={() => onCheckout("enterprise", billing)}
+              onClick={() => handleCta("enterprise")}
               className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold hover:from-amber-500 hover:to-orange-500 transition-all"
             >
               Enterprise Tier &mdash; {enterprisePrice}

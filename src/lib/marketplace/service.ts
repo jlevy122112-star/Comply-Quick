@@ -230,6 +230,80 @@ export async function createTemplate(input: TemplateInput): Promise<Template> {
   throw new Error(`Could not allocate a unique template slug (seed: ${seed}).`);
 }
 
+/**
+ * Get-or-create a creator profile for an explicit user id using the service-role
+ * client. Used by the metered API, where the request is authenticated by an API
+ * key and has no Supabase session. Entitlement is checked by the caller.
+ */
+async function getOrCreateCreatorForUser(userId: string): Promise<Creator> {
+  const admin = createAdminClient();
+  const existing = await admin.from("marketplace_creators").select(CREATOR_COLS).eq("user_id", userId).maybeSingle();
+  if (existing.data) return mapCreator(existing.data);
+
+  const { data: userData } = await admin.auth.admin.getUserById(userId);
+  const name = (userData.user?.email?.split("@")[0] ?? "Creator").trim().slice(0, 80) || "Creator";
+  const seed = slugifyTitle(name);
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const candidate = attempt === 0 ? seed : `${seed}-${Math.random().toString(36).slice(2, 6)}`;
+    const { data, error } = await admin
+      .from("marketplace_creators")
+      .insert({ user_id: userId, display_name: name, slug: candidate })
+      .select(CREATOR_COLS)
+      .single();
+    if (!error && data) return mapCreator(data);
+    if (!error?.message.toLowerCase().includes("duplicate")) throw new Error("Could not create creator profile.");
+    const mine = await admin.from("marketplace_creators").select(CREATOR_COLS).eq("user_id", userId).maybeSingle();
+    if (mine.data) return mapCreator(mine.data);
+  }
+  throw new Error(`Could not allocate a unique creator slug (seed: ${seed}).`);
+}
+
+/**
+ * Creates a draft template on behalf of an explicit user via the service-role
+ * client (metered API / programmatic upload). Mirrors createTemplate's
+ * validation but does not rely on a session. The $50 upload charge is metered by
+ * the calling route.
+ */
+export async function createTemplateForUser(userId: string, input: TemplateInput): Promise<Template> {
+  const creator = await getOrCreateCreatorForUser(userId);
+  const admin = createAdminClient();
+
+  const title = input.title?.trim();
+  if (!title) throw new ValidationError("A title is required.");
+  const category = input.category ?? "general";
+  if (!isValidCategory(category)) throw new ValidationError("Invalid category.");
+  const type = input.type ?? "custom";
+  if (!isValidType(type)) throw new ValidationError("Invalid template type.");
+  const priceCents = input.priceCents ?? 0;
+  if (!isValidPrice(priceCents))
+    throw new ValidationError("Price must be a whole number of cents between 0 and 1,000,000.");
+
+  const seed = slugifyTitle(title);
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const candidate = attempt === 0 ? seed : `${seed}-${Math.random().toString(36).slice(2, 6)}`;
+    const { data, error } = await admin
+      .from("marketplace_templates")
+      .insert({
+        creator_id: creator.id,
+        title: title.slice(0, 120),
+        slug: candidate,
+        summary: (input.summary ?? "").slice(0, 200),
+        description: (input.description ?? "").slice(0, 5000),
+        category,
+        type,
+        price_cents: priceCents,
+        content: input.content ?? {},
+        preview: (input.preview ?? "").slice(0, 2000),
+        body: (input.body ?? "").slice(0, 50_000),
+      })
+      .select(TEMPLATE_COLS)
+      .single();
+    if (!error && data) return mapTemplate(data);
+    if (!error?.message.toLowerCase().includes("duplicate")) throw new Error("Could not create template.");
+  }
+  throw new Error(`Could not allocate a unique template slug (seed: ${seed}).`);
+}
+
 /** Updates fields of a template the caller owns. */
 export async function updateTemplate(id: string, patch: Partial<TemplateInput>): Promise<Template> {
   const supabase = await createClient();

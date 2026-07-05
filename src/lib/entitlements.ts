@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { isTier, type PaidTier, type Tier } from "@/lib/pricing";
 
 export type { PaidTier, Tier };
@@ -40,7 +41,17 @@ export async function getEntitlement(): Promise<Entitlement> {
     .maybeSingle();
 
   if (error || !data) return DEFAULT_ENTITLEMENT;
+  return mapEntitlement(data);
+}
 
+interface SubscriptionRow {
+  tier: string | null;
+  status: string | null;
+  current_period_end: string | null;
+}
+
+/** Translates a raw subscriptions row into a typed entitlement. */
+function mapEntitlement(data: SubscriptionRow): Entitlement {
   const rawTier = data.tier ?? "free";
   // Legacy rows may still carry the retired "single" key — map it to "pro".
   const tier: Tier = rawTier === "single" ? "pro" : isTier(rawTier) ? rawTier : "free";
@@ -55,4 +66,20 @@ export async function getEntitlement(): Promise<Entitlement> {
     isEnterprise,
     currentPeriodEnd: data.current_period_end ?? null,
   };
+}
+
+/**
+ * Entitlement for an arbitrary user id, resolved with the service-role client.
+ * Used by the metered API layer, where the request is authenticated by API key
+ * and has no Supabase session to read auth.uid() from.
+ */
+export async function getEntitlementForUser(userId: string): Promise<Entitlement> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("subscriptions")
+    .select("tier, status, current_period_end")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error || !data) return DEFAULT_ENTITLEMENT;
+  return mapEntitlement(data);
 }
