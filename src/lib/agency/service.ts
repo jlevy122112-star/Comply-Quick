@@ -13,6 +13,7 @@ import { getEntitlement } from "@/lib/entitlements";
 import { logger } from "@/services";
 import { UnauthorizedError, ForbiddenError, NotFoundError, ValidationError } from "@/services/errors";
 import { getDomainProvider, type DomainVerification } from "./domain-provider";
+import { TIER_CONFIG, isUnlimited } from "@/lib/pricing";
 
 const log = logger.child({ module: "agency" });
 
@@ -339,6 +340,124 @@ export async function getClientStats(): Promise<Record<string, ClientStats>> {
   for (const id of Object.keys(stats)) if (!valid.has(id)) delete stats[id];
 
   return stats;
+}
+
+// ─── Team seats (members) ──────────────────────────────────────────────────────
+
+export interface AgencyMember {
+  id: string;
+  agencyId: string;
+  userId: string;
+  email: string | null;
+  role: "owner" | "admin" | "member";
+  createdAt: string;
+}
+
+const MEMBER_COLS = "id, agency_id, user_id, role, created_at";
+
+function mapMember(row: Record<string, unknown>, email: string | null): AgencyMember {
+  return {
+    id: row.id as string,
+    agencyId: row.agency_id as string,
+    userId: row.user_id as string,
+    email,
+    role: (row.role as AgencyMember["role"]) ?? "member",
+    createdAt: row.created_at as string,
+  };
+}
+
+/**
+ * Lists the caller agency's team seats, resolving each member's email via the
+ * admin client (auth.users is not readable through RLS). Owner first, then by
+ * join order.
+ */
+export async function listMembers(): Promise<AgencyMember[]> {
+  const agency = await getOrCreateAgency();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("agency_members")
+    .select(MEMBER_COLS)
+    .eq("agency_id", agency.id)
+    .order("created_at", { ascending: true });
+  if (error || !data) return [];
+
+  const admin = createAdminClient();
+  const emailById = new Map<string, string | null>();
+  await Promise.all(
+    data.map(async (row) => {
+      const id = row.user_id as string;
+      if (emailById.has(id)) return;
+      const { data: u } = await admin.auth.admin.getUserById(id);
+      emailById.set(id, u.user?.email ?? null);
+    })
+  );
+
+  return data
+    .map((row) => mapMember(row, emailById.get(row.user_id as string) ?? null))
+    .sort((a, b) => (a.role === "owner" ? -1 : b.role === "owner" ? 1 : 0));
+}
+
+/**
+ * Adds a colleague to the agency by email, enforcing the tier's seat limit
+ * (TIER_CONFIG.seats; Enterprise is unlimited). The invitee must already have a
+ * Comply-Quick account. Idempotent: re-adding an existing member is a no-op.
+ */
+export async function addMember(email: string): Promise<AgencyMember> {
+  const agency = await getOrCreateAgency();
+  const entitlement = await getEntitlement();
+  const supabase = await createClient();
+
+  const normalized = email.trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(normalized)) throw new ValidationError("Enter a valid email address.");
+
+  const seatLimit = TIER_CONFIG[entitlement.tier].seats;
+  if (!isUnlimited(seatLimit)) {
+    const { count } = await supabase
+      .from("agency_members")
+      .select("id", { count: "exact", head: true })
+      .eq("agency_id", agency.id);
+    if ((count ?? 0) >= seatLimit) {
+      throw new ValidationError(
+        `Your ${TIER_CONFIG[entitlement.tier].label} plan includes ${seatLimit} seats. Upgrade to add more.`
+      );
+    }
+  }
+
+  // Resolve the email to an existing account (auth.users needs the admin client).
+  const admin = createAdminClient();
+  const { data: list, error: listErr } = await admin.auth.admin.listUsers({ perPage: 200 });
+  if (listErr) {
+    log.error("Failed to look up user by email", { error: listErr.message });
+    throw new Error("Could not add member.");
+  }
+  const found = list.users.find((u) => u.email?.toLowerCase() === normalized);
+  if (!found) throw new ValidationError("No Comply-Quick account found for that email. Ask them to sign up first.");
+
+  const { data, error } = await supabase
+    .from("agency_members")
+    .upsert({ agency_id: agency.id, user_id: found.id, role: "member" }, { onConflict: "agency_id,user_id" })
+    .select(MEMBER_COLS)
+    .single();
+  if (error || !data) {
+    log.error("Failed to add member", { error: error?.message });
+    throw new Error("Could not add member.");
+  }
+  log.info("Added agency member", { agencyId: agency.id, userId: found.id });
+  return mapMember(data, found.email ?? null);
+}
+
+/** Removes a team seat. The owner seat cannot be removed. */
+export async function removeMember(userId: string): Promise<boolean> {
+  const agency = await getOrCreateAgency();
+  const supabase = await createClient();
+  if (userId === agency.ownerId) throw new ValidationError("The agency owner seat cannot be removed.");
+  const { error } = await supabase
+    .from("agency_members")
+    .delete()
+    .eq("agency_id", agency.id)
+    .eq("user_id", userId)
+    .neq("role", "owner");
+  return !error;
 }
 
 // ─── Custom domains ────────────────────────────────────────────────────────────

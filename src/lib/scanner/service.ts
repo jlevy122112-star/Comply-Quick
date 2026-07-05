@@ -9,6 +9,7 @@ import { getEntitlement } from "@/lib/entitlements";
 import { getAiClient } from "@/services/ai";
 import { logger } from "@/services";
 import { UnauthorizedError } from "@/services/errors";
+import { recordScanUsage } from "@/lib/billing/usage";
 import { runScan } from "./pipeline";
 import type { DetectedTool, Finding } from "./analyzer";
 
@@ -164,6 +165,10 @@ export async function createScan(url: string): Promise<ScanRecord> {
       createdAt: new Date().toISOString(),
     };
   }
+
+  // Accrue metered overage when this scan pushes the account past its monthly
+  // included allotment (Agency); unlimited/within-plan tiers are no-ops.
+  await recordScanUsage();
 
   log.info("Scan completed", { userId: user.id, score: outcome.score, tools: outcome.detectedTools.length });
   return mapRow(data);
