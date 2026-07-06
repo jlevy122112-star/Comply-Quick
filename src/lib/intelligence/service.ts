@@ -4,6 +4,7 @@
 // User-facing reads/writes go through the RLS-scoped server client; the weekly
 // cron uses the service-role admin client to fan out across premium users.
 
+import * as Sentry from "@sentry/nextjs";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getEntitlement } from "@/lib/entitlements";
@@ -197,6 +198,8 @@ export async function getAlertFix(id: string): Promise<string | null> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new UnauthorizedError();
+  // Attribute the AI monitoring trace to this subscriber (id only, no PII).
+  Sentry.setUser({ id: user.id });
 
   const { data: alert, error } = await supabase
     .from("compliance_alerts")
