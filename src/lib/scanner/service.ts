@@ -4,6 +4,7 @@
 // go through the RLS-scoped server client (a user only ever sees their own
 // scans). Enforces a monthly free-tier quota; Pro tiers are unlimited.
 
+import * as Sentry from "@sentry/nextjs";
 import { createClient } from "@/lib/supabase/server";
 import { getEntitlement } from "@/lib/entitlements";
 import { getAiClient } from "@/services/ai";
@@ -131,6 +132,8 @@ export async function createScan(url: string): Promise<ScanRecord> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new UnauthorizedError();
+  // Attribute the AI monitoring trace to this subscriber (id only, no PII).
+  Sentry.setUser({ id: user.id });
 
   const quota = await getScanQuota();
   if (!quota.isPremium && quota.remaining !== null && quota.remaining <= 0) {
