@@ -8,7 +8,11 @@ import OpenAI from "openai";
 import type { AiClient, AiCompletionParams } from "./types";
 import { ServiceUnavailableError, InternalError } from "../errors";
 
-const DEFAULT_MODEL = "gpt-4.1";
+// Nano is the most cost-effective model (~20x cheaper than gpt-4.1) and is
+// well-suited to our short, structured summaries (output capped at 220 tokens;
+// the hard compliance logic is done by the rule-based engine, not the model).
+// Override per-deployment with OPENAI_MODEL.
+const DEFAULT_MODEL = "gpt-4.1-nano";
 
 export class OpenAiClient implements AiClient {
   readonly id: string;
