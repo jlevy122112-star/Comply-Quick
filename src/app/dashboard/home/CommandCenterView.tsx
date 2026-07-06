@@ -9,6 +9,7 @@ import { deleteProjectAction, signOutAction } from "@/app/dashboard/actions";
 import AutopilotPanel from "./AutopilotPanel";
 import ScannerPanel from "./ScannerPanel";
 import IntelligencePanel from "./IntelligencePanel";
+import NpsSurvey from "./NpsSurvey";
 
 // ─── Framework Display Map ──────────────────────────────────────────────────
 
@@ -123,9 +124,16 @@ interface CommandCenterViewProps {
   tier: Tier;
   aggregateScore: ComplianceScore | null;
   userEmail: string | null;
+  isLegalAdmin?: boolean;
 }
 
-export default function CommandCenterView({ projects, tier, aggregateScore, userEmail }: CommandCenterViewProps) {
+export default function CommandCenterView({
+  projects,
+  tier,
+  aggregateScore,
+  userEmail,
+  isLegalAdmin,
+}: CommandCenterViewProps) {
   const [isPending, startTransition] = useTransition();
   const [portalLoading, setPortalLoading] = useState(false);
   const projectsNeedingAttention = projects.filter((p) => p.status !== "current").length;
@@ -163,6 +171,7 @@ export default function CommandCenterView({ projects, tier, aggregateScore, user
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
+      <NpsSurvey />
       {/* Header */}
       <header className="border-b border-gray-800/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
@@ -204,6 +213,12 @@ export default function CommandCenterView({ projects, tier, aggregateScore, user
                 >
                   {portalLoading ? "Opening…" : "Manage Billing"}
                 </button>
+                <Link
+                  href="/dashboard/cancel"
+                  className="hidden sm:inline-block px-3 py-2 rounded-lg text-gray-500 text-sm hover:text-gray-300 transition-colors"
+                >
+                  Cancel plan
+                </Link>
               </>
             )}
             <Link
@@ -224,6 +239,14 @@ export default function CommandCenterView({ projects, tier, aggregateScore, user
             >
               Calendar
             </Link>
+            {isLegalAdmin && (
+              <Link
+                href="/dashboard/legal-review"
+                className="hidden sm:inline-block px-3 py-2 rounded-lg border border-amber-500/40 text-amber-300 text-sm font-medium hover:border-amber-400 hover:text-amber-200 transition-colors"
+              >
+                Legal Review
+              </Link>
+            )}
             <Link
               href="/dashboard"
               className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors"

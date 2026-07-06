@@ -18,6 +18,7 @@ import { MODULE_OPTIONS } from "@/components/EnterpriseModules";
 import { saveProjectAction } from "./actions";
 import type { Tier } from "@/lib/entitlements";
 import { TIER_CONFIG } from "@/lib/pricing";
+import { REPORT_DISCLAIMER, DISCLAIMER_LONG } from "@/lib/legal";
 
 interface DashboardWizardProps {
   isPremium: boolean;
@@ -61,9 +62,6 @@ const REGION_OPTIONS: { value: TargetRegion; label: string; flag: string }[] = [
   { value: "brazil_lgpd", label: "Brazil (LGPD)", flag: "🇧🇷" },
   { value: "australia_privacy", label: "Australia", flag: "🇦🇺" },
 ];
-
-const DISCLAIMER_TEXT =
-  "Disclaimer: Comply-Quick provides automated operational templates based on technical configuration inputs. Comply-Quick is not a law firm, does not provide formal legal counsel, and the outputs generated does not constitute legal advice.";
 
 // ─── Clipboard Copy Hook ────────────────────────────────────────────────────
 
@@ -591,8 +589,14 @@ export default function DashboardWizard({ isPremium, isAuthenticated }: Dashboar
         )}
 
         {/* Mandatory Disclaimer */}
-        <footer className="mt-12 pt-6 border-t border-gray-800">
-          <p className="text-xs text-gray-500 text-center leading-relaxed">{DISCLAIMER_TEXT}</p>
+        <footer className="mt-12 pt-6 border-t border-gray-800 space-y-2">
+          <p className="text-xs font-medium text-gray-400 text-center leading-relaxed">{REPORT_DISCLAIMER}</p>
+          <p className="text-xs text-gray-500 text-center leading-relaxed">{DISCLAIMER_LONG}</p>
+          <p className="text-xs text-gray-600 text-center">
+            <Link href="/legal/terms" className="underline hover:text-gray-400">
+              Terms of Service
+            </Link>
+          </p>
         </footer>
       </div>
     </div>

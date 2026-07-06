@@ -4,6 +4,7 @@
 // go through the RLS-scoped server client (a user only ever sees their own
 // scans). Enforces a monthly free-tier quota; Pro tiers are unlimited.
 
+import * as Sentry from "@sentry/nextjs";
 import { createClient } from "@/lib/supabase/server";
 import { getEntitlement } from "@/lib/entitlements";
 import { getAiClient } from "@/services/ai";
@@ -12,9 +13,17 @@ import { UnauthorizedError } from "@/services/errors";
 import { recordScanUsage, currentPeriod, periodStartIso } from "@/lib/billing/usage";
 import { scanLimit } from "@/lib/pricing";
 import { runScan } from "./pipeline";
+import { normalizeScanUrl } from "./crawler";
 import type { DetectedTool, Finding } from "./analyzer";
 
 const log = logger.child({ module: "scanner" });
+
+/**
+ * Scan-cache window. A completed scan of the same (normalized) URL within this
+ * many days is reused instead of re-crawling — cuts scanner/AI cost and never
+ * counts against the free-tier quota. Cost optimization per BUILD_PLAN §9.
+ */
+export const SCAN_CACHE_TTL_DAYS = 7;
 
 /**
  * Free-tier scan allotment per calendar month. Sourced from TIER_CONFIG (the
@@ -78,6 +87,30 @@ function mapRow(row: Record<string, unknown>): ScanRecord {
   };
 }
 
+/**
+ * Returns a recent completed scan of the same normalized URL for this user,
+ * within the cache window, or null. Used to skip a re-crawl (and the quota
+ * charge) for repeat scans of the same site.
+ */
+async function findRecentScan(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  normalizedUrl: string
+): Promise<ScanRecord | null> {
+  const since = new Date(Date.now() - SCAN_CACHE_TTL_DAYS * 86_400_000).toISOString();
+  const { data } = await supabase
+    .from("scans")
+    .select("id, url, status, score, detected_tools, findings, summary, error, created_at")
+    .eq("user_id", userId)
+    .eq("url", normalizedUrl)
+    .eq("status", "completed")
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data ? mapRow(data) : null;
+}
+
 /** Lists the current user's scan history (most recent first). */
 export async function listScans(limit = 50): Promise<ScanRecord[]> {
   const supabase = await createClient();
@@ -125,12 +158,32 @@ export class QuotaExceededError extends Error {
  * the result. Returns the stored record. Throws QuotaExceededError when a free
  * user is over budget and UnauthorizedError when signed out.
  */
-export async function createScan(url: string): Promise<ScanRecord> {
+export async function createScan(url: string, opts: { force?: boolean } = {}): Promise<ScanRecord> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new UnauthorizedError();
+  // Attribute the AI monitoring trace to this subscriber (id only, no PII).
+  Sentry.setUser({ id: user.id });
+
+  // Reuse a recent scan of the same URL (skips the crawl + quota charge). The
+  // normalized URL matches what the pipeline persists (page.url). Never throws.
+  if (!opts.force) {
+    let normalizedUrl: string | null = null;
+    try {
+      normalizedUrl = normalizeScanUrl(url).toString();
+    } catch {
+      normalizedUrl = null;
+    }
+    if (normalizedUrl) {
+      const cached = await findRecentScan(supabase, user.id, normalizedUrl);
+      if (cached) {
+        analytics.track({ event: "scan_cache_hit", userId: user.id, properties: { url: normalizedUrl } });
+        return cached;
+      }
+    }
+  }
 
   const quota = await getScanQuota();
   if (!quota.isPremium && quota.remaining !== null && quota.remaining <= 0) {
