@@ -5,13 +5,17 @@
 // billing, freemium funnel, metered API) read from here so limits and prices
 // never drift between the checkout, the webhook, the paywall, and the UI.
 //
-// Pricing decisions (owner-approved 2026-07-03):
-//   • The legacy one-time "single" pass is replaced by a recurring **Pro** plan
-//     at $12/mo (rename single → pro; mode payment → subscription).
-//   • Agency / Enterprise keep their current live prices ($29 / $99 per month)
-//     to avoid an unapproved public price change. The Executive Summary
-//     recommends raising these to $79 / $299 — pending owner sign-off.
-//   • Free tier is capped at 1 scan / month (freemium funnel).
+// Pricing decisions (owner-approved 2026-07-06 — value-based repricing):
+//   • Solo (machine key `pro`): $29/mo, 20 scans — freelancers / solo devs.
+//   • Agency: $99/mo, 5 seats, 100 scans — the primary ICP (monitoring +
+//     Autopilot + white-label).
+//   • Enterprise: $299/mo, unlimited seats + scans — regulated industries.
+//   • Free tier stays capped at 1 scan / month (freemium funnel hook).
+//   • Machine keys (free/pro/agency/enterprise) are UNCHANGED so persisted
+//     entitlements keep working; only labels, prices, and limits changed.
+//   • Annual = 10× monthly (~2 months free). New Stripe Price IDs must be
+//     created and wired via the STRIPE_PRICE_* env vars; existing subscribers
+//     are grandfathered on their old Stripe prices.
 //
 // Unlimited values are represented by `Infinity` (never a magic -1 at call
 // sites): `seats: Infinity` / `scanLimit: Infinity` for Enterprise.
@@ -55,29 +59,29 @@ export const TIER_CONFIG: Record<Tier, TierConfig> = {
   },
   pro: {
     id: "pro",
-    label: "Pro",
-    monthly: 12,
-    annual: 120,
+    label: "Solo",
+    monthly: 29,
+    annual: 290,
     seats: 1,
-    scanLimit: 10,
+    scanLimit: 20,
     mode: "subscription",
     priceEnv: { monthly: "STRIPE_PRICE_PRO_MONTHLY", annual: "STRIPE_PRICE_PRO_ANNUAL" },
   },
   agency: {
     id: "agency",
     label: "Agency",
-    monthly: 29,
-    annual: 290,
+    monthly: 99,
+    annual: 990,
     seats: 5,
-    scanLimit: 50,
+    scanLimit: 100,
     mode: "subscription",
     priceEnv: { monthly: "STRIPE_PRICE_AGENCY", annual: "STRIPE_PRICE_AGENCY_ANNUAL" },
   },
   enterprise: {
     id: "enterprise",
     label: "Enterprise",
-    monthly: 99,
-    annual: 990,
+    monthly: 299,
+    annual: 2990,
     seats: Infinity,
     scanLimit: Infinity,
     mode: "subscription",

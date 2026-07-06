@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { TIER_CONFIG } from "@/lib/pricing";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://comply-quick.com";
 
@@ -217,24 +218,25 @@ export default function LandingPage() {
 
           {/* Pricing anchor */}
           <p className="text-center text-xs text-gray-500 mb-10 sm:mb-14">
-            Average attorney compliance review: $2,000 &ndash; $5,000. Comply-Quick starts at $12.
+            Average attorney compliance review: $2,000 &ndash; $5,000. Comply-Quick starts at ${TIER_CONFIG.pro.monthly}
+            .
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
             {/* Pro Plan */}
             <article className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-8 flex flex-col">
               <div className="mb-6">
-                <h3 className="text-lg font-semibold text-white">Pro</h3>
-                <p className="mt-1 text-xs text-gray-500">For solo founders. Cancel anytime.</p>
+                <h3 className="text-lg font-semibold text-white">{TIER_CONFIG.pro.label}</h3>
+                <p className="mt-1 text-xs text-gray-500">For freelancers &amp; solo devs. Cancel anytime.</p>
                 <div className="mt-3 flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-white">$12</span>
+                  <span className="text-4xl font-bold text-white">${TIER_CONFIG.pro.monthly}</span>
                   <span className="text-sm text-gray-400">/month</span>
                 </div>
-                <p className="mt-1 text-xs text-emerald-400">or $120/yr &mdash; save ~17%</p>
+                <p className="mt-1 text-xs text-emerald-400">or ${TIER_CONFIG.pro.annual}/yr &mdash; save ~17%</p>
               </div>
               <ul className="space-y-3 mb-8 flex-1">
                 <PricingFeature>Unlimited project generations</PricingFeature>
-                <PricingFeature>10 compliance scans / month</PricingFeature>
+                <PricingFeature>{TIER_CONFIG.pro.scanLimit} compliance scans / month</PricingFeature>
                 <PricingFeature>Direct markdown download</PricingFeature>
                 <PricingFeature>Full contract shield + privacy addendum + checklist</PricingFeature>
                 <PricingFeature>Compliance score breakdown</PricingFeature>
@@ -253,19 +255,19 @@ export default function LandingPage() {
                 <span className="text-xs font-medium text-indigo-300">Most Popular</span>
               </div>
               <div className="mb-6">
-                <h3 className="text-lg font-semibold text-white">Agency Scale Plan</h3>
-                <p className="mt-1 text-xs text-gray-500">Unlimited projects for growing teams.</p>
+                <h3 className="text-lg font-semibold text-white">{TIER_CONFIG.agency.label}</h3>
+                <p className="mt-1 text-xs text-gray-500">For agencies managing multiple client sites.</p>
                 <div className="mt-3 flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-white">$29</span>
+                  <span className="text-4xl font-bold text-white">${TIER_CONFIG.agency.monthly}</span>
                   <span className="text-sm text-gray-400">/month</span>
                 </div>
-                <p className="mt-1 text-xs text-emerald-400">or $290/yr &mdash; save ~17%</p>
+                <p className="mt-1 text-xs text-emerald-400">or ${TIER_CONFIG.agency.annual}/yr &mdash; save ~17%</p>
               </div>
               <ul className="space-y-3 mb-8 flex-1">
-                <PricingFeature>Unlimited project generations</PricingFeature>
-                <PricingFeature>Team seats included</PricingFeature>
-                <PricingFeature>Automated regulatory clause updates</PricingFeature>
-                <PricingFeature>Priority support</PricingFeature>
+                <PricingFeature>{TIER_CONFIG.agency.scanLimit} compliance scans / month</PricingFeature>
+                <PricingFeature>{TIER_CONFIG.agency.seats} team seats included</PricingFeature>
+                <PricingFeature>Ongoing monitoring + automated regulatory updates</PricingFeature>
+                <PricingFeature>White-label exports &amp; priority support</PricingFeature>
                 <PricingFeature>All 9 platforms, 6 pixels, and 6 regions</PricingFeature>
               </ul>
               <Link
@@ -282,16 +284,19 @@ export default function LandingPage() {
                 <span className="text-xs font-medium text-amber-300">Enterprise</span>
               </div>
               <div className="mb-6">
-                <h3 className="text-lg font-semibold text-white">Enterprise Tier</h3>
+                <h3 className="text-lg font-semibold text-white">{TIER_CONFIG.enterprise.label}</h3>
                 <p className="mt-1 text-xs text-gray-500">Full compliance stack for regulated industries.</p>
                 <div className="mt-3 flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-white">$99</span>
+                  <span className="text-4xl font-bold text-white">${TIER_CONFIG.enterprise.monthly}</span>
                   <span className="text-sm text-gray-400">/month</span>
                 </div>
-                <p className="mt-1 text-xs text-emerald-400">or $990/yr &mdash; save ~17%</p>
+                <p className="mt-1 text-xs text-emerald-400">
+                  or ${TIER_CONFIG.enterprise.annual}/yr &mdash; save ~17%
+                </p>
               </div>
               <ul className="space-y-3 mb-8 flex-1">
                 <PricingFeature>Everything in Agency, plus:</PricingFeature>
+                <PricingFeature>Unlimited seats &amp; scans</PricingFeature>
                 <PricingFeature>HIPAA compliance shield</PricingFeature>
                 <PricingFeature>PCI-DSS payment security module</PricingFeature>
                 <PricingFeature>ADA / WCAG accessibility compliance</PricingFeature>
