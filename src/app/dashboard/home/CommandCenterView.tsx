@@ -9,6 +9,7 @@ import { deleteProjectAction, signOutAction } from "@/app/dashboard/actions";
 import AutopilotPanel from "./AutopilotPanel";
 import ScannerPanel from "./ScannerPanel";
 import IntelligencePanel from "./IntelligencePanel";
+import NpsSurvey from "./NpsSurvey";
 
 // ─── Framework Display Map ──────────────────────────────────────────────────
 
@@ -170,6 +171,7 @@ export default function CommandCenterView({
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
+      <NpsSurvey />
       {/* Header */}
       <header className="border-b border-gray-800/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
@@ -211,6 +213,12 @@ export default function CommandCenterView({
                 >
                   {portalLoading ? "Opening…" : "Manage Billing"}
                 </button>
+                <Link
+                  href="/dashboard/cancel"
+                  className="hidden sm:inline-block px-3 py-2 rounded-lg text-gray-500 text-sm hover:text-gray-300 transition-colors"
+                >
+                  Cancel plan
+                </Link>
               </>
             )}
             <Link
