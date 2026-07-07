@@ -7,9 +7,9 @@ describe("partner commission math", () => {
   });
 
   it("computes 30% of the gross payment in cents", () => {
-    expect(partnerCommissionCents(1200)).toBe(360); // $12/mo Pro → $3.60
-    expect(partnerCommissionCents(2900)).toBe(870); // $29/mo Agency → $8.70
-    expect(partnerCommissionCents(9900)).toBe(2970); // $99/mo Enterprise → $29.70
+    expect(partnerCommissionCents(1200)).toBe(360); // $12.00 → $3.60
+    expect(partnerCommissionCents(2900)).toBe(870); // $29/mo Solo → $8.70
+    expect(partnerCommissionCents(9900)).toBe(2970); // $99/mo Agency → $29.70
   });
 
   it("rounds to the nearest cent", () => {

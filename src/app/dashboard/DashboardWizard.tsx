@@ -842,7 +842,9 @@ function PaywallGate({
               onClick={() => handleCta("pro")}
               className="w-full py-3.5 px-4 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition-colors relative overflow-hidden group"
             >
-              <span className="relative z-10">Unlock with Pro &mdash; {proPrice}</span>
+              <span className="relative z-10">
+                Unlock with {TIER_CONFIG.pro.label} &mdash; {proPrice}
+              </span>
               <span className="absolute inset-0 bg-white/5 translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-300" />
             </button>
             <button

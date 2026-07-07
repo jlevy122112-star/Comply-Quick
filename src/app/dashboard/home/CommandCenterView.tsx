@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { DbProject } from "@/lib/projects-db";
 import type { ComplianceScore } from "@/components/ClauseEngine";
 import type { Tier } from "@/lib/entitlements";
+import { getTierConfig } from "@/lib/pricing";
 import { deleteProjectAction, signOutAction } from "@/app/dashboard/actions";
 import AutopilotPanel from "./AutopilotPanel";
 import ScannerPanel from "./ScannerPanel";
@@ -195,7 +196,7 @@ export default function CommandCenterView({
                       : "bg-gray-800 text-gray-400"
               }`}
             >
-              {tier === "enterprise" ? "Enterprise" : tier === "agency" ? "Agency" : tier === "pro" ? "Pro" : "Free"}
+              {getTierConfig(tier).label}
             </span>
             {(tier === "agency" || tier === "enterprise") && (
               <>

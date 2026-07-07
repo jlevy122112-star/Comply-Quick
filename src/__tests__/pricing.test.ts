@@ -16,9 +16,11 @@ describe("TIER_CONFIG", () => {
     expect(Object.keys(TIER_CONFIG).sort()).toEqual(["agency", "enterprise", "free", "pro"]);
   });
 
-  it("prices the Pro plan at $12/mo (renamed from the retired one-time single pass)", () => {
-    expect(TIER_CONFIG.pro.monthly).toBe(12);
-    expect(TIER_CONFIG.pro.annual).toBe(120);
+  it("prices the Solo plan (machine key `pro`) at $29/mo, $290/yr", () => {
+    expect(TIER_CONFIG.pro.label).toBe("Solo");
+    expect(TIER_CONFIG.pro.monthly).toBe(29);
+    expect(TIER_CONFIG.pro.annual).toBe(290);
+    expect(TIER_CONFIG.pro.scanLimit).toBe(20);
     expect(TIER_CONFIG.pro.mode).toBe("subscription");
     expect(TIER_CONFIG.pro.priceEnv).toEqual({
       monthly: "STRIPE_PRICE_PRO_MONTHLY",
@@ -64,7 +66,8 @@ describe("tier guards & helpers", () => {
 
   it("exposes seat and scan limits per tier", () => {
     expect(seatLimit("agency")).toBe(5);
-    expect(scanLimit("pro")).toBe(10);
+    expect(scanLimit("pro")).toBe(20);
+    expect(scanLimit("agency")).toBe(100);
     expect(seatLimit("enterprise")).toBe(Infinity);
   });
 });
