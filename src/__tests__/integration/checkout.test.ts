@@ -91,7 +91,7 @@ describe("Stripe webhook: checkout.session.completed", () => {
     expect(opts).toEqual({ onConflict: "user_id" });
   });
 
-  it("maps the retired 'single' plan key to 'pro'", async () => {
+  it("maps the retired 'single' plan key to 'solo'", async () => {
     constructEvent.mockReturnValue({
       type: "checkout.session.completed",
       data: {
@@ -108,7 +108,7 @@ describe("Stripe webhook: checkout.session.completed", () => {
     await POST(makeRequest());
 
     expect(upsertSpy).toHaveBeenCalledTimes(1);
-    expect(upsertSpy.mock.calls[0][1]).toMatchObject({ tier: "pro", status: "active" });
+    expect(upsertSpy.mock.calls[0][1]).toMatchObject({ tier: "solo", status: "active" });
   });
 
   it("does not create a subscription for a marketplace checkout", async () => {

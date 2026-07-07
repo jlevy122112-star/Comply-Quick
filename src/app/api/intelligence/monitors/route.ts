@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { listMonitors, createMonitor, MonitorLimitError } from "@/lib/intelligence/service";
 import {
-  InMemoryRateLimiter,
+  createRateLimiter,
   getClientKey,
   enforceRateLimit,
   errorResponse,
@@ -11,7 +11,7 @@ import {
   ForbiddenError,
 } from "@/services";
 
-const limiter = new InMemoryRateLimiter({ limit: 20, windowMs: 60_000 });
+const limiter = createRateLimiter({ limit: 20, windowMs: 60_000 });
 
 /** Lists the current user's monitors. */
 export async function GET() {
@@ -31,7 +31,7 @@ export async function GET() {
 /** Registers a URL for weekly monitoring (Pro-tier). Body: { url, label? }. */
 export async function POST(request: NextRequest) {
   try {
-    const rateHeaders = enforceRateLimit(limiter.check(getClientKey(request.headers)));
+    const rateHeaders = enforceRateLimit(await limiter.check(getClientKey(request.headers)));
 
     const supabase = await createClient();
     const {

@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createScan, QuotaExceededError } from "@/lib/scanner/service";
 import { validateScanUrl } from "@/lib/security";
 import {
-  InMemoryRateLimiter,
+  createRateLimiter,
   getClientKey,
   enforceRateLimit,
   errorResponse,
@@ -14,12 +14,12 @@ import {
 
 // Scans fetch external URLs — cap volume per client to protect the instance and
 // the sites being scanned.
-const limiter = new InMemoryRateLimiter({ limit: 10, windowMs: 60_000 });
+const limiter = createRateLimiter({ limit: 10, windowMs: 60_000 });
 
 /** Runs a compliance scan for the authenticated user (free-tier quota enforced). */
 export async function POST(request: NextRequest) {
   try {
-    const rateHeaders = enforceRateLimit(limiter.check(getClientKey(request.headers)));
+    const rateHeaders = enforceRateLimit(await limiter.check(getClientKey(request.headers)));
 
     const supabase = await createClient();
     const {

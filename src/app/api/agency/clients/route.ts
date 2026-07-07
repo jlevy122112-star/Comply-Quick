@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { listClients, createClient_ } from "@/lib/agency/service";
 import {
-  InMemoryRateLimiter,
+  createRateLimiter,
   getClientKey,
   enforceRateLimit,
   errorResponse,
@@ -10,7 +10,7 @@ import {
   ValidationError,
 } from "@/services";
 
-const limiter = new InMemoryRateLimiter({ limit: 30, windowMs: 60_000 });
+const limiter = createRateLimiter({ limit: 30, windowMs: 60_000 });
 
 /** Lists the caller's agency clients. */
 export async function GET() {
@@ -30,7 +30,7 @@ export async function GET() {
 /** Creates a client. Body: { name, contactEmail?, websiteUrl?, notes? }. */
 export async function POST(request: NextRequest) {
   try {
-    const rateHeaders = enforceRateLimit(limiter.check(getClientKey(request.headers)));
+    const rateHeaders = enforceRateLimit(await limiter.check(getClientKey(request.headers)));
     const supabase = await createClient();
     const {
       data: { user },

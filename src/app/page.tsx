@@ -218,25 +218,25 @@ export default function LandingPage() {
 
           {/* Pricing anchor */}
           <p className="text-center text-xs text-gray-500 mb-10 sm:mb-14">
-            Average attorney compliance review: $2,000 &ndash; $5,000. Comply-Quick starts at ${TIER_CONFIG.pro.monthly}
-            .
+            Average attorney compliance review: $2,000 &ndash; $5,000. Comply-Quick starts at $
+            {TIER_CONFIG.solo.monthly}.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
             {/* Pro Plan */}
             <article className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-8 flex flex-col">
               <div className="mb-6">
-                <h3 className="text-lg font-semibold text-white">{TIER_CONFIG.pro.label}</h3>
+                <h3 className="text-lg font-semibold text-white">{TIER_CONFIG.solo.label}</h3>
                 <p className="mt-1 text-xs text-gray-500">For freelancers &amp; solo devs. Cancel anytime.</p>
                 <div className="mt-3 flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-white">${TIER_CONFIG.pro.monthly}</span>
+                  <span className="text-4xl font-bold text-white">${TIER_CONFIG.solo.monthly}</span>
                   <span className="text-sm text-gray-400">/month</span>
                 </div>
-                <p className="mt-1 text-xs text-emerald-400">or ${TIER_CONFIG.pro.annual}/yr &mdash; save ~17%</p>
+                <p className="mt-1 text-xs text-emerald-400">or ${TIER_CONFIG.solo.annual}/yr &mdash; save ~17%</p>
               </div>
               <ul className="space-y-3 mb-8 flex-1">
                 <PricingFeature>Unlimited project generations</PricingFeature>
-                <PricingFeature>{TIER_CONFIG.pro.scanLimit} compliance scans / month</PricingFeature>
+                <PricingFeature>{TIER_CONFIG.solo.scanLimit} compliance scans / month</PricingFeature>
                 <PricingFeature>Direct markdown download</PricingFeature>
                 <PricingFeature>Full contract shield + privacy addendum + checklist</PricingFeature>
                 <PricingFeature>Compliance score breakdown</PricingFeature>

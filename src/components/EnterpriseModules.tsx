@@ -6,7 +6,10 @@
 
 // ─── Type Definitions ────────────────────────────────────────────────────────
 
-export type ComplianceModule = "hipaa" | "pci_dss" | "ada_wcag" | "soc2";
+// Single source of truth for enterprise module keys: the union type is derived
+// from the runtime array, and the validator + membership set read from it.
+export const COMPLIANCE_MODULES = ["hipaa", "pci_dss", "ada_wcag", "soc2"] as const;
+export type ComplianceModule = (typeof COMPLIANCE_MODULES)[number];
 
 export interface ModuleClause {
   title: string;
@@ -164,12 +167,13 @@ const MODULE_OUTPUTS: Record<ComplianceModule, ComplianceModuleOutput> = {
   },
 };
 
-const VALID_MODULES: ReadonlySet<string> = new Set(["hipaa", "pci_dss", "ada_wcag", "soc2"]);
+export const VALID_MODULES: ReadonlySet<string> = new Set(COMPLIANCE_MODULES);
 
 export function validateModules(modules: ComplianceModule[]): void {
   for (const mod of modules) {
     if (!VALID_MODULES.has(mod)) {
-      throw new Error(`Invalid compliance module: "${mod}". Must be "hipaa", "pci_dss", "ada_wcag", or "soc2".`);
+      const allowed = COMPLIANCE_MODULES.map((m) => `"${m}"`).join(", ");
+      throw new Error(`Invalid compliance module: "${mod}". Must be one of: ${allowed}.`);
     }
   }
 }

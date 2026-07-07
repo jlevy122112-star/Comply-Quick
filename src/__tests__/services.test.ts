@@ -91,31 +91,36 @@ describe("error handling", () => {
 // ─── Rate limiting ───────────────────────────────────────────────────────────
 
 describe("InMemoryRateLimiter", () => {
-  it("allows up to the limit then blocks within a window", () => {
+  it("allows up to the limit then blocks within a window", async () => {
     const t = 1_000;
     const limiter = new InMemoryRateLimiter({ limit: 3, windowMs: 1_000, now: () => t });
 
-    const results = [limiter.check("k"), limiter.check("k"), limiter.check("k"), limiter.check("k")];
+    const results = [
+      await limiter.check("k"),
+      await limiter.check("k"),
+      await limiter.check("k"),
+      await limiter.check("k"),
+    ];
     expect(results.map((r) => r.allowed)).toEqual([true, true, true, false]);
     expect(results[2].remaining).toBe(0);
     expect(results[3].retryAfterSeconds).toBeGreaterThan(0);
   });
 
-  it("resets after the window elapses", () => {
+  it("resets after the window elapses", async () => {
     let t = 0;
     const limiter = new InMemoryRateLimiter({ limit: 1, windowMs: 1_000, now: () => t });
-    expect(limiter.check("k").allowed).toBe(true);
-    expect(limiter.check("k").allowed).toBe(false);
+    expect((await limiter.check("k")).allowed).toBe(true);
+    expect((await limiter.check("k")).allowed).toBe(false);
     t += 1_001;
-    expect(limiter.check("k").allowed).toBe(true);
+    expect((await limiter.check("k")).allowed).toBe(true);
   });
 
-  it("tracks separate keys independently", () => {
+  it("tracks separate keys independently", async () => {
     const t = 0;
     const limiter = new InMemoryRateLimiter({ limit: 1, windowMs: 1_000, now: () => t });
-    expect(limiter.check("a").allowed).toBe(true);
-    expect(limiter.check("b").allowed).toBe(true);
-    expect(limiter.check("a").allowed).toBe(false);
+    expect((await limiter.check("a")).allowed).toBe(true);
+    expect((await limiter.check("b")).allowed).toBe(true);
+    expect((await limiter.check("a")).allowed).toBe(false);
   });
 });
 
