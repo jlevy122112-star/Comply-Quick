@@ -102,7 +102,7 @@ export default function DashboardWizard({ isPremium, isAuthenticated }: Dashboar
   // Stripe checkout handler. Requires authentication — unauthenticated users are
   // routed to sign in first, then returned to the wizard.
   const handleCheckout = useCallback(
-    async (plan: "pro" | "agency" | "enterprise", billing: "monthly" | "annual" = "monthly") => {
+    async (plan: "solo" | "agency" | "enterprise", billing: "monthly" | "annual" = "monthly") => {
       if (!isAuthenticated) {
         window.location.href = `/login?redirect=${encodeURIComponent("/dashboard")}`;
         return;
@@ -669,7 +669,7 @@ function PaywallGate({
   hasModules: boolean;
   pixelCount: number;
   modules: ComplianceModule[];
-  onCheckout: (plan: "pro" | "agency" | "enterprise", billing?: "monthly" | "annual") => void;
+  onCheckout: (plan: "solo" | "agency" | "enterprise", billing?: "monthly" | "annual") => void;
 }) {
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
 
@@ -682,11 +682,11 @@ function PaywallGate({
     trackFunnel("paywall_viewed", { surface: "wizard", triggers: triggers.map((t) => t.id).join(",") });
   }, [triggers]);
 
-  const handleCta = (plan: "pro" | "agency" | "enterprise") => {
+  const handleCta = (plan: "solo" | "agency" | "enterprise") => {
     trackFunnel("upgrade_cta_clicked", { surface: "wizard", plan, billing });
     onCheckout(plan, billing);
   };
-  const proPrice = billing === "annual" ? `$${TIER_CONFIG.pro.annual}/yr` : `$${TIER_CONFIG.pro.monthly}/mo`;
+  const soloPrice = billing === "annual" ? `$${TIER_CONFIG.solo.annual}/yr` : `$${TIER_CONFIG.solo.monthly}/mo`;
   const agencyPrice = billing === "annual" ? `$${TIER_CONFIG.agency.annual}/yr` : `$${TIER_CONFIG.agency.monthly}/mo`;
   const enterprisePrice =
     billing === "annual" ? `$${TIER_CONFIG.enterprise.annual}/yr` : `$${TIER_CONFIG.enterprise.monthly}/mo`;
@@ -839,11 +839,11 @@ function PaywallGate({
           <div className="space-y-3">
             <button
               type="button"
-              onClick={() => handleCta("pro")}
+              onClick={() => handleCta("solo")}
               className="w-full py-3.5 px-4 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition-colors relative overflow-hidden group"
             >
               <span className="relative z-10">
-                Unlock with {TIER_CONFIG.pro.label} &mdash; {proPrice}
+                Unlock with {TIER_CONFIG.solo.label} &mdash; {soloPrice}
               </span>
               <span className="absolute inset-0 bg-white/5 translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-300" />
             </button>

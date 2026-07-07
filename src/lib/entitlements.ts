@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isTier, type PaidTier, type Tier } from "@/lib/pricing";
+import { isTier, normalizeTierKey, type PaidTier, type Tier } from "@/lib/pricing";
 
 export type { PaidTier, Tier };
 
@@ -52,9 +52,9 @@ interface SubscriptionRow {
 
 /** Translates a raw subscriptions row into a typed entitlement. */
 function mapEntitlement(data: SubscriptionRow): Entitlement {
-  const rawTier = data.tier ?? "free";
-  // Legacy rows may still carry the retired "single" key — map it to "pro".
-  const tier: Tier = rawTier === "single" ? "pro" : isTier(rawTier) ? rawTier : "free";
+  // Legacy rows may still carry the retired "pro"/"single" keys — normalize to "solo".
+  const rawTier = normalizeTierKey(data.tier ?? "free");
+  const tier: Tier = isTier(rawTier) ? rawTier : "free";
   const status = (data.status ?? "inactive") as Entitlement["status"];
   const isPremium = status === "active" && tier !== "free";
   const isEnterprise = isPremium && tier === "enterprise";

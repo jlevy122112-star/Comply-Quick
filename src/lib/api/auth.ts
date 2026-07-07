@@ -8,12 +8,12 @@
 import { NextRequest } from "next/server";
 import { resolveApiKey } from "@/lib/api/keys";
 import { getEntitlementForUser } from "@/lib/entitlements";
-import { InMemoryRateLimiter, enforceRateLimit } from "@/services";
+import { createRateLimiter, enforceRateLimit } from "@/services";
 import { ForbiddenError, UnauthorizedError } from "@/services/errors";
 import type { Tier } from "@/lib/pricing";
 
 // 120 requests/min per key — generous for integrations, protective of the box.
-const limiter = new InMemoryRateLimiter({ limit: 120, windowMs: 60_000 });
+const limiter = createRateLimiter({ limit: 120, windowMs: 60_000 });
 
 export interface ApiContext {
   userId: string;
@@ -44,7 +44,7 @@ export async function authenticateApiRequest(request: NextRequest): Promise<ApiC
   const resolved = await resolveApiKey(token);
   if (!resolved) throw new UnauthorizedError("Invalid or revoked API key.");
 
-  const rateHeaders = enforceRateLimit(limiter.check(resolved.keyId));
+  const rateHeaders = enforceRateLimit(await limiter.check(resolved.keyId));
 
   const entitlement = await getEntitlementForUser(resolved.userId);
   if (!entitlement.isPremium) {

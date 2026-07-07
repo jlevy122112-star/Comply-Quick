@@ -6,21 +6,24 @@
 // never drift between the checkout, the webhook, the paywall, and the UI.
 //
 // Pricing decisions (owner-approved 2026-07-06 — value-based repricing):
-//   • Solo (machine key `pro`): $29/mo, 20 scans — freelancers / solo devs.
+//   • Solo: $29/mo, 20 scans — freelancers / solo devs.
 //   • Agency: $99/mo, 5 seats, 100 scans — the primary ICP (monitoring +
 //     Autopilot + white-label).
 //   • Enterprise: $299/mo, unlimited seats + scans — regulated industries.
 //   • Free tier stays capped at 1 scan / month (freemium funnel hook).
-//   • Machine keys (free/pro/agency/enterprise) are UNCHANGED so persisted
-//     entitlements keep working; only labels, prices, and limits changed.
+//   • Machine keys are free/solo/agency/enterprise. `solo` replaces the earlier
+//     `pro`/`single` keys; persisted rows carrying those legacy values are
+//     migrated to `solo` (see migration 0017) and mapped at read time, so old
+//     entitlements keep working.
 //   • Annual = 10× monthly (~2 months free). New Stripe Price IDs must be
-//     created and wired via the STRIPE_PRICE_* env vars; existing subscribers
-//     are grandfathered on their old Stripe prices.
+//     created and wired via the STRIPE_PRICE_SOLO_* / STRIPE_PRICE_AGENCY_* /
+//     STRIPE_PRICE_ENTERPRISE_* env vars; existing subscribers are grandfathered
+//     on their old Stripe prices.
 //
 // Unlimited values are represented by `Infinity` (never a magic -1 at call
 // sites): `seats: Infinity` / `scanLimit: Infinity` for Enterprise.
 
-export type PaidTier = "pro" | "agency" | "enterprise";
+export type PaidTier = "solo" | "agency" | "enterprise";
 export type Tier = "free" | PaidTier;
 
 export type Billing = "monthly" | "annual";
@@ -57,15 +60,15 @@ export const TIER_CONFIG: Record<Tier, TierConfig> = {
     scanLimit: 1,
     mode: "none",
   },
-  pro: {
-    id: "pro",
+  solo: {
+    id: "solo",
     label: "Solo",
     monthly: 29,
     annual: 290,
     seats: 1,
     scanLimit: 20,
     mode: "subscription",
-    priceEnv: { monthly: "STRIPE_PRICE_PRO_MONTHLY", annual: "STRIPE_PRICE_PRO_ANNUAL" },
+    priceEnv: { monthly: "STRIPE_PRICE_SOLO_MONTHLY", annual: "STRIPE_PRICE_SOLO_ANNUAL" },
   },
   agency: {
     id: "agency",
@@ -104,7 +107,19 @@ export const METERED_PRICE_CENTS = {
   apiTemplateUpload: 5000, // $50.00
 } as const;
 
-export const PAID_TIERS: PaidTier[] = ["pro", "agency", "enterprise"];
+export const PAID_TIERS: PaidTier[] = ["solo", "agency", "enterprise"];
+
+/**
+ * Legacy entitlement tier keys that predate the `solo` rename. Persisted rows or
+ * Stripe metadata carrying these values are normalized to `solo` at read time
+ * (and migrated in the database by migration 0017).
+ */
+export const LEGACY_SOLO_KEYS = ["pro", "single"] as const;
+
+/** Normalizes any legacy tier key to its current machine key. */
+export function normalizeTierKey(value: string): string {
+  return (LEGACY_SOLO_KEYS as readonly string[]).includes(value) ? "solo" : value;
+}
 export const ALL_TIERS: Tier[] = ["free", ...PAID_TIERS];
 
 export function isPaidTier(value: string): value is PaidTier {

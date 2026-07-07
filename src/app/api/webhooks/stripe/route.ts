@@ -3,7 +3,7 @@ import type Stripe from "stripe";
 import * as Sentry from "@sentry/nextjs";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe, logger, analytics, sendRevenueAlert } from "@/services";
-import { isPaidTier, type PaidTier } from "@/lib/pricing";
+import { isPaidTier, normalizeTierKey, type PaidTier, type Tier } from "@/lib/pricing";
 import { recordReferralCommission } from "@/lib/partners/service";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -12,10 +12,11 @@ const log = logger.child({ module: "stripe-webhook" });
 
 type Plan = PaidTier;
 
-/** Accepts current plan keys, mapping the retired "single" key to "pro". */
+/** Accepts current plan keys, mapping the retired "pro"/"single" keys to "solo". */
 function toPlan(value: string | undefined): Plan | null {
-  if (value === "single") return "pro";
-  return value && isPaidTier(value) ? value : null;
+  if (!value) return null;
+  const normalized = normalizeTierKey(value);
+  return isPaidTier(normalized) ? normalized : null;
 }
 
 /**
@@ -30,13 +31,23 @@ async function settleMarketplacePurchase(session: Stripe.Checkout.Session) {
     return;
   }
   const admin = createAdminClient();
-  const { error } = await admin
+  // Idempotency: only a row still `pending` is transitioned to `paid`, and we
+  // bump the sales counter solely when that transition actually happens. A
+  // redelivered checkout.session.completed finds the row already `paid`, updates
+  // nothing, and therefore does not double-count the sale.
+  const { data: settled, error } = await admin
     .from("marketplace_purchases")
     .update({ status: "paid", stripe_session_id: session.id, updated_at: new Date().toISOString() })
     .eq("template_id", templateId)
-    .eq("buyer_id", buyerId);
+    .eq("buyer_id", buyerId)
+    .eq("status", "pending")
+    .select("id");
   if (error) {
     log.error("Failed to settle marketplace purchase", { sessionId: session.id, error: error.message });
+    return;
+  }
+  if (!settled || settled.length === 0) {
+    log.info("Marketplace purchase already settled; skipping sales increment", { sessionId: session.id });
     return;
   }
   await admin.rpc("increment_template_sales", { t_id: templateId });
@@ -95,12 +106,20 @@ async function accrueReferralCommission(invoice: Stripe.Invoice) {
 async function setEntitlement(params: {
   stripeCustomerId: string;
   supabaseUserId?: string;
-  tier: Plan;
+  // Optional: a cancellation always resolves to the free tier, so callers on the
+  // cancellation path omit it rather than passing a meaningless placeholder.
+  tier?: Plan;
   status: "active" | "canceled" | "past_due";
   stripeSubscriptionId?: string | null;
   currentPeriodEnd?: number | null;
 }) {
   const admin = createAdminClient();
+
+  // Cancellation downgrades to free; every other status must name a paid tier.
+  const effectiveTier: Tier = params.status === "canceled" ? "free" : (params.tier ?? "free");
+  if (params.status !== "canceled" && !params.tier) {
+    throw new Error(`setEntitlement: missing tier for status "${params.status}"`);
+  }
 
   let userId = params.supabaseUserId;
   if (!userId) {
@@ -112,14 +131,16 @@ async function setEntitlement(params: {
     userId = data?.user_id ?? undefined;
   }
   if (!userId) {
-    log.error("Could not resolve user for customer", { stripeCustomerId: params.stripeCustomerId });
-    return;
+    // Throw (not silent return) so the webhook responds non-2xx, Stripe retries,
+    // and Sentry captures it. A charged customer with no entitlement is a
+    // revenue-affecting failure that must never be swallowed.
+    throw new Error(`setEntitlement: could not resolve user for customer ${params.stripeCustomerId}`);
   }
 
-  await admin.from("subscriptions").upsert(
+  const { error } = await admin.from("subscriptions").upsert(
     {
       user_id: userId,
-      tier: params.status === "canceled" ? "free" : params.tier,
+      tier: effectiveTier,
       status: params.status === "canceled" ? "canceled" : params.status,
       stripe_customer_id: params.stripeCustomerId,
       stripe_subscription_id: params.stripeSubscriptionId ?? null,
@@ -128,6 +149,13 @@ async function setEntitlement(params: {
     },
     { onConflict: "user_id" }
   );
+  // Surface write failures instead of swallowing them: a rejected upsert (e.g. a
+  // tier the DB constraint doesn't allow) previously left the account on Free
+  // while Stripe saw a 200 and never retried. Throwing propagates to the POST
+  // handler, which returns 500 so Stripe retries and Sentry records it.
+  if (error) {
+    throw new Error(`setEntitlement: failed to persist entitlement for user ${userId}: ${error.message}`);
+  }
 }
 
 /** Formats a Stripe minor-unit amount (e.g. cents) as a currency string. */
@@ -228,8 +256,7 @@ export async function POST(request: NextRequest) {
         await setEntitlement({
           stripeCustomerId: customerId,
           supabaseUserId,
-          // Tier is forced to "free" on cancellation; value here is a placeholder.
-          tier: "pro",
+          // No tier needed: a cancellation always resolves to the free tier.
           status: "canceled",
           stripeSubscriptionId: subscription.id,
         });

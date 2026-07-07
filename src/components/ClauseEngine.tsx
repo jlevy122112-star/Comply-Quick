@@ -4,22 +4,60 @@
  * developer stacks to protective legal text.
  */
 
-import { generateModuleOutputs, type ComplianceModule, type ComplianceModuleOutput } from "./EnterpriseModules";
+import {
+  generateModuleOutputs,
+  COMPLIANCE_MODULES,
+  VALID_MODULES,
+  type ComplianceModule,
+  type ComplianceModuleOutput,
+} from "./EnterpriseModules";
 import { REPORT_DISCLAIMER, DISCLAIMER_LONG } from "@/lib/legal";
 
+export { COMPLIANCE_MODULES, VALID_MODULES };
 export type { ComplianceModule, ComplianceModuleOutput };
 
 // ─── Type Definitions ────────────────────────────────────────────────────────
+//
+// The accepted value sets below are the single source of truth for compliance
+// input: the union types are *derived* from the runtime arrays, and every
+// validator (here and in the API routes) reads these same constants. Adding a
+// value in one place updates the type, the validator, and the error messages at
+// once — there is no separate copy to drift.
 
-export type UserType = "developer" | "merchant";
+export const USER_TYPES = ["developer", "merchant"] as const;
+export type UserType = (typeof USER_TYPES)[number];
 
-export type Framework =
-  "shopify" | "nextjs" | "wordpress" | "wix" | "squarespace" | "godaddy" | "webflow" | "woocommerce" | "bigcommerce";
+export const FRAMEWORKS = [
+  "shopify",
+  "nextjs",
+  "wordpress",
+  "wix",
+  "squarespace",
+  "godaddy",
+  "webflow",
+  "woocommerce",
+  "bigcommerce",
+] as const;
+export type Framework = (typeof FRAMEWORKS)[number];
 
-export type TrackingPixel = "meta" | "google" | "tiktok" | "linkedin" | "pinterest" | "snapchat";
+export const TRACKING_PIXELS = ["meta", "google", "tiktok", "linkedin", "pinterest", "snapchat"] as const;
+export type TrackingPixel = (typeof TRACKING_PIXELS)[number];
 
-export type TargetRegion =
-  "us_general" | "california_ccpa" | "eu_gdpr" | "canada_pipeda" | "brazil_lgpd" | "australia_privacy";
+export const TARGET_REGIONS = [
+  "us_general",
+  "california_ccpa",
+  "eu_gdpr",
+  "canada_pipeda",
+  "brazil_lgpd",
+  "australia_privacy",
+] as const;
+export type TargetRegion = (typeof TARGET_REGIONS)[number];
+
+// O(1) membership sets built from the canonical arrays above.
+export const VALID_USER_TYPES: ReadonlySet<string> = new Set(USER_TYPES);
+export const VALID_FRAMEWORKS: ReadonlySet<string> = new Set(FRAMEWORKS);
+export const VALID_PIXELS: ReadonlySet<string> = new Set(TRACKING_PIXELS);
+export const VALID_REGIONS: ReadonlySet<string> = new Set(TARGET_REGIONS);
 
 export interface ComplianceInput {
   userType: UserType;
@@ -484,43 +522,26 @@ function getRegionChecks(region: TargetRegion): string[] {
 
 // ─── Main Export ────────────────────────────────────────────────────────────
 
-const VALID_USER_TYPES: ReadonlySet<string> = new Set(["developer", "merchant"]);
-const VALID_FRAMEWORKS: ReadonlySet<string> = new Set([
-  "shopify",
-  "nextjs",
-  "wordpress",
-  "wix",
-  "squarespace",
-  "godaddy",
-  "webflow",
-  "woocommerce",
-  "bigcommerce",
-]);
-const VALID_PIXELS: ReadonlySet<string> = new Set(["meta", "google", "tiktok", "linkedin", "pinterest", "snapchat"]);
-const VALID_REGIONS: ReadonlySet<string> = new Set([
-  "us_general",
-  "california_ccpa",
-  "eu_gdpr",
-  "canada_pipeda",
-  "brazil_lgpd",
-  "australia_privacy",
-]);
+/** Formats an accepted-value list for error messages: `"a", "b", "c"`. */
+function quoteList(values: readonly string[]): string {
+  return values.map((v) => `"${v}"`).join(", ");
+}
 
 function validateInput(input: ComplianceInput): void {
   if (!VALID_USER_TYPES.has(input.userType)) {
-    throw new Error(`Invalid userType: "${input.userType}". Must be "developer" or "merchant".`);
+    throw new Error(`Invalid userType: "${input.userType}". Must be one of: ${quoteList(USER_TYPES)}.`);
   }
   if (!VALID_FRAMEWORKS.has(input.framework)) {
-    throw new Error(`Invalid framework: "${input.framework}". Must be "shopify", "nextjs", or "wordpress".`);
+    throw new Error(`Invalid framework: "${input.framework}". Must be one of: ${quoteList(FRAMEWORKS)}.`);
   }
   for (const pixel of input.trackingPixels) {
     if (!VALID_PIXELS.has(pixel)) {
-      throw new Error(`Invalid tracking pixel: "${pixel}". Must be "meta", "google", or "tiktok".`);
+      throw new Error(`Invalid tracking pixel: "${pixel}". Must be one of: ${quoteList(TRACKING_PIXELS)}.`);
     }
   }
   for (const region of input.targetRegions) {
     if (!VALID_REGIONS.has(region)) {
-      throw new Error(`Invalid target region: "${region}". Must be "us_general", "california_ccpa", or "eu_gdpr".`);
+      throw new Error(`Invalid target region: "${region}". Must be one of: ${quoteList(TARGET_REGIONS)}.`);
     }
   }
 }

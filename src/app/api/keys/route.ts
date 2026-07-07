@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createApiKey, listApiKeys } from "@/lib/api/keys";
 import { hasApiAccess } from "@/lib/api/usage";
 import {
-  InMemoryRateLimiter,
+  createRateLimiter,
   getClientKey,
   enforceRateLimit,
   errorResponse,
@@ -12,7 +12,7 @@ import {
   ValidationError,
 } from "@/services";
 
-const limiter = new InMemoryRateLimiter({ limit: 20, windowMs: 60_000 });
+const limiter = createRateLimiter({ limit: 20, windowMs: 60_000 });
 
 async function requireUser() {
   const supabase = await createClient();
@@ -37,7 +37,7 @@ export async function GET() {
 /** Issues a new API key. Body: { name }. Paid plans only. Key shown once. */
 export async function POST(request: NextRequest) {
   try {
-    const rateHeaders = enforceRateLimit(limiter.check(getClientKey(request.headers)));
+    const rateHeaders = enforceRateLimit(await limiter.check(getClientKey(request.headers)));
     await requireUser();
     if (!(await hasApiAccess())) {
       throw new ForbiddenError("The API is available on paid plans (Pro, Agency, Enterprise).");

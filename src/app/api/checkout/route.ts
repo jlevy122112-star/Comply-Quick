@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import * as Sentry from "@sentry/nextjs";
 import { getStripe, analytics, logger } from "@/services";
-import { TIER_CONFIG, isPaidTier, type Billing, type PaidTier } from "@/lib/pricing";
+import { TIER_CONFIG, PAID_TIERS, isPaidTier, normalizeTierKey, type Billing, type PaidTier } from "@/lib/pricing";
 import { attachReferral } from "@/lib/partners/service";
 
 interface CheckoutRequestBody {
@@ -44,10 +44,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { plan, billing = "monthly" } = body as CheckoutRequestBody;
+  const { plan: rawPlan, billing = "monthly" } = body as CheckoutRequestBody;
+  // Normalize any legacy plan key (pro/single) a cached client might send.
+  const plan = rawPlan ? (normalizeTierKey(rawPlan) as PaidTier) : rawPlan;
 
   if (!plan || !isPaidTier(plan)) {
-    return NextResponse.json({ error: "Invalid plan. Must be one of: pro, agency, enterprise" }, { status: 400 });
+    return NextResponse.json({ error: `Invalid plan. Must be one of: ${PAID_TIERS.join(", ")}` }, { status: 400 });
   }
 
   const config = TIER_CONFIG[plan];

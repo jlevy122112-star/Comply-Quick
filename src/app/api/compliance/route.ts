@@ -2,42 +2,33 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   generateCompliancePackage,
   exportToMarkdown,
+  FRAMEWORKS,
+  TRACKING_PIXELS,
+  TARGET_REGIONS,
+  VALID_USER_TYPES,
+  VALID_FRAMEWORKS,
+  VALID_PIXELS,
+  VALID_REGIONS,
+  VALID_MODULES,
+  COMPLIANCE_MODULES,
   type ComplianceInput,
   type UserType,
   type Framework,
   type TrackingPixel,
   type TargetRegion,
+  type ComplianceModule,
 } from "@/components/ClauseEngine";
-import type { ComplianceModule } from "@/components/EnterpriseModules";
-import { InMemoryRateLimiter, getClientKey, enforceRateLimit, errorResponse, logger } from "@/services";
+import { createRateLimiter, getClientKey, enforceRateLimit, errorResponse, logger } from "@/services";
 
 const log = logger.child({ module: "api/compliance" });
 
 // Public generation endpoint — cap per-client volume to protect the instance.
-const limiter = new InMemoryRateLimiter({ limit: 30, windowMs: 60_000 });
+const limiter = createRateLimiter({ limit: 30, windowMs: 60_000 });
 
-const VALID_USER_TYPES = new Set<string>(["developer", "merchant"]);
-const VALID_FRAMEWORKS = new Set<string>([
-  "shopify",
-  "nextjs",
-  "wordpress",
-  "wix",
-  "squarespace",
-  "godaddy",
-  "webflow",
-  "woocommerce",
-  "bigcommerce",
-]);
-const VALID_PIXELS = new Set<string>(["meta", "google", "tiktok", "linkedin", "pinterest", "snapchat"]);
-const VALID_REGIONS = new Set<string>([
-  "us_general",
-  "california_ccpa",
-  "eu_gdpr",
-  "canada_pipeda",
-  "brazil_lgpd",
-  "australia_privacy",
-]);
-const VALID_MODULES = new Set<string>(["hipaa", "pci_dss", "ada_wcag", "soc2"]);
+// Reject oversized bodies before parsing to avoid a memory-exhaustion vector on
+// this public, unauthenticated endpoint. The largest valid request (every field
+// at max cardinality) is well under 2 KB; 16 KB leaves generous headroom.
+const MAX_BODY_BYTES = 16 * 1024;
 
 interface ApiRequestBody {
   userType: string;
@@ -95,14 +86,27 @@ function buildValidationErrors(body: ApiRequestBody): string[] {
 export async function POST(request: NextRequest) {
   let rateHeaders: Record<string, string>;
   try {
-    rateHeaders = enforceRateLimit(limiter.check(getClientKey(request.headers)));
+    rateHeaders = enforceRateLimit(await limiter.check(getClientKey(request.headers)));
   } catch (limitErr) {
     return errorResponse(limitErr);
   }
 
+  // Reject bodies larger than the cap before buffering/parsing. Check the
+  // advertised Content-Length first (cheap), then verify the actual byte length
+  // in case the header is missing or understated.
+  const declaredLength = Number(request.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) {
+    return NextResponse.json({ error: "Request body too large" }, { status: 413 });
+  }
+
+  const raw = await request.text();
+  if (Buffer.byteLength(raw, "utf8") > MAX_BODY_BYTES) {
+    return NextResponse.json({ error: "Request body too large" }, { status: 413 });
+  }
+
   let body: unknown;
   try {
-    body = await request.json();
+    body = JSON.parse(raw);
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
@@ -112,14 +116,13 @@ export async function POST(request: NextRequest) {
       {
         error: "Invalid request body",
         required: {
-          userType: "developer | merchant",
-          framework: "shopify | nextjs | wordpress | wix | squarespace | godaddy | webflow | woocommerce | bigcommerce",
-          trackingPixels: "string[] — meta, google, tiktok, linkedin, pinterest, snapchat",
-          targetRegions:
-            "string[] — us_general, california_ccpa, eu_gdpr, canada_pipeda, brazil_lgpd, australia_privacy",
+          userType: [...VALID_USER_TYPES].join(" | "),
+          framework: FRAMEWORKS.join(" | "),
+          trackingPixels: `string[] — ${TRACKING_PIXELS.join(", ")}`,
+          targetRegions: `string[] — ${TARGET_REGIONS.join(", ")}`,
         },
         optional: {
-          complianceModules: "string[] — hipaa, pci_dss, ada_wcag, soc2",
+          complianceModules: `string[] — ${COMPLIANCE_MODULES.join(", ")}`,
           format: "json | markdown (default: json)",
         },
       },

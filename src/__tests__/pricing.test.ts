@@ -9,22 +9,23 @@ import {
   seatLimit,
   scanLimit,
   isUnlimited,
+  normalizeTierKey,
 } from "@/lib/pricing";
 
 describe("TIER_CONFIG", () => {
-  it("defines exactly free, pro, agency, enterprise", () => {
-    expect(Object.keys(TIER_CONFIG).sort()).toEqual(["agency", "enterprise", "free", "pro"]);
+  it("defines exactly free, solo, agency, enterprise", () => {
+    expect(Object.keys(TIER_CONFIG).sort()).toEqual(["agency", "enterprise", "free", "solo"]);
   });
 
-  it("prices the Solo plan (machine key `pro`) at $29/mo, $290/yr", () => {
-    expect(TIER_CONFIG.pro.label).toBe("Solo");
-    expect(TIER_CONFIG.pro.monthly).toBe(29);
-    expect(TIER_CONFIG.pro.annual).toBe(290);
-    expect(TIER_CONFIG.pro.scanLimit).toBe(20);
-    expect(TIER_CONFIG.pro.mode).toBe("subscription");
-    expect(TIER_CONFIG.pro.priceEnv).toEqual({
-      monthly: "STRIPE_PRICE_PRO_MONTHLY",
-      annual: "STRIPE_PRICE_PRO_ANNUAL",
+  it("prices the Solo plan at $29/mo, $290/yr", () => {
+    expect(TIER_CONFIG.solo.label).toBe("Solo");
+    expect(TIER_CONFIG.solo.monthly).toBe(29);
+    expect(TIER_CONFIG.solo.annual).toBe(290);
+    expect(TIER_CONFIG.solo.scanLimit).toBe(20);
+    expect(TIER_CONFIG.solo.mode).toBe("subscription");
+    expect(TIER_CONFIG.solo.priceEnv).toEqual({
+      monthly: "STRIPE_PRICE_SOLO_MONTHLY",
+      annual: "STRIPE_PRICE_SOLO_ANNUAL",
     });
   });
 
@@ -40,8 +41,22 @@ describe("TIER_CONFIG", () => {
     expect(isUnlimited(TIER_CONFIG.agency.scanLimit)).toBe(false);
   });
 
-  it("does not reference the retired single tier", () => {
+  it("does not reference the retired single/pro tiers", () => {
     expect((TIER_CONFIG as Record<string, unknown>).single).toBeUndefined();
+    expect((TIER_CONFIG as Record<string, unknown>).pro).toBeUndefined();
+  });
+});
+
+describe("normalizeTierKey", () => {
+  it("maps the retired pro/single keys to solo", () => {
+    expect(normalizeTierKey("pro")).toBe("solo");
+    expect(normalizeTierKey("single")).toBe("solo");
+  });
+
+  it("leaves current keys untouched", () => {
+    expect(normalizeTierKey("solo")).toBe("solo");
+    expect(normalizeTierKey("agency")).toBe("agency");
+    expect(normalizeTierKey("free")).toBe("free");
   });
 });
 
@@ -55,10 +70,11 @@ describe("metered prices", () => {
 
 describe("tier guards & helpers", () => {
   it("classifies paid vs. all tiers", () => {
-    expect(PAID_TIERS).toEqual(["pro", "agency", "enterprise"]);
-    expect(ALL_TIERS).toEqual(["free", "pro", "agency", "enterprise"]);
-    expect(isPaidTier("pro")).toBe(true);
+    expect(PAID_TIERS).toEqual(["solo", "agency", "enterprise"]);
+    expect(ALL_TIERS).toEqual(["free", "solo", "agency", "enterprise"]);
+    expect(isPaidTier("solo")).toBe(true);
     expect(isPaidTier("free")).toBe(false);
+    expect(isPaidTier("pro")).toBe(false);
     expect(isPaidTier("single")).toBe(false);
     expect(isTier("free")).toBe(true);
     expect(isTier("bogus")).toBe(false);
@@ -66,7 +82,7 @@ describe("tier guards & helpers", () => {
 
   it("exposes seat and scan limits per tier", () => {
     expect(seatLimit("agency")).toBe(5);
-    expect(scanLimit("pro")).toBe(20);
+    expect(scanLimit("solo")).toBe(20);
     expect(scanLimit("agency")).toBe(100);
     expect(seatLimit("enterprise")).toBe(Infinity);
   });

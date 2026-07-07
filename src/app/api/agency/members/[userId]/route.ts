@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { removeMember } from "@/lib/agency/service";
-import { InMemoryRateLimiter, getClientKey, enforceRateLimit, errorResponse, UnauthorizedError } from "@/services";
+import { createRateLimiter, getClientKey, enforceRateLimit, errorResponse, UnauthorizedError } from "@/services";
 
-const limiter = new InMemoryRateLimiter({ limit: 30, windowMs: 60_000 });
+const limiter = createRateLimiter({ limit: 30, windowMs: 60_000 });
 
 /** Removes a team seat. The owner seat is protected. */
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
   try {
-    const rateHeaders = enforceRateLimit(limiter.check(getClientKey(request.headers)));
+    const rateHeaders = enforceRateLimit(await limiter.check(getClientKey(request.headers)));
     const supabase = await createClient();
     const {
       data: { user },

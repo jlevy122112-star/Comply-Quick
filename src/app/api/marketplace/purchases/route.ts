@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { listMyPurchases } from "@/lib/marketplace/service";
 import { startTemplateCheckout } from "@/lib/marketplace/stripe-connect";
 import {
-  InMemoryRateLimiter,
+  createRateLimiter,
   getClientKey,
   enforceRateLimit,
   errorResponse,
@@ -11,7 +11,7 @@ import {
   ValidationError,
 } from "@/services";
 
-const limiter = new InMemoryRateLimiter({ limit: 20, windowMs: 60_000 });
+const limiter = createRateLimiter({ limit: 20, windowMs: 60_000 });
 
 /** Lists the caller's purchases. */
 export async function GET() {
@@ -34,7 +34,7 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
   try {
-    const rateHeaders = enforceRateLimit(limiter.check(getClientKey(request.headers)));
+    const rateHeaders = enforceRateLimit(await limiter.check(getClientKey(request.headers)));
     const supabase = await createClient();
     const {
       data: { user },

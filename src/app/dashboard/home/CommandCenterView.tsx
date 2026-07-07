@@ -191,7 +191,7 @@ export default function CommandCenterView({
                   ? "bg-amber-500/20 border border-amber-500/30 text-amber-300"
                   : tier === "agency"
                     ? "bg-indigo-500/20 border border-indigo-500/30 text-indigo-300"
-                    : tier === "pro"
+                    : tier === "solo"
                       ? "bg-gray-700 text-gray-300"
                       : "bg-gray-800 text-gray-400"
               }`}

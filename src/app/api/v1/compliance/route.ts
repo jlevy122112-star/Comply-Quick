@@ -2,41 +2,27 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   generateCompliancePackage,
   exportToMarkdown,
+  VALID_USER_TYPES,
+  VALID_FRAMEWORKS,
+  VALID_PIXELS,
+  VALID_REGIONS,
+  VALID_MODULES,
   type ComplianceInput,
   type UserType,
   type Framework,
   type TrackingPixel,
   type TargetRegion,
+  type ComplianceModule,
 } from "@/components/ClauseEngine";
-import type { ComplianceModule } from "@/components/EnterpriseModules";
 import { authenticateApiRequest } from "@/lib/api/auth";
 import { recordApiUsage } from "@/lib/api/usage";
 import { errorResponse, ValidationError } from "@/services";
 
 const ENDPOINT = "/api/v1/compliance";
 
-const VALID_USER_TYPES = new Set<string>(["developer", "merchant"]);
-const VALID_FRAMEWORKS = new Set<string>([
-  "shopify",
-  "nextjs",
-  "wordpress",
-  "wix",
-  "squarespace",
-  "godaddy",
-  "webflow",
-  "woocommerce",
-  "bigcommerce",
-]);
-const VALID_PIXELS = new Set<string>(["meta", "google", "tiktok", "linkedin", "pinterest", "snapchat"]);
-const VALID_REGIONS = new Set<string>([
-  "us_general",
-  "california_ccpa",
-  "eu_gdpr",
-  "canada_pipeda",
-  "brazil_lgpd",
-  "australia_privacy",
-]);
-const VALID_MODULES = new Set<string>(["hipaa", "pci_dss", "ada_wcag", "soc2"]);
+// Cap the request body to avoid a memory-exhaustion vector even on this
+// authenticated endpoint (a compromised key must not be able to OOM the route).
+const MAX_BODY_BYTES = 16 * 1024;
 
 interface ApiRequestBody {
   userType: string;
@@ -70,9 +56,18 @@ export async function POST(request: NextRequest) {
   try {
     const ctx = await authenticateApiRequest(request);
 
+    const declaredLength = Number(request.headers.get("content-length"));
+    if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) {
+      throw new ValidationError("Request body too large.");
+    }
+    const raw = await request.text();
+    if (Buffer.byteLength(raw, "utf8") > MAX_BODY_BYTES) {
+      throw new ValidationError("Request body too large.");
+    }
+
     let body: unknown;
     try {
-      body = await request.json();
+      body = JSON.parse(raw);
     } catch {
       throw new ValidationError("Invalid JSON body.");
     }
