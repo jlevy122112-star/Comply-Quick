@@ -59,10 +59,12 @@ export function primaryHosts(): Set<string> {
 }
 
 /**
- * A single canonical app hostname (never a comma-separated list) — suitable as a
- * CNAME target for client custom domains. Prefers the first configured
- * `NEXT_PUBLIC_APP_HOST`, then the site URL host, then the product default.
+ * A single canonical app hostname (never a comma-separated list, never a port)
+ * — suitable as a CNAME target for client custom domains. Prefers the first
+ * configured `NEXT_PUBLIC_APP_HOST`, then the site URL host, then the product
+ * default. Any `:port` is stripped so the value is always a valid DNS target.
  */
 export function canonicalAppHost(): string {
-  return configuredAppHosts()[0] ?? hostFromUrl(process.env.NEXT_PUBLIC_SITE_URL) ?? PRODUCT_DEFAULT_HOST;
+  const host = configuredAppHosts()[0] ?? hostFromUrl(process.env.NEXT_PUBLIC_SITE_URL) ?? PRODUCT_DEFAULT_HOST;
+  return host.split(":")[0];
 }

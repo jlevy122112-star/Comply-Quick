@@ -11,6 +11,7 @@ import {
   listMembers,
 } from "@/lib/agency/service";
 import { getBillingSummary } from "@/lib/billing/usage";
+import { canonicalAppHost } from "@/lib/appHost";
 import AgencyPortalView from "./AgencyPortalView";
 
 export const dynamic = "force-dynamic";
@@ -71,7 +72,7 @@ export default async function AgencyPortalPage() {
       domains={domains}
       stats={stats}
       tier={entitlement.tier}
-      appHost={process.env.NEXT_PUBLIC_APP_HOST ?? "comply-quick.vercel.app"}
+      appHost={canonicalAppHost()}
       members={members}
       billing={billing}
     />

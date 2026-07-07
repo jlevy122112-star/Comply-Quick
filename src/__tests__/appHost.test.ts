@@ -45,6 +45,11 @@ describe("appHost helpers", () => {
     expect(canonicalAppHost()).not.toContain(",");
   });
 
+  it("canonicalAppHost strips any :port so the value is a valid DNS target", () => {
+    process.env.NEXT_PUBLIC_APP_HOST = "comply-quick.com:3000";
+    expect(canonicalAppHost()).toBe("comply-quick.com");
+  });
+
   it("canonicalAppHost falls back to the site URL host, then the product default", () => {
     delete process.env.NEXT_PUBLIC_APP_HOST;
     process.env.NEXT_PUBLIC_SITE_URL = "https://staging.example.com";
