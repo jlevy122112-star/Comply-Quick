@@ -9,6 +9,7 @@
 // is a no-op so domains simply stay `pending` (portal still works via slug).
 
 import { logger } from "@/services";
+import { canonicalAppHost } from "@/lib/appHost";
 import type { DomainProvider, DomainProvisionResult } from "./domain-provider";
 
 const log = logger.child({ module: "cloudflare" });
@@ -116,7 +117,7 @@ export function isHostnameActive(result: CustomHostnameResult): boolean {
 function toResult(h: CustomHostnameResult, domain: string): DomainProvisionResult {
   return {
     verified: isHostnameActive(h),
-    verifications: [{ type: "CNAME", name: domain, value: process.env.NEXT_PUBLIC_APP_HOST ?? "" }],
+    verifications: [{ type: "CNAME", name: domain, value: canonicalAppHost() }],
   };
 }
 

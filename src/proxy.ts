@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
+import { bareHost, primaryHosts } from "@/lib/appHost";
 
 /**
  * White-label custom-domain routing (Phase 5).
@@ -9,13 +10,17 @@ import { updateSession } from "@/lib/supabase/middleware";
  * by that hostname. The check is a pure string comparison (no DB/network), so
  * traffic on the primary host, Vercel preview hosts, and localhost is unaffected
  * and continues to the normal Supabase session refresh.
+ *
+ * The set of primary hosts (see `@/lib/appHost`) is derived from several sources
+ * so that the app's own marketing/dashboard domain is ALWAYS treated as primary
+ * — even if the `NEXT_PUBLIC_APP_HOST` env var is misconfigured or absent (an
+ * unset var must never route the main site into the portal and 404 it). Apex and
+ * `www.` variants are both recognized.
  */
-const PRIMARY_HOSTS = new Set(
-  [process.env.NEXT_PUBLIC_APP_HOST, "localhost", "127.0.0.1"].filter(Boolean).map((h) => (h as string).toLowerCase())
-);
+const PRIMARY_HOSTS = primaryHosts();
 
 function isPrimaryHost(host: string): boolean {
-  const h = host.split(":")[0].toLowerCase();
+  const h = bareHost(host);
   return PRIMARY_HOSTS.has(h) || h.endsWith(".vercel.app") || h === "vercel.app";
 }
 
