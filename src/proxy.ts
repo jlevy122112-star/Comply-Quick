@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
+import { bareHost, primaryHosts } from "@/lib/appHost";
 
 /**
  * White-label custom-domain routing (Phase 5).
@@ -10,47 +11,13 @@ import { updateSession } from "@/lib/supabase/middleware";
  * traffic on the primary host, Vercel preview hosts, and localhost is unaffected
  * and continues to the normal Supabase session refresh.
  *
- * The set of primary hosts is derived from several sources so that the app's own
- * marketing/dashboard domain is ALWAYS treated as primary — even if the
- * `NEXT_PUBLIC_APP_HOST` env var is misconfigured or absent (an unset var must
- * never route the main site into the portal and 404 it):
- *   • `NEXT_PUBLIC_APP_HOST` — comma-separated list of app hosts.
- *   • `NEXT_PUBLIC_SITE_URL` — the canonical site URL (its hostname).
- *   • a hardcoded product default (`comply-quick.com`) as a last-resort safety net.
- *   • `localhost` / `127.0.0.1` for local dev.
- * Every host is normalized to its bare form (port stripped, leading `www.`
- * removed) so the apex and `www.` variants are both recognized.
+ * The set of primary hosts (see `@/lib/appHost`) is derived from several sources
+ * so that the app's own marketing/dashboard domain is ALWAYS treated as primary
+ * — even if the `NEXT_PUBLIC_APP_HOST` env var is misconfigured or absent (an
+ * unset var must never route the main site into the portal and 404 it). Apex and
+ * `www.` variants are both recognized.
  */
-const PRODUCT_DEFAULT_HOST = "comply-quick.com";
-
-function bareHost(host: string): string {
-  return host
-    .split(":")[0]
-    .toLowerCase()
-    .replace(/^www\./, "");
-}
-
-function hostFromUrl(url: string | undefined): string | undefined {
-  if (!url) return undefined;
-  try {
-    return new URL(url).hostname;
-  } catch {
-    return undefined;
-  }
-}
-
-const PRIMARY_HOSTS = new Set(
-  [
-    ...(process.env.NEXT_PUBLIC_APP_HOST ?? "").split(","),
-    hostFromUrl(process.env.NEXT_PUBLIC_SITE_URL) ?? "",
-    PRODUCT_DEFAULT_HOST,
-    "localhost",
-    "127.0.0.1",
-  ]
-    .map((h) => h.trim())
-    .filter(Boolean)
-    .map(bareHost)
-);
+const PRIMARY_HOSTS = primaryHosts();
 
 function isPrimaryHost(host: string): boolean {
   const h = bareHost(host);
