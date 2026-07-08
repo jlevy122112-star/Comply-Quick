@@ -63,12 +63,14 @@ const REGION_OPTIONS: { value: TargetRegion; label: string; flag: string }[] = [
   { value: "australia_privacy", label: "Australia", flag: "🇦🇺" },
 ];
 
+// Steps 1-5 are interactive inputs; step 6 is the generated results screen.
 const WIZARD_STEPS = [
   { title: "Who are you?", help: "Choose your role to tailor clause language." },
   { title: "Choose your framework", help: "Pick the platform this package should cover." },
   { title: "Tracking pixels", help: "Select all pixels in use, or skip if none." },
   { title: "Target regions", help: "Select at least one legal jurisdiction." },
   { title: "Enterprise modules", help: "Add optional industry-specific compliance shields." },
+  { title: "Results", help: "Review your score and unlock the full package." },
 ] as const;
 
 // ─── Clipboard Copy Hook ────────────────────────────────────────────────────
@@ -161,15 +163,19 @@ export default function DashboardWizard({ isPremium, isAuthenticated }: Dashboar
       // Persist the project server-side for premium users (scoped to their account).
       if (premiumActive) {
         const md = exportToMarkdown(result);
-        await saveProjectAction({
-          name: `${FRAMEWORK_OPTIONS.find((f) => f.value === framework)?.label ?? framework} Project`,
-          framework,
-          trackingPixels,
-          targetRegions,
-          complianceModules,
-          complianceScore: result.complianceScore,
-          packageMarkdown: md,
-        });
+        try {
+          await saveProjectAction({
+            name: `${FRAMEWORK_OPTIONS.find((f) => f.value === framework)?.label ?? framework} Project`,
+            framework,
+            trackingPixels,
+            targetRegions,
+            complianceModules,
+            complianceScore: result.complianceScore,
+            packageMarkdown: md,
+          });
+        } catch {
+          alert("Package generated, but we couldn't auto-save it. You can still download it below.");
+        }
       }
     } finally {
       setIsGenerating(false);
@@ -213,9 +219,9 @@ export default function DashboardWizard({ isPremium, isAuthenticated }: Dashboar
     setComplianceModules([]);
   }, []);
 
-  const stepPosition = Math.max(1, Math.min(step, WIZARD_STEPS.length));
-  const stepProgress = (stepPosition / WIZARD_STEPS.length) * 100;
-  const stepMeta = WIZARD_STEPS[stepPosition - 1];
+  const clampedStep = Math.max(1, Math.min(step, WIZARD_STEPS.length));
+  const stepProgress = (clampedStep / WIZARD_STEPS.length) * 100;
+  const stepMeta = WIZARD_STEPS[clampedStep - 1];
 
   const selections = [
     userType ? `Role: ${USER_TYPE_OPTIONS.find((o) => o.value === userType)?.label ?? userType}` : null,
@@ -252,13 +258,13 @@ export default function DashboardWizard({ isPremium, isAuthenticated }: Dashboar
         {/* Step Indicator */}
         <div className="mb-8">
           <div className="mb-3 flex items-center justify-between gap-3 text-xs text-gray-400">
-            <span>{step <= 5 ? `Step ${stepPosition} of ${WIZARD_STEPS.length}` : "Package ready"}</span>
-            <span>{step <= 5 ? stepMeta.help : "Review your score and unlock the full package"}</span>
+            <span>{`Step ${clampedStep} of ${WIZARD_STEPS.length}`}</span>
+            <span>{stepMeta.help}</span>
           </div>
           <div className="h-2 w-full rounded-full bg-gray-800 overflow-hidden mb-4">
             <div
               className="h-full rounded-full bg-indigo-600 transition-all duration-500"
-              style={{ width: `${step <= 5 ? stepProgress : 100}%` }}
+              style={{ width: `${stepProgress}%` }}
             />
           </div>
           {selections.length > 0 && (
@@ -271,22 +277,24 @@ export default function DashboardWizard({ isPremium, isAuthenticated }: Dashboar
             </div>
           )}
           <div className="flex items-center justify-center gap-2">
-            {[1, 2, 3, 4, 5].map((s) => (
-              <div key={s} className="flex items-center gap-2">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-                    step >= s ? "bg-indigo-600 text-white" : "bg-gray-800 text-gray-500"
-                  }`}
-                >
-                  {s}
-                </div>
-                {s < 5 && (
+            {WIZARD_STEPS.map((_, index) => {
+              return (
+                <div key={index + 1} className="flex items-center gap-2">
                   <div
-                    className={`w-6 sm:w-10 h-0.5 transition-colors ${step > s ? "bg-indigo-600" : "bg-gray-800"}`}
-                  />
-                )}
-              </div>
-            ))}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
+                      step >= index + 1 ? "bg-indigo-600 text-white" : "bg-gray-800 text-gray-500"
+                    }`}
+                  >
+                    {index + 1}
+                  </div>
+                  {index + 1 < WIZARD_STEPS.length && (
+                    <div
+                      className={`w-6 sm:w-10 h-0.5 transition-colors ${step > index + 1 ? "bg-indigo-600" : "bg-gray-800"}`}
+                    />
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -448,7 +456,7 @@ export default function DashboardWizard({ isPremium, isAuthenticated }: Dashboar
               <BackButton onClick={() => setStep(4)} />
               <button
                 type="button"
-                onClick={() => void handleGenerate()}
+                onClick={handleGenerate}
                 disabled={isGenerating}
                 className="px-5 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-500 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >

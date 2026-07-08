@@ -555,7 +555,11 @@ function QuickToolCard({ tool }: { tool: QuickTool }) {
         <div className="mt-2 flex items-center justify-between gap-2">
           <span className="inline-block px-2 py-0.5 rounded-full bg-gray-800 text-xs text-gray-400">Coming Soon</span>
           {tool.fallbackHref && tool.fallbackLabel && (
-            <Link href={tool.fallbackHref} className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
+            <Link
+              href={tool.fallbackHref}
+              aria-label={`Go to: ${tool.fallbackLabel}`}
+              className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+            >
               {tool.fallbackLabel} &rarr;
             </Link>
           )}
