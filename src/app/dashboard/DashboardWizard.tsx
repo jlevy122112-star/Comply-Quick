@@ -63,6 +63,14 @@ const REGION_OPTIONS: { value: TargetRegion; label: string; flag: string }[] = [
   { value: "australia_privacy", label: "Australia", flag: "🇦🇺" },
 ];
 
+const WIZARD_STEPS = [
+  { title: "Who are you?", help: "Choose your role to tailor clause language." },
+  { title: "Choose your framework", help: "Pick the platform this package should cover." },
+  { title: "Tracking pixels", help: "Select all pixels in use, or skip if none." },
+  { title: "Target regions", help: "Select at least one legal jurisdiction." },
+  { title: "Enterprise modules", help: "Add optional industry-specific compliance shields." },
+] as const;
+
 // ─── Clipboard Copy Hook ────────────────────────────────────────────────────
 
 function useCopyToClipboard(): [string | null, (text: string) => void] {
@@ -88,6 +96,8 @@ export default function DashboardWizard({ isPremium, isAuthenticated }: Dashboar
   const [trackingPixels, setTrackingPixels] = useState<TrackingPixel[]>([]);
   const [targetRegions, setTargetRegions] = useState<TargetRegion[]>([]);
   const [complianceModules, setComplianceModules] = useState<ComplianceModule[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [checkoutPendingPlan, setCheckoutPendingPlan] = useState<"solo" | "agency" | "enterprise" | null>(null);
 
   // Premium state is verified server-side (via a paid subscription tied to the
   // authenticated user), not a spoofable URL flag.
@@ -107,6 +117,7 @@ export default function DashboardWizard({ isPremium, isAuthenticated }: Dashboar
         window.location.href = `/login?redirect=${encodeURIComponent("/dashboard")}`;
         return;
       }
+      setCheckoutPendingPlan(plan);
       try {
         const res = await fetch("/api/checkout", {
           method: "POST",
@@ -125,36 +136,43 @@ export default function DashboardWizard({ isPremium, isAuthenticated }: Dashboar
         }
       } catch {
         alert("Checkout failed. Please try again.");
+      } finally {
+        setCheckoutPendingPlan(null);
       }
     },
     [isAuthenticated]
   );
 
   // Generate compliance package when wizard completes
-  const handleGenerate = useCallback(() => {
+  const handleGenerate = useCallback(async () => {
     if (!userType || !framework) return;
-    const result = generateCompliancePackage({
-      userType,
-      framework,
-      trackingPixels,
-      targetRegions,
-      complianceModules: complianceModules.length > 0 ? complianceModules : undefined,
-    });
-    setCompliancePackage(result);
-    setStep(6);
-
-    // Persist the project server-side for premium users (scoped to their account).
-    if (premiumActive) {
-      const md = exportToMarkdown(result);
-      void saveProjectAction({
-        name: `${FRAMEWORK_OPTIONS.find((f) => f.value === framework)?.label ?? framework} Project`,
+    setIsGenerating(true);
+    try {
+      const result = generateCompliancePackage({
+        userType,
         framework,
         trackingPixels,
         targetRegions,
-        complianceModules,
-        complianceScore: result.complianceScore,
-        packageMarkdown: md,
+        complianceModules: complianceModules.length > 0 ? complianceModules : undefined,
       });
+      setCompliancePackage(result);
+      setStep(6);
+
+      // Persist the project server-side for premium users (scoped to their account).
+      if (premiumActive) {
+        const md = exportToMarkdown(result);
+        await saveProjectAction({
+          name: `${FRAMEWORK_OPTIONS.find((f) => f.value === framework)?.label ?? framework} Project`,
+          framework,
+          trackingPixels,
+          targetRegions,
+          complianceModules,
+          complianceScore: result.complianceScore,
+          packageMarkdown: md,
+        });
+      }
+    } finally {
+      setIsGenerating(false);
     }
   }, [userType, framework, trackingPixels, targetRegions, complianceModules, premiumActive]);
 
@@ -195,6 +213,18 @@ export default function DashboardWizard({ isPremium, isAuthenticated }: Dashboar
     setComplianceModules([]);
   }, []);
 
+  const stepPosition = Math.max(1, Math.min(step, WIZARD_STEPS.length));
+  const stepProgress = (stepPosition / WIZARD_STEPS.length) * 100;
+  const stepMeta = WIZARD_STEPS[stepPosition - 1];
+
+  const selections = [
+    userType ? `Role: ${USER_TYPE_OPTIONS.find((o) => o.value === userType)?.label ?? userType}` : null,
+    framework ? `Framework: ${FRAMEWORK_OPTIONS.find((o) => o.value === framework)?.label ?? framework}` : null,
+    trackingPixels.length > 0 ? `Pixels: ${trackingPixels.length}` : null,
+    targetRegions.length > 0 ? `Regions: ${targetRegions.length}` : null,
+    complianceModules.length > 0 ? `Modules: ${complianceModules.length}` : null,
+  ].filter(Boolean) as string[];
+
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 p-4 sm:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto">
@@ -220,21 +250,44 @@ export default function DashboardWizard({ isPremium, isAuthenticated }: Dashboar
         </header>
 
         {/* Step Indicator */}
-        <div className="flex items-center justify-center gap-2 mb-8">
-          {[1, 2, 3, 4, 5].map((s) => (
-            <div key={s} className="flex items-center gap-2">
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-                  step >= s ? "bg-indigo-600 text-white" : "bg-gray-800 text-gray-500"
-                }`}
-              >
-                {s}
-              </div>
-              {s < 5 && (
-                <div className={`w-6 sm:w-10 h-0.5 transition-colors ${step > s ? "bg-indigo-600" : "bg-gray-800"}`} />
-              )}
+        <div className="mb-8">
+          <div className="mb-3 flex items-center justify-between gap-3 text-xs text-gray-400">
+            <span>{step <= 5 ? `Step ${stepPosition} of ${WIZARD_STEPS.length}` : "Package ready"}</span>
+            <span>{step <= 5 ? stepMeta.help : "Review your score and unlock the full package"}</span>
+          </div>
+          <div className="h-2 w-full rounded-full bg-gray-800 overflow-hidden mb-4">
+            <div
+              className="h-full rounded-full bg-indigo-600 transition-all duration-500"
+              style={{ width: `${step <= 5 ? stepProgress : 100}%` }}
+            />
+          </div>
+          {selections.length > 0 && (
+            <div className="mb-4 text-xs text-gray-500">
+              {selections.map((entry) => (
+                <span key={entry} className="mr-2 inline-block">
+                  {entry}
+                </span>
+              ))}
             </div>
-          ))}
+          )}
+          <div className="flex items-center justify-center gap-2">
+            {[1, 2, 3, 4, 5].map((s) => (
+              <div key={s} className="flex items-center gap-2">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
+                    step >= s ? "bg-indigo-600 text-white" : "bg-gray-800 text-gray-500"
+                  }`}
+                >
+                  {s}
+                </div>
+                {s < 5 && (
+                  <div
+                    className={`w-6 sm:w-10 h-0.5 transition-colors ${step > s ? "bg-indigo-600" : "bg-gray-800"}`}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Step 1: User Type */}
@@ -357,7 +410,7 @@ export default function DashboardWizard({ isPremium, isAuthenticated }: Dashboar
                 disabled={targetRegions.length === 0}
                 className="px-5 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Continue
+                {targetRegions.length === 0 ? "Select a region to continue" : "Continue"}
               </button>
             </div>
           </WizardCard>
@@ -395,10 +448,11 @@ export default function DashboardWizard({ isPremium, isAuthenticated }: Dashboar
               <BackButton onClick={() => setStep(4)} />
               <button
                 type="button"
-                onClick={handleGenerate}
-                className="px-5 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-500 transition-colors"
+                onClick={() => void handleGenerate()}
+                disabled={isGenerating}
+                className="px-5 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-500 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Generate Compliance Package
+                {isGenerating ? "Generating package..." : "Generate Compliance Package"}
               </button>
             </div>
           </WizardCard>
@@ -485,6 +539,7 @@ export default function DashboardWizard({ isPremium, isAuthenticated }: Dashboar
                 hasModules={!!compliancePackage.enterpriseModules && compliancePackage.enterpriseModules.length > 0}
                 pixelCount={compliancePackage.consumerPrivacyPolicyAddendum.scriptDeclarations.length}
                 modules={complianceModules}
+                checkoutPendingPlan={checkoutPendingPlan}
                 onCheckout={handleCheckout}
               />
             )}
@@ -661,6 +716,7 @@ function PaywallGate({
   hasModules,
   pixelCount,
   modules,
+  checkoutPendingPlan,
   onCheckout,
 }: {
   clauseCount: number;
@@ -669,6 +725,7 @@ function PaywallGate({
   hasModules: boolean;
   pixelCount: number;
   modules: ComplianceModule[];
+  checkoutPendingPlan: "solo" | "agency" | "enterprise" | null;
   onCheckout: (plan: "solo" | "agency" | "enterprise", billing?: "monthly" | "annual") => void;
 }) {
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
@@ -840,26 +897,35 @@ function PaywallGate({
             <button
               type="button"
               onClick={() => handleCta("solo")}
-              className="w-full py-3.5 px-4 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition-colors relative overflow-hidden group"
+              disabled={checkoutPendingPlan !== null}
+              className="w-full py-3.5 px-4 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition-colors relative overflow-hidden group disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <span className="relative z-10">
-                Unlock with {TIER_CONFIG.solo.label} &mdash; {soloPrice}
+                {checkoutPendingPlan === "solo"
+                  ? "Redirecting to secure checkout..."
+                  : `Unlock with ${TIER_CONFIG.solo.label} — ${soloPrice}`}
               </span>
               <span className="absolute inset-0 bg-white/5 translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-300" />
             </button>
             <button
               type="button"
               onClick={() => handleCta("agency")}
-              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold hover:from-purple-500 hover:to-indigo-500 transition-all"
+              disabled={checkoutPendingPlan !== null}
+              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold hover:from-purple-500 hover:to-indigo-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Unlimited Agency Pass &mdash; {agencyPrice}
+              {checkoutPendingPlan === "agency"
+                ? "Redirecting to secure checkout..."
+                : `Unlimited Agency Pass — ${agencyPrice}`}
             </button>
             <button
               type="button"
               onClick={() => handleCta("enterprise")}
-              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold hover:from-amber-500 hover:to-orange-500 transition-all"
+              disabled={checkoutPendingPlan !== null}
+              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold hover:from-amber-500 hover:to-orange-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Enterprise Tier &mdash; {enterprisePrice}
+              {checkoutPendingPlan === "enterprise"
+                ? "Redirecting to secure checkout..."
+                : `Enterprise Tier — ${enterprisePrice}`}
             </button>
           </div>
 

@@ -20,6 +20,10 @@ const FRAMEWORK_LABELS: Record<string, { icon: string; label: string }> = {
   wordpress: { icon: "📝", label: "WordPress" },
   wix: { icon: "🌐", label: "Wix" },
   squarespace: { icon: "◼", label: "Squarespace" },
+  woocommerce: { icon: "🛍️", label: "WooCommerce" },
+  bigcommerce: { icon: "🏬", label: "BigCommerce" },
+  webflow: { icon: "🎨", label: "Webflow" },
+  godaddy: { icon: "🌍", label: "GoDaddy" },
 };
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
@@ -83,6 +87,8 @@ interface QuickTool {
   icon: string;
   href: string;
   available: boolean;
+  fallbackHref?: string;
+  fallbackLabel?: string;
 }
 
 const QUICK_TOOLS: QuickTool[] = [
@@ -99,9 +105,27 @@ const QUICK_TOOLS: QuickTool[] = [
     icon: "🍪",
     href: "#",
     available: false,
+    fallbackHref: "/dashboard/home#scanner",
+    fallbackLabel: "Run URL Compliance Scanner",
   },
-  { label: "DPA Template Builder", description: "Data processing agreements", icon: "📄", href: "#", available: false },
-  { label: "Subprocessor Mapping", description: "Map vendor data flows", icon: "🔗", href: "#", available: false },
+  {
+    label: "DPA Template Builder",
+    description: "Data processing agreements",
+    icon: "📄",
+    href: "#",
+    available: false,
+    fallbackHref: "/dashboard",
+    fallbackLabel: "Generate a package now",
+  },
+  {
+    label: "Subprocessor Mapping",
+    description: "Map vendor data flows",
+    icon: "🔗",
+    href: "#",
+    available: false,
+    fallbackHref: "/dashboard/home#scanner",
+    fallbackLabel: "Use scanner to detect vendors",
+  },
   {
     label: "URL Compliance Scanner",
     description: "Auto-detect stack & issues",
@@ -528,9 +552,14 @@ function QuickToolCard({ tool }: { tool: QuickTool }) {
         </div>
       </div>
       {!tool.available && (
-        <span className="mt-2 inline-block px-2 py-0.5 rounded-full bg-gray-800 text-xs text-gray-400">
-          Coming Soon
-        </span>
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <span className="inline-block px-2 py-0.5 rounded-full bg-gray-800 text-xs text-gray-400">Coming Soon</span>
+          {tool.fallbackHref && tool.fallbackLabel && (
+            <Link href={tool.fallbackHref} className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
+              {tool.fallbackLabel} &rarr;
+            </Link>
+          )}
+        </div>
       )}
     </div>
   );
