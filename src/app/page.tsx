@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { TIER_CONFIG } from "@/lib/pricing";
+import PricingSection from "@/components/PricingSection";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://comply-quick.com";
 
@@ -83,12 +83,13 @@ export default function LandingPage() {
             </span>
           </div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight tracking-tight">
-            Ship compliant sites in 30 seconds &mdash; not $3,000 in legal bills.
+            The compliance layer agencies install once and never worry about again.
           </h1>
           <p className="mt-6 text-base sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
-            Comply-Quick scans any website for GDPR, CCPA &amp; ADA risk, then auto-generates the liability waivers,
-            privacy policies, and pre-launch checklist mapped to its <span className="text-gray-200">exact</span> tech
-            stack. Stop risking personal liability over a tracking pixel you forgot about.
+            Comply-Quick scans any website for GDPR, CCPA &amp; ADA risk in 30 seconds, then auto-generates the
+            liability waivers, privacy policies, and pre-launch checklist mapped to its{" "}
+            <span className="text-gray-200">exact</span> tech stack. Stop risking personal liability over a tracking
+            pixel your client forgot to mention.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
@@ -105,11 +106,27 @@ export default function LandingPage() {
             </a>
           </div>
           <p className="mt-4 text-xs text-gray-500">
-            Free preview included &mdash; see your compliance score and contract shield before you pay. No credit card
+            Free scan included &mdash; see your compliance score and contract shield before you pay. No credit card
             required.
           </p>
         </div>
       </header>
+
+      {/* Trust bar */}
+      <section className="px-4 sm:px-6 lg:px-8 pb-12">
+        <div className="max-w-4xl mx-auto">
+          <p className="text-center text-xs font-medium text-gray-600 uppercase tracking-widest mb-6">
+            Built for agencies and freelancers shipping on
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4">
+            {["Webflow", "WordPress", "Shopify", "Next.js", "Wix", "Squarespace", "GoDaddy"].map((name) => (
+              <span key={name} className="text-sm font-semibold text-gray-600 hover:text-gray-400 transition-colors">
+                {name}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* Proof / capability stats */}
       <section className="px-4 sm:px-6 lg:px-8 pb-4">
@@ -206,120 +223,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-4">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white">Simple, transparent pricing.</h2>
-            <p className="mt-4 text-gray-400 max-w-lg mx-auto">
-              Choose the plan that fits your workflow. No hidden fees, no surprise charges.
-            </p>
-          </div>
-
-          {/* Pricing anchor */}
-          <p className="text-center text-xs text-gray-500 mb-10 sm:mb-14">
-            Average attorney compliance review: $2,000 &ndash; $5,000. Comply-Quick starts at $
-            {TIER_CONFIG.solo.monthly}.
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
-            {/* Pro Plan */}
-            <article className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-8 flex flex-col">
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-white">{TIER_CONFIG.solo.label}</h3>
-                <p className="mt-1 text-xs text-gray-500">For freelancers &amp; solo devs. Cancel anytime.</p>
-                <div className="mt-3 flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-white">${TIER_CONFIG.solo.monthly}</span>
-                  <span className="text-sm text-gray-400">/month</span>
-                </div>
-                <p className="mt-1 text-xs text-emerald-400">or ${TIER_CONFIG.solo.annual}/yr &mdash; save ~17%</p>
-              </div>
-              <ul className="space-y-3 mb-8 flex-1">
-                <PricingFeature>Unlimited project generations</PricingFeature>
-                <PricingFeature>{TIER_CONFIG.solo.scanLimit} compliance scans / month</PricingFeature>
-                <PricingFeature>Direct markdown download</PricingFeature>
-                <PricingFeature>Full contract shield + privacy addendum + checklist</PricingFeature>
-                <PricingFeature>Compliance score breakdown</PricingFeature>
-              </ul>
-              <Link
-                href={START_HREF}
-                className="block w-full py-3 px-4 rounded-xl border border-gray-700 text-center text-white font-medium hover:border-gray-500 hover:bg-gray-800 transition-colors"
-              >
-                Get Started
-              </Link>
-            </article>
-
-            {/* Agency Scale Plan */}
-            <article className="bg-gray-900 border border-indigo-500/40 rounded-2xl p-6 sm:p-8 flex flex-col ring-1 ring-indigo-500/10 relative overflow-hidden">
-              <div className="absolute top-4 right-4 px-2.5 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-500/30">
-                <span className="text-xs font-medium text-indigo-300">Most Popular</span>
-              </div>
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-white">{TIER_CONFIG.agency.label}</h3>
-                <p className="mt-1 text-xs text-gray-500">For agencies managing multiple client sites.</p>
-                <div className="mt-3 flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-white">${TIER_CONFIG.agency.monthly}</span>
-                  <span className="text-sm text-gray-400">/month</span>
-                </div>
-                <p className="mt-1 text-xs text-emerald-400">or ${TIER_CONFIG.agency.annual}/yr &mdash; save ~17%</p>
-              </div>
-              <ul className="space-y-3 mb-8 flex-1">
-                <PricingFeature>{TIER_CONFIG.agency.scanLimit} compliance scans / month</PricingFeature>
-                <PricingFeature>{TIER_CONFIG.agency.seats} team seats included</PricingFeature>
-                <PricingFeature>Ongoing monitoring + automated regulatory updates</PricingFeature>
-                <PricingFeature>White-label exports &amp; priority support</PricingFeature>
-                <PricingFeature>All 9 platforms, 6 pixels, and 6 regions</PricingFeature>
-              </ul>
-              <Link
-                href={START_HREF}
-                className="block w-full py-3 px-4 rounded-xl bg-indigo-600 text-center text-white font-semibold hover:bg-indigo-500 transition-colors"
-              >
-                Start Free Trial
-              </Link>
-            </article>
-
-            {/* Enterprise Tier */}
-            <article className="bg-gray-900 border border-amber-500/40 rounded-2xl p-6 sm:p-8 flex flex-col ring-1 ring-amber-500/10 relative overflow-hidden">
-              <div className="absolute top-4 right-4 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30">
-                <span className="text-xs font-medium text-amber-300">Enterprise</span>
-              </div>
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-white">{TIER_CONFIG.enterprise.label}</h3>
-                <p className="mt-1 text-xs text-gray-500">Full compliance stack for regulated industries.</p>
-                <div className="mt-3 flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-white">${TIER_CONFIG.enterprise.monthly}</span>
-                  <span className="text-sm text-gray-400">/month</span>
-                </div>
-                <p className="mt-1 text-xs text-emerald-400">
-                  or ${TIER_CONFIG.enterprise.annual}/yr &mdash; save ~17%
-                </p>
-              </div>
-              <ul className="space-y-3 mb-8 flex-1">
-                <PricingFeature>Everything in Agency, plus:</PricingFeature>
-                <PricingFeature>Unlimited seats &amp; scans</PricingFeature>
-                <PricingFeature>HIPAA compliance shield</PricingFeature>
-                <PricingFeature>PCI-DSS payment security module</PricingFeature>
-                <PricingFeature>ADA / WCAG accessibility compliance</PricingFeature>
-                <PricingFeature>SOC 2 security controls shield</PricingFeature>
-                <PricingFeature>REST API access for automation</PricingFeature>
-                <PricingFeature>White-label markdown exports</PricingFeature>
-                <PricingFeature>Dedicated onboarding support</PricingFeature>
-              </ul>
-              <Link
-                href={START_HREF}
-                className="block w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-center text-white font-semibold hover:from-amber-500 hover:to-orange-500 transition-all"
-              >
-                Contact Sales
-              </Link>
-            </article>
-          </div>
-
-          {/* Guarantee */}
-          <p className="mt-8 text-center text-xs text-gray-500">
-            30-day money-back guarantee on all plans. No questions asked.
-          </p>
-        </div>
-      </section>
+      {/* Pricing Section — client component with annual billing toggle */}
+      <PricingSection />
 
       {/* FAQ Section */}
       <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50">
@@ -442,17 +347,6 @@ function ComparisonItem({ children, negative = false }: { children: React.ReactN
         }`}
       >
         {negative ? "\u2717" : "\u2713"}
-      </span>
-      <span className="text-sm text-gray-300">{children}</span>
-    </li>
-  );
-}
-
-function PricingFeature({ children }: { children: React.ReactNode }) {
-  return (
-    <li className="flex items-start gap-3">
-      <span className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-indigo-500/10 flex items-center justify-center">
-        <span className="text-xs text-indigo-400">&#x2713;</span>
       </span>
       <span className="text-sm text-gray-300">{children}</span>
     </li>
