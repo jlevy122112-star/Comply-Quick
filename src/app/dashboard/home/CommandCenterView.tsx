@@ -7,6 +7,7 @@ import type { ComplianceScore } from "@/components/ClauseEngine";
 import type { Tier } from "@/lib/entitlements";
 import { getTierConfig } from "@/lib/pricing";
 import { deleteProjectAction, signOutAction } from "@/app/dashboard/actions";
+import CommandCenterInsights from "./CommandCenterInsights";
 import AutopilotPanel from "./AutopilotPanel";
 import ScannerPanel from "./ScannerPanel";
 import IntelligencePanel from "./IntelligencePanel";
@@ -97,11 +98,30 @@ const QUICK_TOOLS: QuickTool[] = [
     label: "Cookie Consent Banner",
     description: "Generate consent banner code",
     icon: "🍪",
-    href: "#",
-    available: false,
+    href: "/dashboard/tools/cookie-banner",
+    available: true,
   },
-  { label: "DPA Template Builder", description: "Data processing agreements", icon: "📄", href: "#", available: false },
-  { label: "Subprocessor Mapping", description: "Map vendor data flows", icon: "🔗", href: "#", available: false },
+  {
+    label: "DPA Template Builder",
+    description: "Data processing agreements",
+    icon: "📄",
+    href: "/dashboard/tools/dpa",
+    available: true,
+  },
+  {
+    label: "Subprocessor Mapping",
+    description: "Map vendor data flows",
+    icon: "🔗",
+    href: "/dashboard/tools/subprocessors",
+    available: true,
+  },
+  {
+    label: "Compliance Assistant",
+    description: "Ask the AI compliance guide",
+    icon: "💬",
+    href: "/dashboard/assistant",
+    available: true,
+  },
   {
     label: "URL Compliance Scanner",
     description: "Auto-detect stack & issues",
@@ -268,6 +288,9 @@ export default function CommandCenterView({
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* ── Guided Next-Best-Action + ROI + Coverage ── */}
+        <CommandCenterInsights projects={projects} tier={tier} aggregateScore={aggregateScore} />
+
         {/* ── Score Overview ── */}
         {aggregateScore ? (
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
