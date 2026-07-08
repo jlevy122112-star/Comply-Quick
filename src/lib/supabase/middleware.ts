@@ -6,7 +6,7 @@ import { NextResponse, type NextRequest } from "next/server";
  * routes. Unauthenticated users hitting a protected route are redirected to
  * /login.
  */
-const PROTECTED_PREFIXES = ["/dashboard/home"];
+const PROTECTED_PREFIXES = ["/dashboard"];
 
 /** Cookie that carries a partner referral code from first touch until checkout. */
 const REFERRAL_COOKIE = "cq_ref";

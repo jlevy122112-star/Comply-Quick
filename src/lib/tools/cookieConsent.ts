@@ -61,6 +61,22 @@ function safeAccent(color: string | undefined): string {
   return DEFAULT_ACCENT;
 }
 
+/**
+ * Sanitizes a user-supplied privacy-policy URL so the generated banner — which
+ * merchants embed on production sites — can never carry an executable scheme
+ * (e.g. `javascript:`/`data:`). Allows same-origin/relative paths and http(s)
+ * and mailto; anything else falls back to a safe relative path.
+ */
+function safePolicyUrl(url: string): string {
+  const value = url.trim();
+  if (!value) return "/privacy";
+  if (value.startsWith("/") || value.startsWith("#") || value.startsWith("./") || value.startsWith("../")) {
+    return value;
+  }
+  if (/^(https?:|mailto:)/i.test(value)) return value;
+  return "/privacy";
+}
+
 function bannerCopy(model: ConsentModel, company: string): { heading: string; body: string } {
   const who = company.trim() || "We";
   switch (model) {
@@ -88,7 +104,7 @@ export function generateConsentBanner(input: CookieConsentInput): CookieConsentR
   const doNotSell = requiresDoNotSell(input.regions);
   const accent = safeAccent(input.accentColor);
   const company = input.companyName.trim() || "This website";
-  const privacyUrl = input.privacyPolicyUrl.trim() || "/privacy";
+  const privacyUrl = safePolicyUrl(input.privacyPolicyUrl);
 
   const vendors = input.pixels.map((id) => {
     const v = PIXEL_VENDORS[id];

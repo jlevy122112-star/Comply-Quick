@@ -36,6 +36,11 @@ function csvCell(value: string): string {
   return needsQuote ? `"${escaped}"` : escaped;
 }
 
+/** Escapes characters that would break a Markdown table cell. */
+function mdCell(value: string): string {
+  return value.replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
+}
+
 /** Builds a subprocessor register from the selected pixels. */
 export function buildSubprocessorMap(pixels: TrackingPixel[]): SubprocessorMap {
   const unique = Array.from(new Set(pixels));
@@ -70,7 +75,7 @@ export function buildSubprocessorMap(pixels: TrackingPixel[]): SubprocessorMap {
   ];
   for (const r of rows) {
     mdLines.push(
-      `| ${r.vendor} | ${r.company} | ${r.purpose} | ${r.category} | ${r.dataCategories.join(", ")} | ${r.optOutUrl} |`
+      `| ${mdCell(r.vendor)} | ${mdCell(r.company)} | ${mdCell(r.purpose)} | ${mdCell(r.category)} | ${mdCell(r.dataCategories.join(", "))} | ${mdCell(r.optOutUrl)} |`
     );
   }
   const markdown = rows.length > 0 ? mdLines.join("\n") : "_No third-party subprocessors selected._";

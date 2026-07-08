@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createRateLimiter, getClientKey, enforceRateLimit, errorResponse, logger } from "@/services";
 import { answerAssistant, type AssistantMessage, type AssistantRole } from "@/lib/assistant/service";
@@ -28,11 +29,18 @@ function isValid(body: unknown): body is ChatBody {
 }
 
 export async function POST(request: NextRequest) {
-  // Authenticated feature — assistant is a signed-in tool.
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Authenticated feature — assistant is a signed-in tool. `createClient` throws
+  // if Supabase env vars are missing/misconfigured; handle it rather than
+  // letting it surface as an unhandled 500 (consistent with the other routes).
+  let user: User | null = null;
+  try {
+    const supabase = await createClient();
+    ({
+      data: { user },
+    } = await supabase.auth.getUser());
+  } catch (authErr) {
+    return errorResponse(authErr);
+  }
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

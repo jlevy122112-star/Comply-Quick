@@ -23,6 +23,11 @@ export default function AssistantView({ tier, projectCount, frameworks }: Assist
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<AssistantMessage[]>(messages);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -33,7 +38,7 @@ export default function AssistantView({ tier, projectCount, frameworks }: Assist
       const content = text.trim();
       if (!content || loading) return;
       setError(null);
-      const next: AssistantMessage[] = [...messages, { role: "user", content }];
+      const next: AssistantMessage[] = [...messagesRef.current, { role: "user", content }];
       setMessages(next);
       setInput("");
       setLoading(true);
@@ -54,7 +59,7 @@ export default function AssistantView({ tier, projectCount, frameworks }: Assist
         setLoading(false);
       }
     },
-    [messages, loading, tier, projectCount, frameworks]
+    [loading, tier, projectCount, frameworks]
   );
 
   return (

@@ -57,6 +57,27 @@ describe("generateConsentBanner", () => {
     });
     expect(res.html).not.toContain("<script>alert(1)</script>");
   });
+
+  it("rejects javascript: privacy-policy URLs in the generated banner", () => {
+    const res = generateConsentBanner({
+      companyName: "Acme",
+      privacyPolicyUrl: "javascript:alert(document.cookie)",
+      regions: ["eu_gdpr"],
+      pixels: [],
+    });
+    expect(res.html).not.toContain("javascript:");
+    expect(res.html).toContain('href="/privacy"');
+  });
+
+  it("preserves safe http(s) privacy-policy URLs", () => {
+    const res = generateConsentBanner({
+      companyName: "Acme",
+      privacyPolicyUrl: "https://acme.com/privacy",
+      regions: ["eu_gdpr"],
+      pixels: [],
+    });
+    expect(res.html).toContain('href="https://acme.com/privacy"');
+  });
 });
 
 describe("buildSubprocessorMap", () => {
