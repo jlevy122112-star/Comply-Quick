@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { TIER_CONFIG } from "@/lib/pricing";
+import { TIER_CONFIG, METERED_PRICE_CENTS } from "@/lib/pricing";
+import ScanUrlForm from "./ScanUrlForm";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://comply-quick.com";
 
@@ -90,24 +91,23 @@ export default function LandingPage() {
             privacy policies, and pre-launch checklist mapped to its <span className="text-gray-200">exact</span> tech
             stack. Stop risking personal liability over a tracking pixel you forgot about.
           </p>
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href={START_HREF}
-              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-indigo-600 text-white font-semibold text-base hover:bg-indigo-500 transition-colors text-center"
-            >
-              Scan your site free
-            </Link>
-            <a
-              href={PRICING_HREF}
-              className="w-full sm:w-auto px-8 py-4 rounded-xl border border-gray-700 text-gray-300 font-medium text-base hover:border-gray-500 hover:text-white transition-colors text-center"
-            >
-              View pricing
-            </a>
-          </div>
-          <p className="mt-4 text-xs text-gray-500">
+
+          {/* Scan-first CTA — enter a URL to jump straight to the scanner */}
+          <ScanUrlForm />
+
+          <p className="mt-3 text-xs text-gray-500">
             Free preview included &mdash; see your compliance score and contract shield before you pay. No credit card
             required.
           </p>
+
+          <div className="mt-6 flex items-center justify-center gap-6 text-xs text-gray-500">
+            <a href={PRICING_HREF} className="hover:text-gray-300 transition-colors">
+              View pricing
+            </a>
+            <Link href={START_HREF} className="hover:text-gray-300 transition-colors">
+              Start without a URL
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -223,7 +223,7 @@ export default function LandingPage() {
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
-            {/* Pro Plan */}
+            {/* Solo Plan */}
             <article className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-8 flex flex-col">
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-white">{TIER_CONFIG.solo.label}</h3>
@@ -232,7 +232,9 @@ export default function LandingPage() {
                   <span className="text-4xl font-bold text-white">${TIER_CONFIG.solo.monthly}</span>
                   <span className="text-sm text-gray-400">/month</span>
                 </div>
-                <p className="mt-1 text-xs text-emerald-400">or ${TIER_CONFIG.solo.annual}/yr &mdash; save ~17%</p>
+                <p className="mt-1 text-xs font-medium text-emerald-400">
+                  or ${TIER_CONFIG.solo.annual}/yr &mdash; 2 months free
+                </p>
               </div>
               <ul className="space-y-3 mb-8 flex-1">
                 <PricingFeature>Unlimited project generations</PricingFeature>
@@ -240,6 +242,7 @@ export default function LandingPage() {
                 <PricingFeature>Direct markdown download</PricingFeature>
                 <PricingFeature>Full contract shield + privacy addendum + checklist</PricingFeature>
                 <PricingFeature>Compliance score breakdown</PricingFeature>
+                <PricingFeature>+${METERED_PRICE_CENTS.extraScan / 100} per extra scan</PricingFeature>
               </ul>
               <Link
                 href={START_HREF}
@@ -249,7 +252,7 @@ export default function LandingPage() {
               </Link>
             </article>
 
-            {/* Agency Scale Plan */}
+            {/* Agency Plan */}
             <article className="bg-gray-900 border border-indigo-500/40 rounded-2xl p-6 sm:p-8 flex flex-col ring-1 ring-indigo-500/10 relative overflow-hidden">
               <div className="absolute top-4 right-4 px-2.5 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-500/30">
                 <span className="text-xs font-medium text-indigo-300">Most Popular</span>
@@ -261,7 +264,9 @@ export default function LandingPage() {
                   <span className="text-4xl font-bold text-white">${TIER_CONFIG.agency.monthly}</span>
                   <span className="text-sm text-gray-400">/month</span>
                 </div>
-                <p className="mt-1 text-xs text-emerald-400">or ${TIER_CONFIG.agency.annual}/yr &mdash; save ~17%</p>
+                <p className="mt-1 text-xs font-medium text-emerald-400">
+                  or ${TIER_CONFIG.agency.annual}/yr &mdash; 2 months free
+                </p>
               </div>
               <ul className="space-y-3 mb-8 flex-1">
                 <PricingFeature>{TIER_CONFIG.agency.scanLimit} compliance scans / month</PricingFeature>
@@ -269,7 +274,12 @@ export default function LandingPage() {
                 <PricingFeature>Ongoing monitoring + automated regulatory updates</PricingFeature>
                 <PricingFeature>White-label exports &amp; priority support</PricingFeature>
                 <PricingFeature>All 9 platforms, 6 pixels, and 6 regions</PricingFeature>
+                <PricingFeature>+${METERED_PRICE_CENTS.extraScan / 100} per extra scan</PricingFeature>
               </ul>
+              {/* 7-day free trial callout */}
+              <p className="mb-3 text-center text-xs text-indigo-300 font-medium">
+                7-day free trial &mdash; no card required
+              </p>
               <Link
                 href={START_HREF}
                 className="block w-full py-3 px-4 rounded-xl bg-indigo-600 text-center text-white font-semibold hover:bg-indigo-500 transition-colors"
@@ -290,8 +300,8 @@ export default function LandingPage() {
                   <span className="text-4xl font-bold text-white">${TIER_CONFIG.enterprise.monthly}</span>
                   <span className="text-sm text-gray-400">/month</span>
                 </div>
-                <p className="mt-1 text-xs text-emerald-400">
-                  or ${TIER_CONFIG.enterprise.annual}/yr &mdash; save ~17%
+                <p className="mt-1 text-xs font-medium text-emerald-400">
+                  or ${TIER_CONFIG.enterprise.annual}/yr &mdash; 2 months free
                 </p>
               </div>
               <ul className="space-y-3 mb-8 flex-1">
@@ -314,8 +324,20 @@ export default function LandingPage() {
             </article>
           </div>
 
+          {/* Overage pricing transparency callout */}
+          <div className="mt-8 max-w-2xl mx-auto bg-gray-900/60 border border-gray-800 rounded-xl px-5 py-4 text-center">
+            <p className="text-xs text-gray-400">
+              <span className="text-gray-200 font-medium">No surprise bills.</span> Extra scans beyond your plan
+              are&nbsp;
+              <span className="text-gray-200">${METERED_PRICE_CENTS.extraScan / 100} each</span>, charged at month-end.
+              API calls beyond your allotment are&nbsp;
+              <span className="text-gray-200">${(METERED_PRICE_CENTS.apiCall / 100).toFixed(2)} each</span>. You can
+              always see your usage in the dashboard before any charge hits.
+            </p>
+          </div>
+
           {/* Guarantee */}
-          <p className="mt-8 text-center text-xs text-gray-500">
+          <p className="mt-5 text-center text-xs text-gray-500">
             30-day money-back guarantee on all plans. No questions asked.
           </p>
         </div>

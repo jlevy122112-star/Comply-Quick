@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { computePaywallTriggers } from "@/lib/funnel/triggers";
 import { computeImprovementPath } from "@/lib/score/improvement";
 import { trackFunnel } from "@/lib/funnel/client";
@@ -54,7 +55,9 @@ function scoreColor(score: number): string {
  * unlimited.
  */
 export default function ScannerPanel() {
-  const [url, setUrl] = useState("");
+  const searchParams = useSearchParams();
+  const [url, setUrl] = useState(() => searchParams.get("url") ?? "");
+  const seededRef = useRef(false);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<ScanRecord[]>([]);
@@ -63,6 +66,16 @@ export default function ScannerPanel() {
   const [published, setPublished] = useState<{ scanId: string; slug: string } | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // When this panel is reached via the landing-page scan form (GTM PLG flow),
+  // a `?url=<encoded>` param is present. Scroll the scanner into view so the
+  // user immediately sees their pre-filled URL and the Scan button.
+  useEffect(() => {
+    if (!seededRef.current && searchParams.get("url")) {
+      seededRef.current = true;
+      document.getElementById("scanner-input")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     let alive = true;
@@ -188,6 +201,7 @@ export default function ScannerPanel() {
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
         <div className="flex flex-col sm:flex-row gap-2">
           <input
+            id="scanner-input"
             type="url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
