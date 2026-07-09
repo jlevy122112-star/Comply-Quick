@@ -194,8 +194,10 @@ export const REGULATION_SOURCE_LIST = [
       "https://leginfo.legislature.ca.gov/faces/codes_displayexpandedbranch.xhtml?tocCode=CIV&division=3.&title=1.81.5.&part=4.",
     license: "public_domain",
     format: "html",
-    monitorMode: "structured",
-    ingestFullText: true,
+    // No dedicated HTML parser yet, so we watch the official page for changes
+    // rather than claiming full-text ingestion. Honest until a parser lands.
+    monitorMode: "source_watch",
+    ingestFullText: false,
   },
   {
     framework: "vcdpa",
@@ -273,8 +275,10 @@ export const REGULATION_SOURCE_LIST = [
     ingestUrl: "https://eur-lex.europa.eu/eli/reg/2016/679/oj/eng",
     license: "eu_reuse",
     format: "html",
-    monitorMode: "structured",
-    ingestFullText: true,
+    // No dedicated HTML parser yet, so we watch the official page for changes
+    // rather than claiming full-text ingestion. Honest until a parser lands.
+    monitorMode: "source_watch",
+    ingestFullText: false,
   },
   {
     framework: "eprivacy",
