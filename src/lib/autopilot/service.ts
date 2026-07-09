@@ -5,6 +5,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getEntitlement } from "@/lib/entitlements";
+import { recordAuditLog } from "@/lib/audit-log";
 import { getAiClient, type AiClient } from "@/services/ai";
 import { logger } from "@/services";
 import type {
@@ -16,6 +17,8 @@ import type {
 } from "@/components/ClauseEngine";
 import { detectRegulationChange } from "./diff-engine";
 import { buildRegenerationProposal, type ProjectInputsSnapshot } from "./pipeline";
+import { notifyUser } from "@/lib/notifications/service";
+import { recordAlertImpact, resolveImpactsForVersion, riskFromDiff } from "@/lib/regulations/alert-impacts";
 
 const log = logger.child({ module: "autopilot" });
 
@@ -42,8 +45,15 @@ export interface NotificationItem {
   createdAt: string;
 }
 
-/** Lists the current user's proposals (defaults to those awaiting review). */
-export async function listProposals(status: "proposed" | "all" = "proposed"): Promise<ProposalListItem[]> {
+/**
+ * Lists the current user's proposals (defaults to those awaiting review).
+ * Pass `projectId` to scope the DB query to a single project instead of
+ * fetching every proposal and filtering in memory.
+ */
+export async function listProposals(
+  status: "proposed" | "all" = "proposed",
+  projectId?: string
+): Promise<ProposalListItem[]> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -56,6 +66,7 @@ export async function listProposals(status: "proposed" | "all" = "proposed"): Pr
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
   if (status === "proposed") query = query.eq("status", "proposed");
+  if (projectId) query = query.eq("project_id", projectId);
 
   const { data, error } = await query;
   if (error || !data) return [];
@@ -120,7 +131,22 @@ export async function resolveProposal(id: string, action: ResolveAction): Promis
     .update({ status: action === "accept" ? "accepted" : "rejected", resolved_at: now })
     .eq("id", id)
     .eq("user_id", user.id);
-  return !resolveErr;
+  if (resolveErr) return false;
+
+  // Either resolution clears the open regulatory exposure on the project's score.
+  await resolveImpactsForVersion(id);
+
+  await recordAuditLog({
+    action: action === "accept" ? "proposal.accepted" : "proposal.rejected",
+    entityType: "proposal",
+    entityId: id,
+    projectId: proposal.project_id as string,
+    summary:
+      action === "accept"
+        ? "Approved a regulatory-change proposal and applied it to the project."
+        : "Rejected a regulatory-change proposal.",
+  });
+  return true;
 }
 
 export async function listNotifications(): Promise<NotificationItem[]> {
@@ -201,6 +227,10 @@ export async function runAutopilot(
   const admin = createAdminClient();
   let regulationsChanged = 0;
   let proposalsCreated = 0;
+  // External notification delivery (email/push) is best-effort and can involve
+  // HTTP calls; collect them and settle concurrently after the fan-out loop so
+  // the cron's per-proposal writes aren't serialized behind delivery latency.
+  const notifyTasks: Promise<void>[] = [];
 
   // Premium users only (Autopilot is a Pro-tier feature).
   const { data: premium } = await admin
@@ -300,17 +330,35 @@ export async function runAutopilot(
 
       await admin.from("projects").update({ status: "action_needed", updated_at: now }).eq("id", row.id);
 
-      await admin.from("notifications").insert({
-        user_id: row.user_id,
-        type: "document_proposed",
-        title: `${update.name} update — review ${row.name}`,
-        body: proposal.summary,
-        related_project_id: row.id,
-        related_version_id: inserted?.id ?? null,
+      // Materialize the per-project regulatory exposure so the displayed score
+      // reflects the open change until the user approves the fix.
+      await recordAlertImpact(admin, {
+        userId: row.user_id,
+        projectId: row.id,
+        versionId: inserted?.id ?? null,
+        regulationId: update.id,
+        regulationName: update.name,
+        riskLevel: riskFromDiff(proposal.diff.addedLines, proposal.diff.removedLines),
       });
+
+      notifyTasks.push(
+        notifyUser(admin, {
+          userId: row.user_id,
+          category: "document_proposed",
+          title: `${update.name} update — review ${row.name}`,
+          body: proposal.summary,
+          url: "/dashboard/autopilot",
+          relatedProjectId: row.id,
+          relatedVersionId: inserted?.id ?? null,
+        })
+      );
       proposalsCreated += 1;
     }
   }
+
+  // notifyUser never throws (delivery failures are logged internally); settle
+  // all deliveries concurrently so total wall time is one round-trip, not N.
+  await Promise.allSettled(notifyTasks);
 
   log.info("Autopilot run complete", { regulationsChanged, proposalsCreated, aiClient: ai.id });
   return { regulationsChanged, proposalsCreated };

@@ -222,10 +222,34 @@ export default function CommandCenterView({
               Partners
             </Link>
             <Link
+              href="/dashboard/findings"
+              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-rose-500/40 text-rose-300 text-sm font-medium hover:border-rose-400 hover:text-rose-200 transition-colors"
+            >
+              Findings
+            </Link>
+            <Link
               href="/dashboard/calendar"
               className="hidden sm:inline-block px-3 py-2 rounded-lg border border-sky-500/40 text-sky-300 text-sm font-medium hover:border-sky-400 hover:text-sky-200 transition-colors"
             >
               Calendar
+            </Link>
+            <Link
+              href="/dashboard/evidence"
+              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-emerald-500/40 text-emerald-300 text-sm font-medium hover:border-emerald-400 hover:text-emerald-200 transition-colors"
+            >
+              Evidence
+            </Link>
+            <Link
+              href="/dashboard/alerts"
+              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-amber-500/40 text-amber-300 text-sm font-medium hover:border-amber-400 hover:text-amber-200 transition-colors"
+            >
+              Alerts
+            </Link>
+            <Link
+              href="/dashboard/audit"
+              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-gray-600/50 text-gray-300 text-sm font-medium hover:border-gray-400 hover:text-gray-100 transition-colors"
+            >
+              Audit Trail
             </Link>
             {isLegalAdmin && (
               <Link
@@ -497,10 +521,16 @@ function ProjectCard({
       <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-800">
         <span className="text-xs text-gray-500">Generated {new Date(project.createdAt).toLocaleDateString()}</span>
         <div className="flex items-center gap-2">
+          <Link
+            href={`/dashboard/projects/${project.id}`}
+            className="text-xs font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
+          >
+            Open workspace →
+          </Link>
           <button
             type="button"
             onClick={() => onDownload(project)}
-            className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+            className="text-xs text-gray-400 hover:text-gray-200 transition-colors"
           >
             Download
           </button>

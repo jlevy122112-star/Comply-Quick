@@ -19,6 +19,7 @@ import {
   type ComplianceModule,
 } from "@/components/ClauseEngine";
 import { createRateLimiter, getClientKey, enforceRateLimit, errorResponse, logger } from "@/services";
+import { recordAuditLog } from "@/lib/audit-log";
 
 const log = logger.child({ module: "api/compliance" });
 
@@ -152,6 +153,13 @@ export async function POST(request: NextRequest) {
 
   if (body.format === "markdown") {
     const markdown = exportToMarkdown(result);
+    // Best-effort audit entry — no-op for anonymous API callers (no session).
+    await recordAuditLog({
+      action: "package.exported",
+      entityType: "compliance_package",
+      summary: `Exported an audit-ready ${input.framework} compliance package (markdown).`,
+      metadata: { framework: input.framework, regions: input.targetRegions.length },
+    });
     return new NextResponse(markdown, {
       status: 200,
       headers: {
