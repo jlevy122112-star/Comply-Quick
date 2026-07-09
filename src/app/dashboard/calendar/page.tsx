@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCalendarMonth } from "@/lib/calendar/service";
 import { getOrCreateFeed } from "@/lib/calendar/feed";
 import { canUseAgencyPortal, listClients } from "@/lib/agency/service";
+import { getEntitlement } from "@/lib/entitlements";
 import { parseDay } from "@/lib/calendar/events";
 import CalendarView from "./CalendarView";
 
@@ -37,6 +38,7 @@ export default async function CalendarPage({
 
   const month = await getCalendarMonth(ref, { agencyClientId: activeClientId });
   const feed = await getOrCreateFeed();
+  const entitlement = await getEntitlement();
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
@@ -55,6 +57,7 @@ export default async function CalendarPage({
         clients={clients.map((c) => ({ id: c.id, name: c.name }))}
         activeClientId={activeClientId}
         feedToken={feed.token}
+        tier={entitlement.tier}
       />
     </div>
   );

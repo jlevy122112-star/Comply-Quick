@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import { Button, type ButtonProps } from "./Button";
 
-export interface CopyButtonProps extends Omit<ButtonProps, "onClick" | "children"> {
+export interface CopyButtonProps extends Omit<ButtonProps, "onClick" | "children" | "onCopy"> {
   /** Text copied to the clipboard. */
   value: string;
   /** Idle label. */

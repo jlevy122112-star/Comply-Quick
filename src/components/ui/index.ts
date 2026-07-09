@@ -17,3 +17,5 @@ export type { BadgeTone } from "./Badge";
 export { CopyButton } from "./CopyButton";
 export type { CopyButtonProps } from "./CopyButton";
 export { PageHeader, PageTitle } from "./PageHeader";
+export { UpsellCta, nextTierUp } from "./UpsellCta";
+export type { UpsellCtaProps } from "./UpsellCta";
