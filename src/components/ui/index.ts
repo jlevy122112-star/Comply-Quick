@@ -29,3 +29,6 @@ export { ActivityFeed } from "./ActivityFeed";
 export type { ActivityItem } from "./ActivityFeed";
 export { TabNav } from "./Tabs";
 export type { TabItem } from "./Tabs";
+export { DiffViewer, computeLineDiff, diffStats } from "./DiffViewer";
+export type { DiffLine, DiffOp } from "./DiffViewer";
+export { Drawer, Modal } from "./Drawer";
