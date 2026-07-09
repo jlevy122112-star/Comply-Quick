@@ -25,6 +25,7 @@ import type { WorkspaceData } from "@/lib/workspace/data";
 import { ApprovalActions } from "./ApprovalActions";
 import { TasksPanel } from "./TasksPanel";
 import { TeamPanel } from "./TeamPanel";
+import { PolicyRegenerate } from "./PolicyRegenerate";
 
 export const WORKSPACE_TABS = [
   { key: "overview", label: "Overview", icon: "🏠" },
@@ -415,7 +416,12 @@ function PoliciesPanel({ data }: { data: WorkspaceData }) {
         <CardHeader
           title="Current policy package"
           description="The active compliance package generated for this project."
-          actions={<Badge tone="emerald">Live</Badge>}
+          actions={
+            <div className="flex items-center gap-2">
+              <PolicyRegenerate projectId={project.id} />
+              <Badge tone="emerald">Live</Badge>
+            </div>
+          }
         />
         <CardBody>
           {project.packageMarkdown ? (

@@ -117,6 +117,38 @@ export async function createProject(input: NewProjectInput): Promise<DbProject |
   return rowToProject(data as ProjectRow);
 }
 
+/**
+ * Applies a regenerated compliance package to a project (owner-scoped). Used by
+ * the workspace "Regenerate & review" flow after the user approves the diff.
+ */
+export async function updateProjectPackage(
+  id: string,
+  packageMarkdown: string,
+  complianceScore: ComplianceScore
+): Promise<DbProject | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from("projects")
+    .update({
+      package_markdown: packageMarkdown,
+      compliance_score: complianceScore,
+      status: "current",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .select("*")
+    .single();
+
+  if (error || !data) return null;
+  return rowToProject(data as ProjectRow);
+}
+
 export async function deleteProjectById(id: string): Promise<boolean> {
   const supabase = await createClient();
   const {

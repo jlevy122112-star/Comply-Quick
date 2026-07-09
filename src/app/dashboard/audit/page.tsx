@@ -12,6 +12,7 @@ const ACTION_TONE: Record<string, "emerald" | "amber" | "rose" | "sky" | "gray">
   "score.published": "sky",
   "score.revoked": "amber",
   "package.exported": "gray",
+  "policy.regenerated": "sky",
 };
 
 function actionLabel(action: string): string {
