@@ -89,6 +89,19 @@ export const INDUSTRY_PROFILE: Record<
   },
 };
 
+/**
+ * Jurisdiction override for frameworks whose home region isn't implied by the
+ * industry profiles' region arrays (which only span US/California/EU). Without
+ * this, a change to e.g. PIPEDA would be routed to US/EU regions rather than
+ * Canada. `regionsForFramework` unions these with the industry-derived regions.
+ */
+export const FRAMEWORK_REGION_OVERRIDES: Partial<Record<RegulationFrameworkId, TargetRegion[]>> = {
+  pipeda: ["canada_pipeda"],
+  quebec_law25: ["canada_pipeda"],
+  lgpd: ["brazil_lgpd"],
+  australia_privacy_act: ["australia_privacy"],
+};
+
 export type AgentId =
   | "compliance_copilot"
   | "scan_to_fix"

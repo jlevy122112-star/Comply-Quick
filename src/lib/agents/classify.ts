@@ -4,7 +4,7 @@
 // jurisdictions care — driven entirely by the INDUSTRY_PROFILE map so adding an
 // industry or framework needs no change here.
 
-import { INDUSTRY_PROFILE, TARGET_INDUSTRIES, type TargetIndustry } from "./types";
+import { INDUSTRY_PROFILE, FRAMEWORK_REGION_OVERRIDES, TARGET_INDUSTRIES, type TargetIndustry } from "./types";
 import type { RegulationFrameworkId } from "@/lib/regulations/sources/registry";
 import type { TargetRegion } from "@/components/ClauseEngine";
 
@@ -15,9 +15,14 @@ export function industriesForFramework(framework: RegulationFrameworkId): Target
   );
 }
 
-/** Distinct regions across every industry that a framework is relevant to. */
+/**
+ * Distinct regions a framework's change should be routed to: the framework's
+ * own jurisdiction (override) unioned with the regions of every industry it's
+ * relevant to. The override ensures non-US/EU regimes (PIPEDA→Canada,
+ * LGPD→Brazil, Australia Privacy Act→Australia) route to their home region.
+ */
 export function regionsForFramework(framework: RegulationFrameworkId): TargetRegion[] {
-  const seen = new Set<TargetRegion>();
+  const seen = new Set<TargetRegion>(FRAMEWORK_REGION_OVERRIDES[framework] ?? []);
   for (const ind of industriesForFramework(framework)) {
     for (const r of INDUSTRY_PROFILE[ind].regions) seen.add(r);
   }

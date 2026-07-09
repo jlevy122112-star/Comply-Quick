@@ -226,6 +226,26 @@ export async function listFindings(opts?: { projectId?: string; status?: Finding
   return (data as FindingRow[]).map(rowToFinding);
 }
 
+/** Counts the current user's findings with a given status, without fetching
+ * rows (uses a head+count query). Optionally scoped to a project. */
+export async function countFindings(status: FindingStatus, projectId?: string): Promise<number> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return 0;
+
+  let query = supabase
+    .from("findings")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .eq("status", status);
+  if (projectId) query = query.eq("project_id", projectId);
+
+  const { count } = await query;
+  return count ?? 0;
+}
+
 /** Updates a finding's status and records the transition. RLS-scoped. */
 export async function updateFindingStatus(id: string, status: FindingStatus): Promise<boolean> {
   const supabase = await createClient();

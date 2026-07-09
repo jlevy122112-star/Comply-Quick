@@ -35,6 +35,13 @@ describe("classify", () => {
     expect(regionsForFramework("gdpr")).toContain("eu_gdpr");
     expect(frameworksForIndustry("fintech")).toContain("pci_dss");
   });
+
+  it("routes non-US/EU regimes to their home jurisdiction", () => {
+    expect(regionsForFramework("pipeda")).toContain("canada_pipeda");
+    expect(regionsForFramework("quebec_law25")).toContain("canada_pipeda");
+    expect(regionsForFramework("lgpd")).toContain("brazil_lgpd");
+    expect(regionsForFramework("australia_privacy_act")).toContain("australia_privacy");
+  });
 });
 
 describe("detectChanges", () => {

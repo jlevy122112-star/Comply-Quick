@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { listFindings, type FindingStatus } from "@/lib/findings-db";
+import { listFindings, countFindings, type FindingStatus } from "@/lib/findings-db";
 import { EmptyState, Badge, TabNav, type TabItem } from "@/components/ui";
 import { FindingsManager } from "./FindingsManager";
 
@@ -26,7 +26,7 @@ export default async function FindingsPage({ searchParams }: { searchParams: Pro
   const active = STATUS_FILTERS.find((f) => f.key === status) ?? STATUS_FILTERS[0];
   const findings = await listFindings(active.status ? { status: active.status } : undefined);
 
-  const openCount = (await listFindings({ status: "open" })).length;
+  const openCount = await countFindings("open");
 
   const tabs: TabItem[] = STATUS_FILTERS.map((f) => ({ key: f.key, label: f.label }));
 
