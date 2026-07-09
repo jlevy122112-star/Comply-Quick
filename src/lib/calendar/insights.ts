@@ -74,7 +74,7 @@ export function summarizeEvents(events: CalendarEvent[], todayKey: string): Cale
 /** Deadline-heat level (0–3) for a single day, from event count + severity. */
 export function heatLevel(dayEvents: CalendarEvent[]): 0 | 1 | 2 | 3 {
   if (dayEvents.length === 0) return 0;
-  const hasCritical = dayEvents.some((e) => e.severity === "critical" && e.status !== "done");
+  const hasCritical = dayEvents.some((e) => e.severity === "critical" && ACTIONABLE(e));
   const active = dayEvents.filter(ACTIONABLE).length;
   if (hasCritical || active >= 4) return 3;
   if (active >= 2) return 2;

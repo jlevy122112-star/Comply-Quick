@@ -60,6 +60,9 @@ describe("heatLevel", () => {
   it("ignores completed events", () => {
     expect(heatLevel([ev({ id: "a", date: TODAY, status: "done" })])).toBe(0);
   });
+  it("does not treat a dismissed critical event as active heat", () => {
+    expect(heatLevel([ev({ id: "a", date: TODAY, severity: "critical", status: "dismissed" })])).toBe(0);
+  });
 });
 
 describe("nextAction", () => {
