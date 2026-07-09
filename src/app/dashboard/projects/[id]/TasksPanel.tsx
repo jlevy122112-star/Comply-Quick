@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { Fragment, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -19,6 +19,7 @@ import {
 import type { ProjectTask } from "@/lib/workspace/tasks";
 import type { CalendarSeverity } from "@/lib/calendar/events";
 import { createProjectTaskAction, setProjectTaskStatusAction, deleteProjectTaskAction } from "./task-actions";
+import { TaskComments } from "./TaskComments";
 
 const SEVERITIES: CalendarSeverity[] = ["info", "warning", "critical"];
 
@@ -32,6 +33,7 @@ export function TasksPanel({ projectId, tasks }: { projectId: string; tasks: Pro
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [openComments, setOpenComments] = useState<string | null>(null);
 
   const [title, setTitle] = useState("");
   const [dueDate, setDueDate] = useState(todayKey());
@@ -163,28 +165,44 @@ export function TasksPanel({ projectId, tasks }: { projectId: string; tasks: Pro
           </THead>
           <TBody>
             {open.map((t) => (
-              <TR key={t.id}>
-                <TD>
-                  <SeverityPill
-                    severity={t.severity === "critical" ? "critical" : t.severity === "warning" ? "warning" : "info"}
-                  />
-                </TD>
-                <TD>
-                  <span className="font-medium text-white">{t.title}</span>
-                  {t.source === "auto" && <span className="ml-2 text-xs text-gray-500">auto</span>}
-                </TD>
-                <TD className="tabular-nums text-gray-400">{t.dueDate}</TD>
-                <TD className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button size="sm" variant="secondary" disabled={disabled} onClick={() => complete(t.id)}>
-                      {busyId === t.id ? "…" : "Done"}
-                    </Button>
-                    <Button size="sm" variant="ghost" disabled={disabled} onClick={() => remove(t.id)}>
-                      Delete
-                    </Button>
-                  </div>
-                </TD>
-              </TR>
+              <Fragment key={t.id}>
+                <TR>
+                  <TD>
+                    <SeverityPill
+                      severity={t.severity === "critical" ? "critical" : t.severity === "warning" ? "warning" : "info"}
+                    />
+                  </TD>
+                  <TD>
+                    <span className="font-medium text-white">{t.title}</span>
+                    {t.source === "auto" && <span className="ml-2 text-xs text-gray-500">auto</span>}
+                  </TD>
+                  <TD className="tabular-nums text-gray-400">{t.dueDate}</TD>
+                  <TD className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setOpenComments((id) => (id === t.id ? null : t.id))}
+                      >
+                        {openComments === t.id ? "Hide" : "Comments"}
+                      </Button>
+                      <Button size="sm" variant="secondary" disabled={disabled} onClick={() => complete(t.id)}>
+                        {busyId === t.id ? "…" : "Done"}
+                      </Button>
+                      <Button size="sm" variant="ghost" disabled={disabled} onClick={() => remove(t.id)}>
+                        Delete
+                      </Button>
+                    </div>
+                  </TD>
+                </TR>
+                {openComments === t.id && (
+                  <TR>
+                    <TD colSpan={4}>
+                      <TaskComments projectId={projectId} taskId={t.id} />
+                    </TD>
+                  </TR>
+                )}
+              </Fragment>
             ))}
           </TBody>
         </Table>

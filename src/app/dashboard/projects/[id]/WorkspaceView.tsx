@@ -25,6 +25,7 @@ import type { WorkspaceData } from "@/lib/workspace/data";
 import { ApprovalActions } from "./ApprovalActions";
 import { TasksPanel } from "./TasksPanel";
 import { TeamPanel } from "./TeamPanel";
+import { DomainsPanel } from "./DomainsPanel";
 import { PolicyRegenerate } from "./PolicyRegenerate";
 
 export const WORKSPACE_TABS = [
@@ -60,7 +61,7 @@ export function WorkspaceView({
   tier: Tier;
   activeTab: WorkspaceTabKey;
 }) {
-  const { project, findings, coverage, activity, proposals, pendingCount, scans, tasks, members } = data;
+  const { project, findings, coverage, activity, proposals, pendingCount, scans, tasks, members, domains } = data;
   const status = STATUS_TONE[project.status];
   const basePath = `/dashboard/projects/${project.id}`;
   const openTaskCount = tasks.filter((t) => t.status !== "done" && t.status !== "dismissed").length;
@@ -146,7 +147,12 @@ export function WorkspaceView({
           {activeTab === "policies" && <PoliciesPanel data={data} />}
           {activeTab === "approvals" && <ApprovalsPanel proposals={proposals} />}
           {activeTab === "activity" && <ActivityPanel activity={activity} />}
-          {activeTab === "team" && <TeamPanel projectId={project.id} members={members} />}
+          {activeTab === "team" && (
+            <div className="space-y-6">
+              <TeamPanel projectId={project.id} members={members} />
+              <DomainsPanel projectId={project.id} domains={domains} />
+            </div>
+          )}
         </div>
       </div>
     </div>
