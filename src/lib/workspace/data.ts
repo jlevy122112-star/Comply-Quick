@@ -8,6 +8,8 @@
 
 import { getProjectById, type DbProject } from "@/lib/projects-db";
 import { listProposals, type ProposalListItem } from "@/lib/autopilot/service";
+import { listProjectScans, type ScanRecord } from "@/lib/scanner/service";
+import { listProjectTasks, type ProjectTask } from "@/lib/workspace/tasks";
 import { MODULE_OPTIONS, type ComplianceModule } from "@/components/EnterpriseModules";
 import type { ComplianceScore } from "@/components/ClauseEngine";
 import type { Severity } from "@/components/ui/SeverityPill";
@@ -37,6 +39,8 @@ export interface WorkspaceData {
   findings: WorkspaceFinding[];
   coverage: CoverageRow[];
   activity: ActivityItem[];
+  scans: ScanRecord[];
+  tasks: ProjectTask[];
 }
 
 /** Score band → finding severity. Below 60 is critical, 60–79 warning, else info. */
@@ -133,7 +137,11 @@ export async function getWorkspaceData(projectId: string): Promise<WorkspaceData
   const project = await getProjectById(projectId);
   if (!project) return null;
 
-  const proposals = await listProposals("all", projectId);
+  const [proposals, scans, tasks] = await Promise.all([
+    listProposals("all", projectId),
+    listProjectScans(projectId),
+    listProjectTasks(projectId),
+  ]);
   const pendingCount = proposals.filter((p) => p.status === "proposed").length;
 
   return {
@@ -143,5 +151,7 @@ export async function getWorkspaceData(projectId: string): Promise<WorkspaceData
     findings: deriveFindings(project.complianceScore),
     coverage: coverageFor(project),
     activity: activityFor(project, proposals),
+    scans,
+    tasks,
   };
 }

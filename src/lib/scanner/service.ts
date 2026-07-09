@@ -112,6 +112,25 @@ async function findRecentScan(
   return data ? mapRow(data) : null;
 }
 
+/** Lists scans linked to one project (most recent first). RLS-scoped. */
+export async function listProjectScans(projectId: string, limit = 50): Promise<ScanRecord[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from("scans")
+    .select("id, url, status, score, detected_tools, findings, summary, error, created_at")
+    .eq("user_id", user.id)
+    .eq("project_id", projectId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return data.map(mapRow);
+}
+
 /** Lists the current user's scan history (most recent first). */
 export async function listScans(limit = 50): Promise<ScanRecord[]> {
   const supabase = await createClient();
@@ -159,7 +178,10 @@ export class QuotaExceededError extends Error {
  * the result. Returns the stored record. Throws QuotaExceededError when a free
  * user is over budget and UnauthorizedError when signed out.
  */
-export async function createScan(url: string, opts: { force?: boolean } = {}): Promise<ScanRecord> {
+export async function createScan(
+  url: string,
+  opts: { force?: boolean; projectId?: string | null } = {}
+): Promise<ScanRecord> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -208,6 +230,7 @@ export async function createScan(url: string, opts: { force?: boolean } = {}): P
       detected_tools: outcome.detectedTools,
       findings: outcome.findings,
       summary: outcome.summary,
+      ...(opts.projectId ? { project_id: opts.projectId } : {}),
     })
     .select("id, url, status, score, detected_tools, findings, summary, error, created_at")
     .single();
@@ -241,7 +264,7 @@ export async function createScan(url: string, opts: { force?: boolean } = {}): P
   // Promote this scan's findings into first-class, trackable rows (scan-first:
   // works even when the user has no project). Best-effort — never fail the scan.
   try {
-    await materializeScanFindings(data.id as string, outcome.url, outcome.findings);
+    await materializeScanFindings(data.id as string, outcome.url, outcome.findings, opts.projectId ?? null);
   } catch (err) {
     // Never fail the scan on findings bookkeeping, but surface it to error
     // tracking so a broken table/migration doesn't silently drop findings.

@@ -120,14 +120,16 @@ export default function CalendarView({
   const [dueDate, setDueDate] = useState(month.monthStart);
   const [category, setCategory] = useState<CalendarCategory>("task");
 
-  // `today` starts from the server-computed value so SSR and first client render
-  // agree (no hydration mismatch), then is corrected to the viewer's local day
-  // after mount (clock is an external source, so an effect is appropriate here).
+  // `today` starts from the server-computed value so SSR and the first client
+  // render agree (no hydration mismatch). All calendar dates are UTC day keys
+  // (`toDayKey` → ISO date), so after mount we re-read the client clock; this
+  // only changes anything if the server render straddled a UTC midnight boundary
+  // relative to the client (clock skew), never due to timezone.
   const [today, setToday] = useState(serverToday);
   useEffect(() => {
-    const local = toDayKey(new Date());
+    const clientToday = toDayKey(new Date());
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (local !== today) setToday(local);
+    if (clientToday !== today) setToday(clientToday);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

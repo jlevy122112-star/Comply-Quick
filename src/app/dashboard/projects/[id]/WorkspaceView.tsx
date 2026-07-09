@@ -23,10 +23,13 @@ import {
 import type { Tier } from "@/lib/pricing";
 import type { WorkspaceData } from "@/lib/workspace/data";
 import { ApprovalActions } from "./ApprovalActions";
+import { TasksPanel } from "./TasksPanel";
 
 export const WORKSPACE_TABS = [
   { key: "overview", label: "Overview", icon: "🏠" },
+  { key: "scans", label: "Scans", icon: "📡" },
   { key: "findings", label: "Findings", icon: "🔎" },
+  { key: "tasks", label: "Tasks", icon: "🗒️" },
   { key: "coverage", label: "Coverage", icon: "🧩" },
   { key: "policies", label: "Policies", icon: "📄" },
   { key: "approvals", label: "Approvals", icon: "✅" },
@@ -54,15 +57,25 @@ export function WorkspaceView({
   tier: Tier;
   activeTab: WorkspaceTabKey;
 }) {
-  const { project, findings, coverage, activity, proposals, pendingCount } = data;
+  const { project, findings, coverage, activity, proposals, pendingCount, scans, tasks } = data;
   const status = STATUS_TONE[project.status];
   const basePath = `/dashboard/projects/${project.id}`;
+  const openTaskCount = tasks.filter((t) => t.status !== "done" && t.status !== "dismissed").length;
 
   const tabs: TabItem[] = WORKSPACE_TABS.map((t) => ({
     key: t.key,
     label: t.label,
     icon: <span aria-hidden>{t.icon}</span>,
-    count: t.key === "findings" ? findings.length : t.key === "approvals" ? pendingCount : undefined,
+    count:
+      t.key === "findings"
+        ? findings.length
+        : t.key === "tasks"
+          ? openTaskCount
+          : t.key === "scans"
+            ? scans.length
+            : t.key === "approvals"
+              ? pendingCount
+              : undefined,
   }));
 
   return (
@@ -121,7 +134,9 @@ export function WorkspaceView({
         {/* Panels */}
         <div className="mt-6">
           {activeTab === "overview" && <OverviewPanel data={data} basePath={basePath} />}
+          {activeTab === "scans" && <ScansPanel scans={scans} />}
           {activeTab === "findings" && <FindingsPanel findings={findings} />}
+          {activeTab === "tasks" && <TasksPanel projectId={project.id} tasks={tasks} />}
           {activeTab === "coverage" && <CoveragePanel coverage={coverage} tier={tier} />}
           {activeTab === "policies" && <PoliciesPanel data={data} />}
           {activeTab === "approvals" && <ApprovalsPanel proposals={proposals} />}
@@ -266,6 +281,88 @@ function FindingsPanel({ findings }: { findings: WorkspaceData["findings"] }) {
         ))}
       </TBody>
     </Table>
+  );
+}
+
+function ScoreTrend({ scores }: { scores: number[] }) {
+  // Oldest → newest sparkline of scan scores. SVG polyline over a 0–100 range.
+  if (scores.length < 2) return null;
+  const w = 240;
+  const h = 48;
+  const max = 100;
+  const step = w / (scores.length - 1);
+  const points = scores.map((s, i) => `${(i * step).toFixed(1)},${(h - (s / max) * h).toFixed(1)}`).join(" ");
+  const last = scores[scores.length - 1];
+  const first = scores[0];
+  const delta = last - first;
+  return (
+    <div className="flex items-center gap-4">
+      <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="overflow-visible" aria-hidden>
+        <polyline
+          points={points}
+          fill="none"
+          stroke={delta >= 0 ? "rgb(16 185 129)" : "rgb(244 63 94)"}
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      <div className="text-sm">
+        <span className="tabular-nums font-semibold text-white">{last}</span>
+        <span className="text-gray-500">/100</span>
+        <span className={`ml-2 tabular-nums ${delta >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+          {delta >= 0 ? "▲" : "▼"} {Math.abs(delta)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function ScansPanel({ scans }: { scans: WorkspaceData["scans"] }) {
+  if (scans.length === 0) {
+    return (
+      <EmptyState
+        icon="📡"
+        title="No scans for this project yet"
+        description="Run a scan for this project to track its compliance score over time. Findings from each scan are triaged automatically."
+      />
+    );
+  }
+  // scans arrive newest-first; trend wants oldest→newest.
+  const trend = [...scans].reverse().map((s) => s.score ?? 0);
+  return (
+    <div className="space-y-6">
+      {trend.length >= 2 && (
+        <Card>
+          <CardHeader title="Score trend" description="Compliance score across this project's scans." />
+          <CardBody>
+            <ScoreTrend scores={trend} />
+          </CardBody>
+        </Card>
+      )}
+      <Table>
+        <THead>
+          <TR>
+            <TH>Scanned</TH>
+            <TH>URL</TH>
+            <TH>Tools</TH>
+            <TH className="text-right">Score</TH>
+          </TR>
+        </THead>
+        <TBody>
+          {scans.map((s) => (
+            <TR key={s.id}>
+              <TD className="tabular-nums text-gray-400">{new Date(s.createdAt).toLocaleDateString()}</TD>
+              <TD className="max-w-xs truncate text-white">{s.url}</TD>
+              <TD className="tabular-nums text-gray-400">{s.detectedTools.length}</TD>
+              <TD className="text-right">
+                <Badge tone={toneForScore(s.score ?? 0)}>{s.score ?? 0}/100</Badge>
+              </TD>
+            </TR>
+          ))}
+        </TBody>
+      </Table>
+    </div>
   );
 }
 
