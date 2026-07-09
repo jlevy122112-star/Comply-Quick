@@ -173,6 +173,14 @@ async function main() {
   process.exit(0);
 }
 
+// Clean up the spawned server if we're interrupted (e.g. Ctrl+C locally).
+for (const sig of ["SIGINT", "SIGTERM"]) {
+  process.on(sig, () => {
+    stopServer();
+    process.exit(1);
+  });
+}
+
 main().catch((err) => {
   console.error("smoke run crashed:", err);
   stopServer();

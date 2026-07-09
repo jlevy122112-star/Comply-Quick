@@ -46,13 +46,11 @@ export default function CommandCenterInsights({
 
   const coverage = aggregateScore?.overall ?? 0;
 
-  // Net the subscriber's actual annual cost out of the headline so the ROI figure
-  // is defensible (net value, not gross) and can show a real return multiple.
-  const annualCost = getTierConfig(tier).annual;
-  const roi = useMemo(
-    () => computeRoi({ compliance_package: projects.length }, annualCost),
-    [projects.length, annualCost]
-  );
+  // Headline is the gross attorney-equivalent value of what the user generated
+  // ("legal fees avoided"). We intentionally do NOT net out subscription cost or
+  // show a return multiple: we don't track subscription tenure or billing cadence,
+  // so any net/ROI-multiple figure would mismatch the lifetime-cumulative value.
+  const roi = useMemo(() => computeRoi({ compliance_package: projects.length }), [projects.length]);
 
   const upsell = tier === "free" || tier === "solo";
   const nextTier = tier === "free" ? "solo" : "agency";
@@ -117,15 +115,6 @@ export default function CommandCenterInsights({
                   Legal fees avoided across {projects.length} generated package
                   {projects.length !== 1 ? "s" : ""} vs. commissioning counsel.
                 </p>
-                {annualCost > 0 &&
-                  (roi.netSaved > 0 ? (
-                    <Badge tone="emerald">
-                      {formatUsd(roi.netSaved)} net after your {formatUsd(annualCost)}/yr plan
-                      {roi.roiMultiple !== null ? ` · ${roi.roiMultiple}× return` : ""}
-                    </Badge>
-                  ) : (
-                    <Badge tone="indigo">Generate more to exceed your {formatUsd(annualCost)}/yr plan cost</Badge>
-                  ))}
               </>
             ) : (
               <>
