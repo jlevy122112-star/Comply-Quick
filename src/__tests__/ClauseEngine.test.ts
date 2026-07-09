@@ -284,7 +284,7 @@ describe("exportToMarkdown", () => {
     expect(md).toContain("| Version | 1.0 |");
     expect(md).toContain("| Effective date |");
     expect(md).toContain("| Next scheduled review |");
-    const id = md.match(/\| Document ID \| (CQ-\d{8}-[0-9A-Z]{6}) \|/);
+    const id = md.match(/\| Document ID \| (CQ-\d{8}-[0-9A-Z]{7}) \|/);
     expect(id).not.toBeNull();
     // Deterministic: the same package renders the same document ID.
     expect(exportToMarkdown(pkg)).toContain(id![1]);

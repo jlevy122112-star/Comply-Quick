@@ -715,7 +715,7 @@ function documentId(pkg: CompliancePackage, generatedOn: string): string {
   ].join("||");
   let hash = 5381;
   for (let i = 0; i < seed.length; i++) hash = ((hash << 5) + hash + seed.charCodeAt(i)) >>> 0;
-  return `CQ-${generatedOn.replace(/-/g, "")}-${hash.toString(36).toUpperCase().padStart(6, "0").slice(0, 6)}`;
+  return `CQ-${generatedOn.replace(/-/g, "")}-${hash.toString(36).toUpperCase().padStart(7, "0")}`;
 }
 
 function addDays(iso: string, days: number): string {
