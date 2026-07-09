@@ -234,6 +234,12 @@ export default function CommandCenterView({
               Calendar
             </Link>
             <Link
+              href="/dashboard/approvals"
+              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-indigo-500/40 text-indigo-300 text-sm font-medium hover:border-indigo-400 hover:text-indigo-200 transition-colors"
+            >
+              Approvals
+            </Link>
+            <Link
               href="/dashboard/evidence"
               className="hidden sm:inline-block px-3 py-2 rounded-lg border border-emerald-500/40 text-emerald-300 text-sm font-medium hover:border-emerald-400 hover:text-emerald-200 transition-colors"
             >
