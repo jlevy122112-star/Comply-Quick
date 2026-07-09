@@ -24,6 +24,7 @@ import type { Tier } from "@/lib/pricing";
 import type { WorkspaceData } from "@/lib/workspace/data";
 import { ApprovalActions } from "./ApprovalActions";
 import { TasksPanel } from "./TasksPanel";
+import { TeamPanel } from "./TeamPanel";
 
 export const WORKSPACE_TABS = [
   { key: "overview", label: "Overview", icon: "🏠" },
@@ -34,6 +35,7 @@ export const WORKSPACE_TABS = [
   { key: "policies", label: "Policies", icon: "📄" },
   { key: "approvals", label: "Approvals", icon: "✅" },
   { key: "activity", label: "Activity", icon: "🕑" },
+  { key: "team", label: "Team", icon: "👥" },
 ] as const;
 
 export type WorkspaceTabKey = (typeof WORKSPACE_TABS)[number]["key"];
@@ -57,7 +59,7 @@ export function WorkspaceView({
   tier: Tier;
   activeTab: WorkspaceTabKey;
 }) {
-  const { project, findings, coverage, activity, proposals, pendingCount, scans, tasks } = data;
+  const { project, findings, coverage, activity, proposals, pendingCount, scans, tasks, members } = data;
   const status = STATUS_TONE[project.status];
   const basePath = `/dashboard/projects/${project.id}`;
   const openTaskCount = tasks.filter((t) => t.status !== "done" && t.status !== "dismissed").length;
@@ -75,7 +77,9 @@ export function WorkspaceView({
             ? scans.length
             : t.key === "approvals"
               ? pendingCount
-              : undefined,
+              : t.key === "team"
+                ? members.length
+                : undefined,
   }));
 
   return (
@@ -141,6 +145,7 @@ export function WorkspaceView({
           {activeTab === "policies" && <PoliciesPanel data={data} />}
           {activeTab === "approvals" && <ApprovalsPanel proposals={proposals} />}
           {activeTab === "activity" && <ActivityPanel activity={activity} />}
+          {activeTab === "team" && <TeamPanel projectId={project.id} members={members} />}
         </div>
       </div>
     </div>

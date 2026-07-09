@@ -10,6 +10,7 @@ import { getProjectById, type DbProject } from "@/lib/projects-db";
 import { listProposals, type ProposalListItem } from "@/lib/autopilot/service";
 import { listProjectScans, type ScanRecord } from "@/lib/scanner/service";
 import { listProjectTasks, type ProjectTask } from "@/lib/workspace/tasks";
+import { listProjectMembers, type ProjectMember } from "@/lib/workspace/members";
 import { MODULE_OPTIONS, type ComplianceModule } from "@/components/EnterpriseModules";
 import type { ComplianceScore } from "@/components/ClauseEngine";
 import type { Severity } from "@/components/ui/SeverityPill";
@@ -41,6 +42,7 @@ export interface WorkspaceData {
   activity: ActivityItem[];
   scans: ScanRecord[];
   tasks: ProjectTask[];
+  members: ProjectMember[];
 }
 
 /** Score band → finding severity. Below 60 is critical, 60–79 warning, else info. */
@@ -137,10 +139,11 @@ export async function getWorkspaceData(projectId: string): Promise<WorkspaceData
   const project = await getProjectById(projectId);
   if (!project) return null;
 
-  const [proposals, scans, tasks] = await Promise.all([
+  const [proposals, scans, tasks, members] = await Promise.all([
     listProposals("all", projectId),
     listProjectScans(projectId),
     listProjectTasks(projectId),
+    listProjectMembers(projectId),
   ]);
   const pendingCount = proposals.filter((p) => p.status === "proposed").length;
 
@@ -153,5 +156,6 @@ export async function getWorkspaceData(projectId: string): Promise<WorkspaceData
     activity: activityFor(project, proposals),
     scans,
     tasks,
+    members,
   };
 }
