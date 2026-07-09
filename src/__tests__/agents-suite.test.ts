@@ -3,6 +3,9 @@ import { planCopilotActions } from "@/lib/agents/compliance-copilot";
 import { planScanToFix, remediationForFinding } from "@/lib/agents/scan-to-fix";
 import { monitorPortfolio, assessProject, type PortfolioProject } from "@/lib/agents/portfolio-monitor";
 import { compileEvidencePack } from "@/lib/agents/audit-evidence";
+import { planOnboarding, classifyIndustry } from "@/lib/agents/onboarding";
+import { successNudges, planSuccessActions } from "@/lib/agents/success-upsell";
+import { reviewOutput } from "@/lib/agents/qa";
 import { AGENT_REGISTRY, INDUSTRY_PROFILE, TARGET_INDUSTRIES } from "@/lib/agents/types";
 import { ALL_FRAMEWORK_IDS } from "@/lib/regulations/sources/registry";
 import type { ScanAnalysis, Finding } from "@/lib/scanner/analyzer";
@@ -186,5 +189,74 @@ describe("audit & evidence", () => {
     expect(pack.collected).toBe(1);
     expect(pack.missing).toBe(0);
     expect(pack.readiness).toBe(100);
+  });
+});
+
+describe("onboarding agent", () => {
+  it("classifies health data as healthcare regardless of description", () => {
+    expect(classifyIndustry({ description: "a store", handlesHealthData: true })).toBe("healthcare");
+  });
+
+  it("classifies from description keywords and falls back to general_web", () => {
+    expect(classifyIndustry({ description: "online shop with checkout" })).toBe("ecommerce");
+    expect(classifyIndustry({ description: "a b2b saas platform" })).toBe("saas");
+    expect(classifyIndustry({ description: "just a blog" })).toBe("general_web");
+  });
+
+  it("recommends frameworks + an approval-gated setup plan", () => {
+    const rec = planOnboarding({ description: "b2b saas", servesEu: true });
+    expect(rec.frameworks.length).toBeGreaterThan(0);
+    expect(rec.regions).toContain("eu_gdpr");
+    expect(rec.plan.actions.every((a) => a.requiresApproval === true)).toBe(true);
+    expect(rec.plan.actions.map((a) => a.type)).toContain("configure_modules");
+  });
+});
+
+describe("success agent", () => {
+  const base = {
+    tier: "free",
+    nextTier: "solo",
+    scansUsed: 2,
+    scanLimit: 10,
+    scoreDelta: 0,
+    pendingProposals: 0,
+    missingModules: [],
+  };
+
+  it("nudges to upgrade when the scan limit is reached", () => {
+    const nudges = successNudges({ ...base, scansUsed: 10 });
+    expect(nudges.some((n) => n.key === "scan_limit_reached")).toBe(true);
+  });
+
+  it("nudges on rising risk and pending proposals, ranked", () => {
+    const nudges = successNudges({ ...base, scoreDelta: -8, pendingProposals: 2 });
+    expect(nudges[0].priority).toBeGreaterThanOrEqual(nudges[nudges.length - 1].priority);
+    expect(nudges.some((n) => n.key === "risk_rising")).toBe(true);
+    expect(nudges.some((n) => n.key === "pending_proposals")).toBe(true);
+  });
+
+  it("returns a healthy (empty) plan when there is nothing to do", () => {
+    const { nudges, plan } = planSuccessActions(base);
+    expect(nudges).toHaveLength(0);
+    expect(plan.actions).toHaveLength(0);
+  });
+});
+
+describe("qa agent", () => {
+  const body = "A".repeat(300) + " https://example.gov/rule Introduction and Scope and Definitions";
+
+  it("passes a complete document with required sections + source", () => {
+    const report = reviewOutput({ content: body, requiredSections: ["Introduction", "Scope"], requiresSource: true });
+    expect(report.passed).toBe(true);
+    expect(report.plan).toBeUndefined();
+  });
+
+  it("blocks on missing sections, placeholders, or short output", () => {
+    const report = reviewOutput({ content: "too short [TODO: fill]", requiredSections: ["Scope"] });
+    expect(report.passed).toBe(false);
+    expect(report.issues.map((i) => i.code)).toEqual(
+      expect.arrayContaining(["too_short", "missing_section", "unfilled_placeholder"])
+    );
+    expect(report.plan?.actions[0].type).toBe("review_output");
   });
 });

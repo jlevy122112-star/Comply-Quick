@@ -15,7 +15,10 @@ export type AgentActionType =
   | "schedule_review"
   | "regenerate_documents"
   | "compile_evidence"
-  | "draft_client_report";
+  | "draft_client_report"
+  | "configure_modules"
+  | "upgrade_plan"
+  | "review_output";
 
 /** Human-readable label + which service the executor routes each action to. */
 export const ACTION_META: Record<AgentActionType, { label: string; service: string }> = {
@@ -28,6 +31,9 @@ export const ACTION_META: Record<AgentActionType, { label: string; service: stri
   regenerate_documents: { label: "Regenerate affected documents", service: "autopilot" },
   compile_evidence: { label: "Compile an audit evidence pack", service: "audit" },
   draft_client_report: { label: "Draft a client-ready report", service: "portfolio" },
+  configure_modules: { label: "Enable recommended compliance modules", service: "projects" },
+  upgrade_plan: { label: "Upgrade your plan", service: "billing" },
+  review_output: { label: "Resolve output quality issues before release", service: "qa" },
 };
 
 export interface AgentAction {

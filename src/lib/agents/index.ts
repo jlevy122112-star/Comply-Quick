@@ -38,6 +38,9 @@ export {
   type RemediationRunResult,
 } from "./autopilot-remediation";
 export { industriesForFramework, regionsForFramework, frameworksForIndustry } from "./classify";
+export { planOnboarding, classifyIndustry, type OnboardingAnswers, type OnboardingRecommendation } from "./onboarding";
+export { successNudges, planSuccessActions, type AccountSignals, type Nudge } from "./success-upsell";
+export { reviewOutput, type QaInput, type QaReport, type QaIssue, type QaSeverity } from "./qa";
 
 export interface MonitoringCycleResult {
   monitor: AgentRunResult;

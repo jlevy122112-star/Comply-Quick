@@ -95,7 +95,10 @@ export type AgentId =
   | "autopilot_remediation"
   | "regulation_monitor"
   | "portfolio_monitor"
-  | "audit_evidence";
+  | "audit_evidence"
+  | "onboarding"
+  | "success_upsell"
+  | "qa";
 
 /** The tier at which each agent unlocks (names are immutable: free/solo/agency/enterprise). */
 export type AgentTier = "free" | "solo" | "agency" | "enterprise";
@@ -145,6 +148,24 @@ export const AGENT_REGISTRY: Record<AgentId, AgentDescriptor> = {
     name: "Audit & Evidence Agent",
     tagline: "Compiles a framework-specific audit trail and evidence pack on demand.",
     minTier: "enterprise",
+  },
+  onboarding: {
+    id: "onboarding",
+    name: "Onboarding Agent",
+    tagline: "Classifies your business and recommends the exact modules and jurisdictions to enable.",
+    minTier: "free",
+  },
+  success_upsell: {
+    id: "success_upsell",
+    name: "Success Agent",
+    tagline: "Surfaces the next best action to lower risk and unlock more value.",
+    minTier: "free",
+  },
+  qa: {
+    id: "qa",
+    name: "QA Agent",
+    tagline: "Checks every generated output for completeness before it's released or exported.",
+    minTier: "solo",
   },
 };
 

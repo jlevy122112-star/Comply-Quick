@@ -11,6 +11,7 @@
 // orchestrator touches the network and disk.
 
 import { writeFile, mkdir, readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import {
   REGULATION_SOURCES,
@@ -23,15 +24,19 @@ import type { NormalizedRegulation, RegulationControl, RiskLevel } from "@/lib/r
 
 export const STRUCTURED_DIR = path.join(process.cwd(), "regulations", "structured");
 
-/** Stable, order-independent content hash (djb2 → base36) over controls. */
+/** SHA-256 (truncated to 16 hex chars) — strong collision resistance so a real
+ * regulatory change can't be silently missed by a hash collision. */
+function sha(text: string): string {
+  return createHash("sha256").update(text).digest("hex").slice(0, 16).toUpperCase();
+}
+
+/** Stable, order-independent content hash over controls. */
 export function hashControls(controls: RegulationControl[]): string {
   const seed = controls
     .map((c) => `${c.id}::${c.title}::${c.description}::${c.requirements.join("|")}`)
     .sort()
     .join("\n");
-  let hash = 5381;
-  for (let i = 0; i < seed.length; i++) hash = ((hash << 5) + hash + seed.charCodeAt(i)) >>> 0;
-  return hash.toString(36).toUpperCase().padStart(7, "0");
+  return sha(seed);
 }
 
 // ─── OSCAL (NIST) ─────────────────────────────────────────────────────────────
@@ -223,9 +228,7 @@ export function hashPageText(html: string): string {
     .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  let hash = 5381;
-  for (let i = 0; i < text.length; i++) hash = ((hash << 5) + hash + text.charCodeAt(i)) >>> 0;
-  return hash.toString(36).toUpperCase().padStart(7, "0");
+  return sha(text);
 }
 
 /** Fetches + normalizes one framework. Network for ingestable sources only. */

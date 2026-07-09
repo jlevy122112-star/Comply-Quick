@@ -123,7 +123,7 @@ describe("ingestion normalizers", () => {
     const c1 = hashControls(a as never);
     const c2 = hashControls([...a].reverse() as never);
     expect(c1).toBe(c2);
-    expect(c1).toMatch(/^[0-9A-Z]{7}$/);
+    expect(c1).toMatch(/^[0-9A-F]{16}$/);
   });
 
   it("strips markup before hashing page text (ignores cosmetic churn)", () => {

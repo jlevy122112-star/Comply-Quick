@@ -18,10 +18,14 @@ const SEVERITY_PRIORITY: Record<Severity, number> = { critical: 30, warning: 20,
  */
 export function remediationForFinding(finding: Finding): AgentActionType | null {
   const hay = `${finding.id} ${finding.title} ${finding.recommendation}`.toLowerCase();
+  // Ordered most-specific → most-generic so a narrow match (subprocessor, DPA)
+  // wins before the broad `policy` catch. The final `privacy policy|policy`
+  // branch is intentionally last so unrelated "policy" mentions only fall here
+  // when nothing more specific matched.
   if (/consent|cookie|banner|cmp/.test(hay)) return "generate_cookie_banner";
-  if (/privacy policy|disclosure|policy|notice/.test(hay)) return "generate_policy";
+  if (/subprocessor|data flow|data transfer|cross-border/.test(hay)) return "generate_subprocessor_map";
   if (/processor|dpa|vendor|third[- ]party/.test(hay)) return "generate_dpa";
-  if (/subprocessor|data flow|transfer/.test(hay)) return "generate_subprocessor_map";
+  if (/privacy policy|privacy notice|disclosure|privacy|policy|notice/.test(hay)) return "generate_policy";
   // A finding with no direct artifact still deserves a documented review.
   return finding.severity === "info" ? null : "generate_policy";
 }
