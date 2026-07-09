@@ -203,6 +203,19 @@ describe("onboarding agent", () => {
     expect(classifyIndustry({ description: "just a blog" })).toBe("general_web");
   });
 
+  it("prefers the specific industry when broad saas words co-occur", () => {
+    // "app"/"platform"/"dashboard" must not shadow healthcare/fintech terms.
+    expect(classifyIndustry({ description: "health app" })).toBe("healthcare");
+    expect(classifyIndustry({ description: "therapy platform" })).toBe("healthcare");
+    expect(classifyIndustry({ description: "payment dashboard" })).toBe("fintech");
+    expect(classifyIndustry({ description: "investment app" })).toBe("fintech");
+  });
+
+  it("does not false-match broad substrings without word boundaries", () => {
+    expect(classifyIndustry({ description: "a supermarket loyalty tool" })).not.toBe("marketing_adtech");
+    expect(classifyIndustry({ description: "we keep customers happy" })).toBe("general_web");
+  });
+
   it("recommends frameworks + an approval-gated setup plan", () => {
     const rec = planOnboarding({ description: "b2b saas", servesEu: true });
     expect(rec.frameworks.length).toBeGreaterThan(0);

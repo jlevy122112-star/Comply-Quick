@@ -57,7 +57,9 @@ export const REGULATION_SOURCE_LIST = [
     license: "public_domain",
     format: "ecfr_json",
     monitorMode: "structured",
-    ingestFullText: true,
+    // eCFR structure endpoint yields section IDs/titles only (no prose), so we
+    // ingest reference controls + detect structural change, not full text yet.
+    ingestFullText: false,
   },
   {
     framework: "hitech",
@@ -97,7 +99,8 @@ export const REGULATION_SOURCE_LIST = [
     license: "public_domain",
     format: "ecfr_json",
     monitorMode: "structured",
-    ingestFullText: true,
+    // eCFR structure endpoint yields section IDs/titles only (no prose).
+    ingestFullText: false,
   },
   {
     framework: "can_spam",

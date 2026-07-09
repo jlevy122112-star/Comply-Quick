@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { runComplianceMonitoringCycle } from "@/lib/agents";
-import { UnauthorizedError, errorResponse, logger } from "@/services";
+import { errorResponse, logger } from "@/services";
+import { assertCronAuthorized } from "@/lib/api/cron";
 
 const log = logger.child({ module: "agent-monitor-cron" });
 
@@ -14,9 +15,7 @@ const log = logger.child({ module: "agent-monitor-cron" });
  */
 export async function POST(request: Request) {
   try {
-    const secret = process.env.CRON_SECRET;
-    const provided = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-    if (!secret || provided !== secret) throw new UnauthorizedError("Invalid cron secret.");
+    assertCronAuthorized(request);
 
     log.info("Regulation monitoring cycle triggered");
     const result = await runComplianceMonitoringCycle();

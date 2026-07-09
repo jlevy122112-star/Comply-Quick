@@ -8,7 +8,7 @@
 
 import type { RegulationFrameworkId } from "@/lib/regulations/sources/registry";
 import type { TargetRegion } from "@/components/ClauseEngine";
-import { INDUSTRY_PROFILE, INDUSTRY_LABELS, TARGET_INDUSTRIES, type TargetIndustry } from "./types";
+import { INDUSTRY_PROFILE, INDUSTRY_LABELS, type TargetIndustry } from "./types";
 import { action, orderPlan, type AgentActionPlan } from "./actions";
 
 export interface OnboardingAnswers {
@@ -34,21 +34,34 @@ export interface OnboardingRecommendation {
   plan: AgentActionPlan;
 }
 
-const KEYWORDS: Record<TargetIndustry, RegExp> = {
-  healthcare: /health|clinic|patient|medical|hipaa|therap|pharma|wellness/,
-  fintech: /fintech|payment|bank|lending|wallet|crypto|invest|insurance|payroll/,
-  ecommerce: /shop|store|ecommerce|e-commerce|retail|checkout|merch|product|cart/,
-  marketing_adtech: /market|ad(-|\s)?tech|campaign|analytics|attribution|tracking|seo|agency ads/,
-  saas: /saas|software|platform|api|b2b|app|dashboard|subscription tool/,
-  general_web: /.*/,
+// Word-boundary-anchored so broad substrings don't false-match (e.g. `market`
+// must not fire on "supermarket", `app` must not fire on "happy"). The leading
+// `\b` on each alternative allows natural suffixes (health→healthcare,
+// therap→therapy) while still requiring a real word start.
+const KEYWORDS: Record<Exclude<TargetIndustry, "general_web">, RegExp> = {
+  healthcare: /\b(health|clinic|patient|medical|hipaa|therap|pharma|wellness)/,
+  fintech: /\b(fintech|payment|bank|lending|wallet|crypto|invest|insurance|payroll)/,
+  ecommerce: /\b(shop|store|ecommerce|e-commerce|retail|checkout|merch|product|cart)\b/,
+  marketing_adtech: /\b(market|ad-?tech|adtech|campaign|analytics|attribution|tracking|seo)\b/,
+  saas: /\b(saas|software|platform|api|b2b|app|dashboard|subscription)\b/,
 };
+
+// Checked most-specific → most-generic so a description like "health app" or
+// "payment dashboard" classifies on the specific term (healthcare/fintech), not
+// the broad saas keyword. Order is decoupled from TARGET_INDUSTRIES on purpose.
+const SPECIFICITY_ORDER: Exclude<TargetIndustry, "general_web">[] = [
+  "healthcare",
+  "fintech",
+  "ecommerce",
+  "marketing_adtech",
+  "saas",
+];
 
 /** Classifies the project into a target industry from the answers. Pure. */
 export function classifyIndustry(answers: OnboardingAnswers): TargetIndustry {
   if (answers.handlesHealthData) return "healthcare";
   const text = answers.description.toLowerCase();
-  for (const industry of TARGET_INDUSTRIES) {
-    if (industry === "general_web") continue;
+  for (const industry of SPECIFICITY_ORDER) {
     if (KEYWORDS[industry].test(text)) return industry;
   }
   if (answers.sellsOnline) return "ecommerce";

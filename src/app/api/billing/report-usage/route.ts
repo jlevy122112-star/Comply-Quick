@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { reportMeteredUsage } from "@/lib/api/stripe-metered";
 import { previousPeriod, currentPeriod } from "@/lib/billing/usage";
-import { UnauthorizedError, errorResponse, logger } from "@/services";
+import { errorResponse, logger } from "@/services";
+import { assertCronAuthorized } from "@/lib/api/cron";
 
 const log = logger.child({ module: "usage-report-cron" });
 
@@ -13,9 +14,7 @@ const log = logger.child({ module: "usage-report-cron" });
  */
 export async function POST(request: Request) {
   try {
-    const secret = process.env.CRON_SECRET;
-    const provided = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-    if (!secret || provided !== secret) throw new UnauthorizedError("Invalid cron secret.");
+    assertCronAuthorized(request);
 
     log.info("Usage reporting triggered");
     const results = await Promise.all([reportMeteredUsage(previousPeriod()), reportMeteredUsage(currentPeriod())]);

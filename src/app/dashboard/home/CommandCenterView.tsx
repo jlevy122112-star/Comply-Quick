@@ -497,10 +497,16 @@ function ProjectCard({
       <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-800">
         <span className="text-xs text-gray-500">Generated {new Date(project.createdAt).toLocaleDateString()}</span>
         <div className="flex items-center gap-2">
+          <Link
+            href={`/dashboard/projects/${project.id}`}
+            className="text-xs font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
+          >
+            Open workspace →
+          </Link>
           <button
             type="button"
             onClick={() => onDownload(project)}
-            className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+            className="text-xs text-gray-400 hover:text-gray-200 transition-colors"
           >
             Download
           </button>

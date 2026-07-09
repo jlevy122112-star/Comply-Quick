@@ -78,6 +78,19 @@ export async function listProjects(): Promise<DbProject[]> {
   return (data as ProjectRow[]).map(rowToProject);
 }
 
+export async function getProjectById(id: string): Promise<DbProject | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase.from("projects").select("*").eq("id", id).eq("user_id", user.id).maybeSingle();
+
+  if (error || !data) return null;
+  return rowToProject(data as ProjectRow);
+}
+
 export async function createProject(input: NewProjectInput): Promise<DbProject | null> {
   const supabase = await createClient();
   const {
