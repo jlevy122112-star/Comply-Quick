@@ -266,6 +266,12 @@ export default function CommandCenterView({
               </Link>
             )}
             <Link
+              href="/dashboard/onboarding"
+              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-gray-600/50 text-gray-300 text-sm font-medium hover:border-gray-400 hover:text-gray-100 transition-colors"
+            >
+              Guided setup
+            </Link>
+            <Link
               href="/dashboard"
               className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors"
             >
