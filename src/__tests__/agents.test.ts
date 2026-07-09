@@ -8,6 +8,7 @@ import {
   hashPageText,
   normalizeOscal,
   normalizeReferenceOnly,
+  normalizeEcfrStructure,
   inferRisk,
 } from "@/services/regulation_ingestion";
 import { REGULATION_SOURCES, ALL_FRAMEWORK_IDS } from "@/lib/regulations/sources/registry";
@@ -144,6 +145,63 @@ describe("ingestion normalizers", () => {
     expect(out[0].id).toBe("AC-2");
     expect(out[0].sourceText).not.toBeNull();
     expect(out[0].riskLevel).toBe("high");
+  });
+
+  it("does not duplicate nested control enhancements in nested groups", () => {
+    const raw = {
+      catalog: {
+        groups: [
+          {
+            title: "Access Control",
+            groups: [
+              {
+                title: "Sub",
+                controls: [
+                  {
+                    id: "ac-2",
+                    title: "Account Management",
+                    parts: [{ name: "statement", prose: "Manage accounts." }],
+                    controls: [
+                      { id: "ac-2.1", title: "Automated", parts: [{ name: "statement", prose: "Automate it." }] },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const out = normalizeOscal(raw, REGULATION_SOURCES.nist_800_53, "nist_800_53");
+    const ids = out.map((c) => c.id);
+    expect(ids).toEqual(["AC-2", "AC-2.1"]);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("extracts real section ids/titles from an eCFR structure without fabricating text", () => {
+    const raw = {
+      type: "title",
+      children: [
+        {
+          type: "part",
+          identifier: "164",
+          children: [
+            {
+              type: "section",
+              identifier: "164.308",
+              label: "§ 164.308",
+              label_description: "Administrative safeguards.",
+            },
+            { type: "section", identifier: "164.312", label: "§ 164.312", label_description: "Technical safeguards." },
+          ],
+        },
+      ],
+    };
+    const out = normalizeEcfrStructure(raw, REGULATION_SOURCES.hipaa, "hipaa");
+    expect(out).toHaveLength(2);
+    expect(out[0].id).toBe("§ 164.308");
+    expect(out[0].title).toBe("Administrative safeguards.");
+    for (const c of out) expect(c.sourceText).toBeNull();
   });
 
   it("builds reference-only controls without storing licensed text", () => {

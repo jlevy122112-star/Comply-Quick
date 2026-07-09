@@ -71,11 +71,15 @@ function collectProse(parts: OscalPart[] | undefined, wanted: string): string[] 
 }
 
 function flattenOscalControls(group: OscalGroup): OscalControl[] {
-  const out: OscalControl[] = [...(group.controls ?? [])];
-  for (const g of group.groups ?? []) out.push(...flattenOscalControls(g));
+  // Controls declared directly on this group, plus their nested enhancements.
+  const direct: OscalControl[] = [...(group.controls ?? [])];
   const nested: OscalControl[] = [];
-  for (const c of out) if (c.controls) nested.push(...c.controls);
-  return [...out, ...nested];
+  for (const c of direct) if (c.controls) nested.push(...c.controls);
+  // Sub-group recursion already returns each sub-group's controls AND their
+  // enhancements, so it must not be re-scanned for `.controls` (that double-counts).
+  const fromSubGroups: OscalControl[] = [];
+  for (const g of group.groups ?? []) fromSubGroups.push(...flattenOscalControls(g));
+  return [...direct, ...nested, ...fromSubGroups];
 }
 
 /** Normalizes a NIST OSCAL catalog into controls. Pure. */
@@ -110,6 +114,48 @@ export function normalizeOscal(
       sourceUrl: source.officialUrl,
     };
   });
+}
+
+// ─── eCFR structure (HHS/HIPAA, FTC/COPPA — Title 45/16) ────────────────────────
+// The eCFR "structure" endpoint returns the regulation's hierarchy (parts →
+// subparts → sections) with official identifiers and headings, but not the full
+// prose. We extract real section IDs + titles from the official source (no
+// fabricated text; `sourceText` stays null) so the app cites accurate control
+// identifiers and detects structural changes. Full-text ingestion via the eCFR
+// `/full` XML endpoint is a follow-up.
+
+interface EcfrNode {
+  type?: string;
+  identifier?: string;
+  label?: string;
+  label_description?: string;
+  children?: EcfrNode[];
+}
+
+function collectEcfrSections(node: EcfrNode, out: EcfrNode[] = []): EcfrNode[] {
+  if (node.type === "section" && node.identifier) out.push(node);
+  for (const child of node.children ?? []) collectEcfrSections(child, out);
+  return out;
+}
+
+/** Normalizes an eCFR structure document into reference controls. Pure. */
+export function normalizeEcfrStructure(
+  raw: EcfrNode,
+  source: RegulationSource,
+  framework: RegulationFrameworkId
+): RegulationControl[] {
+  return collectEcfrSections(raw).map((s) => ({
+    framework,
+    id: `§ ${s.identifier}`,
+    title: (s.label_description || s.label || `Section ${s.identifier}`).trim(),
+    description: (s.label || "").trim(),
+    requirements: [],
+    evidenceExamples: [],
+    riskLevel: inferRisk(`${s.label_description ?? ""} ${s.label ?? ""}`),
+    remediationSteps: [],
+    sourceText: null,
+    sourceUrl: source.officialUrl,
+  }));
 }
 
 // ─── Proprietary reference-only (SOC 2 / ISO 27001 / PCI DSS) ───────────────────
@@ -197,6 +243,10 @@ export async function ingestFramework(framework: RegulationFrameworkId): Promise
     sourceVersion =
       raw.catalog?.metadata?.version ?? raw.catalog?.metadata?.["last-modified"]?.slice(0, 10) ?? sourceVersion;
     contentHash = hashControls(controls);
+  } else if (source.format === "ecfr_json") {
+    const raw = await fetchJson<EcfrNode>(source.ingestUrl);
+    controls = normalizeEcfrStructure(raw, source, framework);
+    contentHash = hashControls(controls);
   } else if (source.format === "reference_only") {
     controls = normalizeReferenceOnly(source, framework);
     contentHash = hashControls(controls);
@@ -238,18 +288,35 @@ export interface IngestResult {
   changed: boolean;
   controlCount: number;
   contentHash: string;
+  /** Set when this framework's ingestion failed; other frameworks still run. */
+  error?: string;
 }
 
-/** Ingests all frameworks, writes structured JSON, and reports what changed. */
+/**
+ * Ingests all frameworks, writes structured JSON, and reports what changed. Each
+ * framework is isolated: a transient fetch/parse failure on one source is
+ * captured in its result and does not abort the batch (mirrors the monitor
+ * agent's resilient sweep).
+ */
 export async function ingestAll(): Promise<IngestResult[]> {
   await mkdir(STRUCTURED_DIR, { recursive: true });
   const results: IngestResult[] = [];
   for (const framework of ALL_FRAMEWORK_IDS) {
-    const prev = await readStructured(framework);
-    const next = await ingestFramework(framework);
-    const changed = !prev || prev.contentHash !== next.contentHash;
-    await writeFile(path.join(STRUCTURED_DIR, `${framework}.json`), JSON.stringify(next, null, 2), "utf8");
-    results.push({ framework, changed, controlCount: next.controls.length, contentHash: next.contentHash });
+    try {
+      const prev = await readStructured(framework);
+      const next = await ingestFramework(framework);
+      const changed = !prev || prev.contentHash !== next.contentHash;
+      await writeFile(path.join(STRUCTURED_DIR, `${framework}.json`), JSON.stringify(next, null, 2), "utf8");
+      results.push({ framework, changed, controlCount: next.controls.length, contentHash: next.contentHash });
+    } catch (err) {
+      results.push({
+        framework,
+        changed: false,
+        controlCount: 0,
+        contentHash: "",
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
   }
   return results;
 }

@@ -421,7 +421,17 @@ export function ingestableSources(): RegulationSource[] {
   return REGULATION_SOURCE_LIST.filter((s) => s.ingestFullText);
 }
 
-/** Sources we monitor by change-detection and cite (no full-text storage). */
+/**
+ * Sources monitored purely by change-detection (no structured parse). Keyed on
+ * `monitorMode` — the field that actually describes *how* we monitor — rather
+ * than `ingestFullText` (which describes whether we store text), so a future
+ * structured-but-not-stored feed is classified correctly.
+ */
 export function sourceWatchSources(): RegulationSource[] {
-  return REGULATION_SOURCE_LIST.filter((s) => !s.ingestFullText);
+  return REGULATION_SOURCE_LIST.filter((s) => s.monitorMode === "source_watch");
+}
+
+/** Sources with a structured, machine-readable parse (OSCAL, eCFR, EUR-Lex, CA). */
+export function structuredSources(): RegulationSource[] {
+  return REGULATION_SOURCE_LIST.filter((s) => s.monitorMode === "structured");
 }

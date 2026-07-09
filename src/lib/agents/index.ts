@@ -10,6 +10,24 @@ import { getAiClient, type AiClient } from "@/services/ai";
 import type { AgentRunResult } from "./types";
 
 export * from "./types";
+export * from "./actions";
+export { planCopilotActions, type CopilotContext } from "./compliance-copilot";
+export { planScanToFix, remediationForFinding, type ScanToFixInput } from "./scan-to-fix";
+export {
+  monitorPortfolio,
+  assessProject,
+  type PortfolioProject,
+  type ClientRiskAssessment,
+  type PortfolioAssessment,
+  type RiskBand,
+} from "./portfolio-monitor";
+export {
+  compileEvidencePack,
+  type AuditEvidencePack,
+  type EvidenceItem,
+  type EvidenceLedger,
+  type EvidenceStatus,
+} from "./audit-evidence";
 export { runRegulationMonitor, detectChanges } from "./regulation-monitor";
 export {
   runAutopilotRemediation,

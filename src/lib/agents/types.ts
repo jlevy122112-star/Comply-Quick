@@ -29,20 +29,124 @@ export const INDUSTRY_LABELS: Record<TargetIndustry, string> = {
   general_web: "General Web / Agencies",
 };
 
-/** Which frameworks and regions matter most to each industry. */
+// The US state comprehensive-privacy laws currently in effect. Grouped so an
+// industry that's subject to "US consumer privacy" picks all of them up at once
+// (and new state laws are added in one place).
+const US_STATE_PRIVACY: RegulationFrameworkId[] = [
+  "ccpa",
+  "vcdpa",
+  "cpa_colorado",
+  "ctdpa_connecticut",
+  "ucpa_utah",
+  "tdpsa_texas",
+];
+
+// Non-EU/US national privacy regimes a global web presence may fall under.
+const INTL_PRIVACY: RegulationFrameworkId[] = ["uk_gdpr", "pipeda", "quebec_law25", "lgpd", "australia_privacy_act"];
+
+/**
+ * Which frameworks and regions matter to each industry. EVERY registered
+ * framework appears in at least one industry so the monitor agent can always
+ * route a detected change to affected users (no orphaned frameworks).
+ */
 export const INDUSTRY_PROFILE: Record<
   TargetIndustry,
   { frameworks: RegulationFrameworkId[]; regions: TargetRegion[] }
 > = {
-  ecommerce: { frameworks: ["pci_dss", "gdpr", "ccpa"], regions: ["us_general", "california_ccpa", "eu_gdpr"] },
-  saas: { frameworks: ["soc2", "iso_27001", "gdpr", "ccpa"], regions: ["us_general", "california_ccpa", "eu_gdpr"] },
-  healthcare: { frameworks: ["hipaa", "soc2", "nist_800_53"], regions: ["us_general"] },
-  fintech: { frameworks: ["pci_dss", "soc2", "nist_800_53", "gdpr"], regions: ["us_general", "eu_gdpr"] },
-  marketing_adtech: { frameworks: ["gdpr", "ccpa"], regions: ["eu_gdpr", "california_ccpa", "us_general"] },
-  general_web: { frameworks: ["gdpr", "ccpa", "iso_27001"], regions: ["us_general", "california_ccpa", "eu_gdpr"] },
+  ecommerce: {
+    frameworks: ["pci_dss", "gdpr", "eprivacy", "ftc_act_5", "can_spam", "coppa", ...US_STATE_PRIVACY, ...INTL_PRIVACY],
+    regions: ["us_general", "california_ccpa", "eu_gdpr"],
+  },
+  saas: {
+    frameworks: [
+      "soc2",
+      "iso_27001",
+      "gdpr",
+      "eu_ai_act",
+      "nist_800_53",
+      "nist_csf",
+      "nist_800_171",
+      ...US_STATE_PRIVACY,
+      ...INTL_PRIVACY,
+    ],
+    regions: ["us_general", "california_ccpa", "eu_gdpr"],
+  },
+  healthcare: {
+    frameworks: ["hipaa", "hitech", "soc2", "nist_800_53", "nist_csf", "nist_800_171", "gdpr"],
+    regions: ["us_general", "eu_gdpr"],
+  },
+  fintech: {
+    frameworks: ["pci_dss", "soc2", "iso_27001", "nist_800_53", "nist_800_171", "glba", "fcra", "gdpr"],
+    regions: ["us_general", "eu_gdpr"],
+  },
+  marketing_adtech: {
+    frameworks: ["gdpr", "eprivacy", "ftc_act_5", "can_spam", "coppa", "eu_ai_act", ...US_STATE_PRIVACY, "uk_gdpr"],
+    regions: ["eu_gdpr", "california_ccpa", "us_general"],
+  },
+  general_web: {
+    frameworks: ["gdpr", "iso_27001", "eprivacy", "ftc_act_5", "coppa", ...US_STATE_PRIVACY, ...INTL_PRIVACY],
+    regions: ["us_general", "california_ccpa", "eu_gdpr"],
+  },
 };
 
-export type AgentId = "regulation_monitor" | "autopilot_remediation";
+export type AgentId =
+  | "compliance_copilot"
+  | "scan_to_fix"
+  | "autopilot_remediation"
+  | "regulation_monitor"
+  | "portfolio_monitor"
+  | "audit_evidence";
+
+/** The tier at which each agent unlocks (names are immutable: free/solo/agency/enterprise). */
+export type AgentTier = "free" | "solo" | "agency" | "enterprise";
+
+export interface AgentDescriptor {
+  id: AgentId;
+  name: string;
+  tagline: string;
+  /** Minimum tier that can run the agent's actions (upsell surface). */
+  minTier: AgentTier;
+}
+
+/** Registry powering the agents UI, gating, and upsell. */
+export const AGENT_REGISTRY: Record<AgentId, AgentDescriptor> = {
+  compliance_copilot: {
+    id: "compliance_copilot",
+    name: "Compliance Copilot",
+    tagline: "Takes actions — runs scans, generates docs, schedules reviews — with your approval.",
+    minTier: "free",
+  },
+  scan_to_fix: {
+    id: "scan_to_fix",
+    name: "Scan-to-Fix Agent",
+    tagline: "Turns scan findings into a prioritized, one-click remediation plan.",
+    minTier: "solo",
+  },
+  autopilot_remediation: {
+    id: "autopilot_remediation",
+    name: "Autopilot Remediation Agent",
+    tagline: "Watches regulatory changes and drafts approval-gated document updates.",
+    minTier: "solo",
+  },
+  regulation_monitor: {
+    id: "regulation_monitor",
+    name: "Regulation Monitor Agent",
+    tagline: "Learns every appropriate agency and alerts you the moment a law changes.",
+    minTier: "solo",
+  },
+  portfolio_monitor: {
+    id: "portfolio_monitor",
+    name: "Portfolio Monitoring Agent",
+    tagline: "Flags at-risk client projects and drafts client-ready reports.",
+    minTier: "agency",
+  },
+  audit_evidence: {
+    id: "audit_evidence",
+    name: "Audit & Evidence Agent",
+    tagline: "Compiles a framework-specific audit trail and evidence pack on demand.",
+    minTier: "enterprise",
+  },
+};
 
 export type AgentRunStatus = "ok" | "no_changes" | "error";
 

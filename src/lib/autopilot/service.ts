@@ -16,6 +16,7 @@ import type {
 } from "@/components/ClauseEngine";
 import { detectRegulationChange } from "./diff-engine";
 import { buildRegenerationProposal, type ProjectInputsSnapshot } from "./pipeline";
+import { notifyUser } from "@/lib/notifications/service";
 
 const log = logger.child({ module: "autopilot" });
 
@@ -300,13 +301,14 @@ export async function runAutopilot(
 
       await admin.from("projects").update({ status: "action_needed", updated_at: now }).eq("id", row.id);
 
-      await admin.from("notifications").insert({
-        user_id: row.user_id,
-        type: "document_proposed",
+      await notifyUser(admin, {
+        userId: row.user_id,
+        category: "document_proposed",
         title: `${update.name} update — review ${row.name}`,
         body: proposal.summary,
-        related_project_id: row.id,
-        related_version_id: inserted?.id ?? null,
+        url: "/dashboard/autopilot",
+        relatedProjectId: row.id,
+        relatedVersionId: inserted?.id ?? null,
       });
       proposalsCreated += 1;
     }
