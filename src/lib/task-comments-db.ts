@@ -85,6 +85,8 @@ export async function addTaskComment(
 
 export async function deleteTaskComment(id: string): Promise<boolean> {
   const supabase = await createClient();
-  const { error } = await supabase.from("task_comments").delete().eq("id", id);
-  return !error;
+  // Return the deleted rows so an RLS-blocked delete (non-author) reports
+  // failure instead of a false success — Postgres returns 0 rows, not an error.
+  const { data, error } = await supabase.from("task_comments").delete().eq("id", id).select("id");
+  return !error && (data?.length ?? 0) > 0;
 }
