@@ -7,16 +7,21 @@
 -- nothing persisted their use.
 --
 -- Rows are user-scoped: a user may insert and read only their own events.
+--
+-- One row per (user, tool): the consumer only cares about the distinct set of
+-- tools a user has used, so the unique constraint caps storage at 3 rows/user
+-- (via ON CONFLICT DO NOTHING at the write) while preserving the first-use
+-- timestamp for activation analytics.
 
 create table if not exists public.tool_usage_events (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   tool text not null check (tool in ('cookie_banner', 'dpa', 'subprocessors')),
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  constraint tool_usage_events_user_tool_key unique (user_id, tool)
 );
 
 create index if not exists tool_usage_events_user_idx on public.tool_usage_events (user_id);
-create index if not exists tool_usage_events_user_tool_idx on public.tool_usage_events (user_id, tool);
 
 alter table public.tool_usage_events enable row level security;
 

@@ -22,7 +22,11 @@ export async function recordToolUsage(tool: QuickToolKey): Promise<boolean> {
     } = await supabase.auth.getUser();
     if (!user) return false;
 
-    const { error } = await supabase.from("tool_usage_events").insert({ user_id: user.id, tool });
+    // Idempotent per (user, tool): the unique constraint caps rows at 3/user and
+    // keeps the first-use timestamp. Repeat generations are no-ops.
+    const { error } = await supabase
+      .from("tool_usage_events")
+      .upsert({ user_id: user.id, tool }, { onConflict: "user_id,tool", ignoreDuplicates: true });
     return !error;
   } catch {
     return false;

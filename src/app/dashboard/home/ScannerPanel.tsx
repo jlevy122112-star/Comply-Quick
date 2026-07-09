@@ -5,6 +5,7 @@ import Link from "next/link";
 import { computePaywallTriggers } from "@/lib/funnel/triggers";
 import { computeImprovementPath } from "@/lib/score/improvement";
 import { trackFunnel } from "@/lib/funnel/client";
+import { alertsForRegions } from "@/lib/regulations/alerts";
 
 interface DetectedTool {
   id: string;
@@ -140,6 +141,10 @@ export default function ScannerPanel() {
     if (!active || active.score === null) return null;
     return computeImprovementPath(active.score, active.findings);
   }, [active]);
+
+  // Current regulatory developments to reference alongside scan results, from the
+  // canonical feed (single source of truth shared with the dashboard + AI).
+  const regulatoryWatch = useMemo(() => alertsForRegions([]).slice(0, 3), []);
 
   const publish = useCallback(async () => {
     if (!active?.id) return;
@@ -299,6 +304,39 @@ export default function ScannerPanel() {
                     </li>
                   ))}
                 </ol>
+              </div>
+            )}
+
+            {regulatoryWatch.length > 0 && (
+              <div className="mt-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-gray-300">Regulatory watch</p>
+                  <span className="text-[11px] text-gray-500">Current developments to stay ahead of</span>
+                </div>
+                <ul className="mt-2 space-y-1.5">
+                  {regulatoryWatch.map((a) => {
+                    const s = SEVERITY_STYLES[a.severity] ?? SEVERITY_STYLES.info;
+                    return (
+                      <li key={a.id} className={`rounded-lg bg-gray-800/50 border ${s.border} p-3`}>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className={`text-xs font-medium ${s.text}`}>
+                            {s.icon} {a.title}
+                          </p>
+                          <span className="shrink-0 text-[11px] text-gray-500">{a.date}</span>
+                        </div>
+                        <p className="mt-1 text-xs text-gray-400">{a.description}</p>
+                        <a
+                          href={a.sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1 inline-block text-[11px] text-indigo-400 hover:text-indigo-300"
+                        >
+                          {a.law} — source &rarr;
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
             )}
 

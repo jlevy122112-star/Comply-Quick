@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ALL_TIERS, getTierConfig, type Tier } from "@/lib/pricing";
+import { formatUsd } from "@/lib/roi/value";
 import { Badge } from "./Badge";
 import { Card, CardBody } from "./Card";
 
@@ -9,10 +10,6 @@ const NEXT_TIER_PITCH: Record<Exclude<Tier, "free">, string> = {
   agency: "Ongoing monitoring, 5 seats, white-label exports and 100 scans/mo.",
   enterprise: "Unlimited seats and scans, live regulatory monitoring, and audit-ready evidence.",
 };
-
-function formatUsd(amount: number): string {
-  return `$${amount.toLocaleString("en-US")}`;
-}
 
 /** The next tier up from `tier`, or null if already on the top tier. */
 export function nextTierUp(tier: Tier): Exclude<Tier, "free"> | null {
