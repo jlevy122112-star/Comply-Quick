@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { cn } from "./cn";
 
 /**
@@ -11,10 +11,17 @@ import { cn } from "./cn";
  */
 
 function useDismiss(open: boolean, onClose: () => void) {
+  // Keep onClose in a ref so inline arrow callers don't tear down/re-attach the
+  // listener and body-overflow lock on every render — the effect depends only
+  // on `open`.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
     };
     document.addEventListener("keydown", onKey);
     const prevOverflow = document.body.style.overflow;
@@ -23,7 +30,7 @@ function useDismiss(open: boolean, onClose: () => void) {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prevOverflow;
     };
-  }, [open, onClose]);
+  }, [open]);
 }
 
 export function Drawer({
