@@ -5,6 +5,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getEntitlement } from "@/lib/entitlements";
+import { recordAuditLog } from "@/lib/audit-log";
 import { getAiClient, type AiClient } from "@/services/ai";
 import { logger } from "@/services";
 import type {
@@ -129,7 +130,19 @@ export async function resolveProposal(id: string, action: ResolveAction): Promis
     .update({ status: action === "accept" ? "accepted" : "rejected", resolved_at: now })
     .eq("id", id)
     .eq("user_id", user.id);
-  return !resolveErr;
+  if (resolveErr) return false;
+
+  await recordAuditLog({
+    action: action === "accept" ? "proposal.accepted" : "proposal.rejected",
+    entityType: "proposal",
+    entityId: id,
+    projectId: proposal.project_id as string,
+    summary:
+      action === "accept"
+        ? "Approved a regulatory-change proposal and applied it to the project."
+        : "Rejected a regulatory-change proposal.",
+  });
+  return true;
 }
 
 export async function listNotifications(): Promise<NotificationItem[]> {

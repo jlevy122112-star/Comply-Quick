@@ -239,6 +239,12 @@ export default function CommandCenterView({
             >
               Evidence
             </Link>
+            <Link
+              href="/dashboard/audit"
+              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-gray-600/50 text-gray-300 text-sm font-medium hover:border-gray-400 hover:text-gray-100 transition-colors"
+            >
+              Audit Trail
+            </Link>
             {isLegalAdmin && (
               <Link
                 href="/dashboard/legal-review"
