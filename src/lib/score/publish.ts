@@ -8,6 +8,7 @@ import { randomBytes } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { UnauthorizedError, NotFoundError } from "@/services/errors";
+import { recordAuditLog } from "@/lib/audit-log";
 
 export interface PublishedScore {
   id: string;
@@ -83,6 +84,14 @@ export async function publishScore(scanId: string, label?: string): Promise<Publ
     .select("id, slug, url, label, score, created_at")
     .single();
   if (error || !data) throw new Error(error?.message ?? "Failed to publish score.");
+
+  await recordAuditLog({
+    action: "score.published",
+    entityType: "scan",
+    entityId: scanId,
+    summary: `Published a public compliance score (${scan.score}) for ${scan.url}.`,
+    metadata: { slug: data.slug, score: scan.score },
+  });
   return mapRow(data);
 }
 
@@ -100,6 +109,13 @@ export async function revokeScore(id: string): Promise<void> {
     .eq("id", id)
     .eq("user_id", user.id)
     .is("revoked_at", null);
+
+  await recordAuditLog({
+    action: "score.revoked",
+    entityType: "published_score",
+    entityId: id,
+    summary: "Revoked a public compliance score page.",
+  });
 }
 
 /** Lists the caller's live published scores (most recent first). */

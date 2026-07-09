@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { runAutopilot, type RegulationUpdate } from "@/lib/autopilot/service";
-import { UnauthorizedError, ValidationError, errorResponse, logger } from "@/services";
+import { ValidationError, errorResponse, logger } from "@/services";
+import { assertCronAuthorized } from "@/lib/api/cron";
 
 const log = logger.child({ module: "autopilot-cron" });
 
@@ -14,9 +15,7 @@ const log = logger.child({ module: "autopilot-cron" });
  */
 export async function POST(request: Request) {
   try {
-    const secret = process.env.CRON_SECRET;
-    const provided = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-    if (!secret || provided !== secret) throw new UnauthorizedError("Invalid cron secret.");
+    assertCronAuthorized(request);
 
     let body: unknown;
     try {

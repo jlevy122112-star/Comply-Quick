@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { runIntelligence } from "@/lib/intelligence/service";
-import { UnauthorizedError, errorResponse, logger } from "@/services";
+import { errorResponse, logger } from "@/services";
+import { assertCronAuthorized } from "@/lib/api/cron";
 
 const log = logger.child({ module: "intelligence-cron" });
 
@@ -12,9 +13,7 @@ const log = logger.child({ module: "intelligence-cron" });
  */
 export async function POST(request: Request) {
   try {
-    const secret = process.env.CRON_SECRET;
-    const provided = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-    if (!secret || provided !== secret) throw new UnauthorizedError("Invalid cron secret.");
+    assertCronAuthorized(request);
 
     log.info("Intelligence run triggered");
     const result = await runIntelligence();

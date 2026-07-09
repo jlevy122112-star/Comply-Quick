@@ -5,7 +5,7 @@ import { getCalendarMonth } from "@/lib/calendar/service";
 import { getOrCreateFeed } from "@/lib/calendar/feed";
 import { canUseAgencyPortal, listClients } from "@/lib/agency/service";
 import { getEntitlement } from "@/lib/entitlements";
-import { parseDay } from "@/lib/calendar/events";
+import { parseDay, toDayKey } from "@/lib/calendar/events";
 import CalendarView from "./CalendarView";
 
 export const dynamic = "force-dynamic";
@@ -58,6 +58,7 @@ export default async function CalendarPage({
         activeClientId={activeClientId}
         feedToken={feed.token}
         tier={entitlement.tier}
+        serverToday={toDayKey(new Date())}
       />
     </div>
   );
