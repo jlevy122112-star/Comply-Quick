@@ -227,6 +227,10 @@ export async function runAutopilot(
   const admin = createAdminClient();
   let regulationsChanged = 0;
   let proposalsCreated = 0;
+  // External notification delivery (email/push) is best-effort and can involve
+  // HTTP calls; collect them and settle concurrently after the fan-out loop so
+  // the cron's per-proposal writes aren't serialized behind delivery latency.
+  const notifyTasks: Promise<void>[] = [];
 
   // Premium users only (Autopilot is a Pro-tier feature).
   const { data: premium } = await admin
@@ -337,18 +341,24 @@ export async function runAutopilot(
         riskLevel: riskFromDiff(proposal.diff.addedLines, proposal.diff.removedLines),
       });
 
-      await notifyUser(admin, {
-        userId: row.user_id,
-        category: "document_proposed",
-        title: `${update.name} update — review ${row.name}`,
-        body: proposal.summary,
-        url: "/dashboard/autopilot",
-        relatedProjectId: row.id,
-        relatedVersionId: inserted?.id ?? null,
-      });
+      notifyTasks.push(
+        notifyUser(admin, {
+          userId: row.user_id,
+          category: "document_proposed",
+          title: `${update.name} update — review ${row.name}`,
+          body: proposal.summary,
+          url: "/dashboard/autopilot",
+          relatedProjectId: row.id,
+          relatedVersionId: inserted?.id ?? null,
+        })
+      );
       proposalsCreated += 1;
     }
   }
+
+  // notifyUser never throws (delivery failures are logged internally); settle
+  // all deliveries concurrently so total wall time is one round-trip, not N.
+  await Promise.allSettled(notifyTasks);
 
   log.info("Autopilot run complete", { regulationsChanged, proposalsCreated, aiClient: ai.id });
   return { regulationsChanged, proposalsCreated };

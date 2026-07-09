@@ -65,12 +65,16 @@ export async function addProjectMember(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in." };
 
+  // Ownership is conferred by creating the project, never by invitation — a
+  // collaborator can only be added as an editor or viewer.
+  if (role === "owner") return { ok: false, error: "Collaborators can only be editors or viewers." };
+
   const normalized = email.trim().toLowerCase();
   if (!normalized || !normalized.includes("@")) return { ok: false, error: "Enter a valid email." };
 
   // Resolve the invitee to an existing account (invite-to-signup is out of scope).
   const admin = createAdminClient();
-  const { data: list } = await admin.auth.admin.listUsers();
+  const { data: list } = await admin.auth.admin.listUsers({ perPage: 200 });
   const invitee = list?.users.find((u) => u.email?.toLowerCase() === normalized);
   if (!invitee) return { ok: false, error: "No Comply-Quick account exists for that email yet." };
   if (invitee.id === user.id) return { ok: false, error: "You already own this project." };
