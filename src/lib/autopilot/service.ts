@@ -18,6 +18,7 @@ import type {
 import { detectRegulationChange } from "./diff-engine";
 import { buildRegenerationProposal, type ProjectInputsSnapshot } from "./pipeline";
 import { notifyUser } from "@/lib/notifications/service";
+import { recordAlertImpact, resolveImpactsForVersion, riskFromDiff } from "@/lib/regulations/alert-impacts";
 
 const log = logger.child({ module: "autopilot" });
 
@@ -131,6 +132,9 @@ export async function resolveProposal(id: string, action: ResolveAction): Promis
     .eq("id", id)
     .eq("user_id", user.id);
   if (resolveErr) return false;
+
+  // Either resolution clears the open regulatory exposure on the project's score.
+  await resolveImpactsForVersion(id);
 
   await recordAuditLog({
     action: action === "accept" ? "proposal.accepted" : "proposal.rejected",
@@ -321,6 +325,17 @@ export async function runAutopilot(
         .single();
 
       await admin.from("projects").update({ status: "action_needed", updated_at: now }).eq("id", row.id);
+
+      // Materialize the per-project regulatory exposure so the displayed score
+      // reflects the open change until the user approves the fix.
+      await recordAlertImpact(admin, {
+        userId: row.user_id,
+        projectId: row.id,
+        versionId: inserted?.id ?? null,
+        regulationId: update.id,
+        regulationName: update.name,
+        riskLevel: riskFromDiff(proposal.diff.addedLines, proposal.diff.removedLines),
+      });
 
       await notifyUser(admin, {
         userId: row.user_id,

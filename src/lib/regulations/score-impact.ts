@@ -16,7 +16,7 @@ export interface PendingRegulatoryPressure {
   riskLevel: "low" | "medium" | "high";
 }
 
-const PENALTY_BY_RISK: Record<PendingRegulatoryPressure["riskLevel"], number> = {
+export const PENALTY_BY_RISK: Record<PendingRegulatoryPressure["riskLevel"], number> = {
   low: 4,
   medium: 8,
   high: 14,
