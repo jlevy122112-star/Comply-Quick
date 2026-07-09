@@ -52,7 +52,12 @@ export interface CookieConsentResult {
 const DEFAULT_ACCENT = "#4f46e5";
 
 function escapeHtml(value: string): string {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 /** Sanitizes a user-supplied hex color, falling back to the product accent. */

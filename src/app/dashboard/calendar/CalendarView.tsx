@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { bucketByDay, parseDay, toDayKey, type CalendarEvent, type CalendarCategory } from "@/lib/calendar/events";
+import { UpsellCta } from "@/components/ui";
+import type { Tier } from "@/lib/pricing";
 
 interface CalendarMonthData {
   year: number;
@@ -66,11 +68,13 @@ export default function CalendarView({
   clients,
   activeClientId,
   feedToken,
+  tier,
 }: {
   month: CalendarMonthData;
   clients: ClientOption[];
   activeClientId: string | null;
   feedToken: string;
+  tier: Tier;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -239,6 +243,20 @@ export default function CalendarView({
           </button>
         </div>
       </div>
+
+      {tier !== "enterprise" && (
+        <div className="mb-6">
+          {tier === "agency" ? (
+            <UpsellCta tier={tier} />
+          ) : (
+            <UpsellCta
+              tier={tier}
+              title="Turn the calendar into an autopilot"
+              benefit="Upgrade for ongoing monitoring, auto-scheduled re-scans, and regulatory-change alerts that land on this calendar for you — instead of tracking renewals by hand."
+            />
+          )}
+        </div>
+      )}
 
       {showLink && (
         <div className="mb-6 rounded-xl border border-gray-800 bg-gray-900/50 p-4">

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterEach, vi } from "vitest";
 import {
   generateCompliancePackage,
   exportToMarkdown,
@@ -268,6 +268,10 @@ describe("exportToMarkdown", () => {
     });
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("starts with the compliance package report header", () => {
     const md = exportToMarkdown(pkg);
     expect(md).toMatch(/^# Compliance Package Report/);
@@ -276,6 +280,21 @@ describe("exportToMarkdown", () => {
   it("includes the overall compliance score", () => {
     const md = exportToMarkdown(pkg);
     expect(md).toContain(`**Compliance Score: ${pkg.complianceScore.overall}/100**`);
+  });
+
+  it("includes an enterprise document-control block with a stable, deterministic id", () => {
+    const md = exportToMarkdown(pkg);
+    expect(md).toContain("### Document Control");
+    expect(md).toContain("| Version | 1.0 |");
+    expect(md).toContain("| Effective date |");
+    expect(md).toContain("| Next scheduled review |");
+    const id = md.match(/\| Document ID \| (CQ-\d{8}-[0-9A-Z]{7}) \|/);
+    expect(id).not.toBeNull();
+    // Freeze the clock so determinism doesn't hinge on both renders landing on
+    // the same UTC calendar day.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-15T12:00:00Z"));
+    expect(exportToMarkdown(pkg)).toContain(exportToMarkdown(pkg).match(/(CQ-\d{8}-[0-9A-Z]{7})/)![1]);
   });
 
   it("includes all sections: contract shield, privacy, checklist, enterprise, score breakdown", () => {

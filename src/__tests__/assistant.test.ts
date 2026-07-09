@@ -12,6 +12,13 @@ describe("buildSystemPrompt", () => {
     expect(prompt).toContain("GDPR");
     expect(prompt).toContain("tier=solo");
   });
+
+  it("grounds the assistant in the current regulatory-change feed", () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toContain("Current regulatory developments");
+    // A representative current development from the canonical feed.
+    expect(prompt).toContain("EU AI Act");
+  });
 });
 
 describe("answerAssistant (keyless fallback)", () => {
