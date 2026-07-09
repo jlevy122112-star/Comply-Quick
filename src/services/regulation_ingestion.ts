@@ -283,6 +283,16 @@ export async function readStructured(framework: RegulationFrameworkId): Promise<
   }
 }
 
+/**
+ * Persists a normalized snapshot to `regulations/structured/`. Callers that
+ * detect changes MUST write the fresh snapshot back, otherwise the next sweep
+ * compares against a stale file and re-detects the same change.
+ */
+export async function writeStructured(snapshot: NormalizedRegulation): Promise<void> {
+  await mkdir(STRUCTURED_DIR, { recursive: true });
+  await writeFile(path.join(STRUCTURED_DIR, `${snapshot.framework}.json`), JSON.stringify(snapshot, null, 2), "utf8");
+}
+
 export interface IngestResult {
   framework: RegulationFrameworkId;
   changed: boolean;
@@ -306,7 +316,7 @@ export async function ingestAll(): Promise<IngestResult[]> {
       const prev = await readStructured(framework);
       const next = await ingestFramework(framework);
       const changed = !prev || prev.contentHash !== next.contentHash;
-      await writeFile(path.join(STRUCTURED_DIR, `${framework}.json`), JSON.stringify(next, null, 2), "utf8");
+      await writeStructured(next);
       results.push({ framework, changed, controlCount: next.controls.length, contentHash: next.contentHash });
     } catch (err) {
       results.push({

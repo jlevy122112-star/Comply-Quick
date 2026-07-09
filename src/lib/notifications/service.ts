@@ -6,6 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { logger } from "@/services";
 import {
   dispatchNotification,
+  externalChannelsConfigured,
   type NotificationCategory,
   type NotificationEvent,
   type NotificationRecipient,
@@ -65,6 +66,11 @@ export async function notifyUser(admin: SupabaseClient, input: NotifyInput): Pro
     related_version_id: input.relatedVersionId ?? null,
   });
   if (error) log.warn("in-app notification insert failed", { error: error.message });
+
+  // Skip the per-recipient channel lookup (3 DB queries) + dispatch entirely
+  // when no external channel is configured — keeps hot paths like the daily
+  // autopilot cron to a single insert per notification.
+  if (!externalChannelsConfigured()) return;
 
   try {
     const recipient = await loadRecipient(admin, input.userId);

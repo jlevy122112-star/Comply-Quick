@@ -57,6 +57,16 @@ export interface DispatchDeps {
   env?: Env;
 }
 
+/**
+ * True when at least one external channel (email or push) is configured. Lets
+ * callers skip the per-recipient channel lookup entirely when no external
+ * delivery is possible — avoiding needless DB/HTTP work in hot paths like the
+ * daily autopilot cron.
+ */
+export function externalChannelsConfigured(env: Env = process.env): boolean {
+  return Boolean((env.RESEND_API_KEY && env.NOTIFICATIONS_FROM_EMAIL) || env.EXPO_ACCESS_TOKEN);
+}
+
 async function sendEmail(
   recipient: NotificationRecipient,
   event: NotificationEvent,

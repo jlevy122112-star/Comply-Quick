@@ -47,13 +47,19 @@ export function buildEditPlan(findings: RegulationChangeFinding[]): EditPlanStep
   return findings.map(buildEditPlanStep);
 }
 
-/** Maps findings to per-region autopilot updates (one per affected region). */
+/**
+ * Maps findings to per-region autopilot updates (one per affected region).
+ * De-duplicated by `framework:region`: if two findings target the same pair
+ * (e.g. two hash changes for one framework in a single sweep), the most recent
+ * one wins so downstream `runAutopilot` never creates redundant proposals.
+ */
 export function remediationUpdatesFromFindings(findings: RegulationChangeFinding[]): RegulationUpdate[] {
-  const updates: RegulationUpdate[] = [];
+  const byId = new Map<string, RegulationUpdate>();
   for (const f of findings) {
     for (const region of f.affectedRegions) {
-      updates.push({
-        id: `${f.framework}:${region}`,
+      const id = `${f.framework}:${region}`;
+      byId.set(id, {
+        id,
         name: f.label,
         region,
         // The change fingerprint doubles as the regeneration seed; the autopilot
@@ -64,7 +70,7 @@ export function remediationUpdatesFromFindings(findings: RegulationChangeFinding
       });
     }
   }
-  return updates;
+  return [...byId.values()];
 }
 
 export interface RemediationRunResult extends AgentRunResult {

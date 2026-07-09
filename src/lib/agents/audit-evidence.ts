@@ -34,8 +34,19 @@ export interface AuditEvidencePack {
   plan: AgentActionPlan;
 }
 
-/** Map of controlId → whether the org has already collected its evidence. */
-export type EvidenceLedger = Record<string, boolean>;
+/**
+ * Map of controlId → its evidence state:
+ *   - `true`  → evidence already collected
+ *   - `false` / absent → still missing
+ *   - `"not_applicable"` → the org has scoped this control out (excluded from readiness)
+ */
+export type EvidenceLedgerEntry = boolean | "not_applicable";
+export type EvidenceLedger = Record<string, EvidenceLedgerEntry>;
+
+function statusFor(entry: EvidenceLedgerEntry | undefined): EvidenceStatus {
+  if (entry === "not_applicable") return "not_applicable";
+  return entry ? "collected" : "missing";
+}
 
 function requiredEvidenceFor(control: RegulationControl): string[] {
   if (control.evidenceExamples.length > 0) return control.evidenceExamples.slice(0, 3);
@@ -61,7 +72,7 @@ export function compileEvidencePack(
     controlTitle: c.title,
     riskLevel: c.riskLevel,
     requiredEvidence: requiredEvidenceFor(c),
-    status: ledger[c.id] ? "collected" : "missing",
+    status: statusFor(ledger[c.id]),
     sourceUrl: c.sourceUrl,
   }));
 

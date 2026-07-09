@@ -103,6 +103,15 @@ describe("remediation edit plan", () => {
   it("builds a plan per finding", () => {
     expect(buildEditPlan([finding, finding])).toHaveLength(2);
   });
+
+  it("dedupes autopilot updates that share a framework:region pair", () => {
+    const dup = { ...finding, currentHash: "NEWER" };
+    const updates = remediationUpdatesFromFindings([finding, dup]);
+    const ids = updates.map((u) => u.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    // last write wins
+    expect(updates.find((u) => u.id === "gdpr:eu_gdpr")?.content).toContain("NEWER");
+  });
 });
 
 describe("ingestion normalizers", () => {

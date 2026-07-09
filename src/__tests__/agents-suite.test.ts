@@ -179,4 +179,12 @@ describe("audit & evidence", () => {
     expect(pack.plan.actions[0].requiresApproval).toBe(true);
     expect(pack.items[1].requiredEvidence.length).toBeGreaterThan(0);
   });
+
+  it("excludes not_applicable controls from readiness", () => {
+    const pack = compileEvidencePack("soc2", controls, { "CC1.1": true, "CC6.1": "not_applicable" });
+    expect(pack.items.find((i) => i.controlId === "CC6.1")?.status).toBe("not_applicable");
+    expect(pack.collected).toBe(1);
+    expect(pack.missing).toBe(0);
+    expect(pack.readiness).toBe(100);
+  });
 });

@@ -10,7 +10,7 @@
 // touches the network/disk (via the ingestion pipeline).
 
 import { REGULATION_SOURCE_LIST, type RegulationFrameworkId } from "@/lib/regulations/sources/registry";
-import { ingestFramework, readStructured } from "@/services/regulation_ingestion";
+import { ingestFramework, readStructured, writeStructured } from "@/services/regulation_ingestion";
 import { logger } from "@/services";
 import { industriesForFramework, regionsForFramework } from "./classify";
 import type { AgentRunResult, RegulationChangeFinding } from "./types";
@@ -72,6 +72,9 @@ export async function runRegulationMonitor(options: MonitorRunOptions = {}): Pro
       const prev = await readStructured(framework);
       const next = await ingestFramework(framework);
       observations.push({ framework, previousHash: prev?.contentHash ?? null, currentHash: next.contentHash });
+      // Persist the fresh snapshot so the next sweep compares against this state
+      // instead of re-detecting the same change every run.
+      if (!prev || prev.contentHash !== next.contentHash) await writeStructured(next);
     } catch (err) {
       log.warn("source sweep failed", { framework, error: err instanceof Error ? err.message : String(err) });
     }
