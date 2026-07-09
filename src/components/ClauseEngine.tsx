@@ -707,7 +707,7 @@ function documentId(pkg: CompliancePackage, generatedOn: string): string {
   const seed = [
     pkg.inwardContractShield.preamble,
     pkg.inwardContractShield.clauses.map((c) => c.title).join(","),
-    pkg.consumerPrivacyPolicyAddendum.scriptDeclarations.length,
+    pkg.consumerPrivacyPolicyAddendum.scriptDeclarations.join("|"),
     pkg.consumerPrivacyPolicyAddendum.regionalDisclosures.join("|"),
     pkg.developerPreLaunchChecklist.items.map((i) => i.action).join(","),
     (pkg.enterpriseModules ?? []).map((m) => m.moduleName).join(","),
