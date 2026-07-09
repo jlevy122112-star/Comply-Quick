@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import type { DbProject } from "@/lib/projects-db";
+import type { QuickToolKey } from "@/lib/tools/usage";
 import type { ComplianceScore } from "@/components/ClauseEngine";
 import type { Tier } from "@/lib/entitlements";
 import { getTierConfig } from "@/lib/pricing";
@@ -18,15 +19,26 @@ interface OnboardingStep {
 
 const MAJOR_REGIMES = ["eu_gdpr", "california_ccpa"];
 
-function buildSteps(projects: DbProject[]): OnboardingStep[] {
+function buildSteps(projects: DbProject[], completedTools: QuickToolKey[]): OnboardingStep[] {
   const hasProject = projects.length > 0;
   const coversRegime = projects.some((p) => p.targetRegions.some((r) => MAJOR_REGIMES.includes(r)));
+  const used = new Set(completedTools);
   return [
     { key: "package", label: "Generate your first compliance package", href: "/dashboard", done: hasProject },
     { key: "regime", label: "Cover a GDPR or CCPA jurisdiction", href: "/dashboard", done: coversRegime },
-    { key: "banner", label: "Add a cookie consent banner", href: "/dashboard/tools/cookie-banner", done: false },
-    { key: "dpa", label: "Generate a DPA for your vendors", href: "/dashboard/tools/dpa", done: false },
-    { key: "subs", label: "Map your subprocessors", href: "/dashboard/tools/subprocessors", done: false },
+    {
+      key: "banner",
+      label: "Add a cookie consent banner",
+      href: "/dashboard/tools/cookie-banner",
+      done: used.has("cookie_banner"),
+    },
+    { key: "dpa", label: "Generate a DPA for your vendors", href: "/dashboard/tools/dpa", done: used.has("dpa") },
+    {
+      key: "subs",
+      label: "Map your subprocessors",
+      href: "/dashboard/tools/subprocessors",
+      done: used.has("subprocessors"),
+    },
   ];
 }
 
@@ -34,12 +46,14 @@ export default function CommandCenterInsights({
   projects,
   tier,
   aggregateScore,
+  completedTools,
 }: {
   projects: DbProject[];
   tier: Tier;
   aggregateScore: ComplianceScore | null;
+  completedTools: QuickToolKey[];
 }) {
-  const steps = useMemo(() => buildSteps(projects), [projects]);
+  const steps = useMemo(() => buildSteps(projects, completedTools), [projects, completedTools]);
   const doneCount = steps.filter((s) => s.done).length;
   const onboardingPct = Math.round((doneCount / steps.length) * 100);
   const nextStep = steps.find((s) => !s.done) ?? null;

@@ -13,6 +13,7 @@ import ScannerPanel from "./ScannerPanel";
 import IntelligencePanel from "./IntelligencePanel";
 import NpsSurvey from "./NpsSurvey";
 import { alertsForRegions, regionsFromProjects, type RegulatoryAlert } from "@/lib/regulations/alerts";
+import type { QuickToolKey } from "@/lib/tools/usage";
 
 // ─── Framework Display Map ──────────────────────────────────────────────────
 
@@ -106,6 +107,7 @@ interface CommandCenterViewProps {
   projects: DbProject[];
   tier: Tier;
   aggregateScore: ComplianceScore | null;
+  completedTools: QuickToolKey[];
   userEmail: string | null;
   isLegalAdmin?: boolean;
 }
@@ -114,6 +116,7 @@ export default function CommandCenterView({
   projects,
   tier,
   aggregateScore,
+  completedTools,
   userEmail,
   isLegalAdmin,
 }: CommandCenterViewProps) {
@@ -253,7 +256,12 @@ export default function CommandCenterView({
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* ── Guided Next-Best-Action + ROI + Coverage ── */}
-        <CommandCenterInsights projects={projects} tier={tier} aggregateScore={aggregateScore} />
+        <CommandCenterInsights
+          projects={projects}
+          tier={tier}
+          aggregateScore={aggregateScore}
+          completedTools={completedTools}
+        />
 
         {/* ── Score Overview ── */}
         {aggregateScore ? (

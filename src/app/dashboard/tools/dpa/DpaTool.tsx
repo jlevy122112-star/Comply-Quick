@@ -7,6 +7,7 @@ import { generateDpa, type DpaResult } from "@/lib/tools/dpa";
 import type { TargetRegion, TrackingPixel } from "@/lib/tools/data";
 import { PixelPicker, RegionPicker } from "../_components/Selectors";
 import { GenerateProgress, NextStepCard, ValueBanner } from "../_components/ToolExtras";
+import { recordToolUsageAction } from "../actions";
 
 const GEN_STEPS = [
   "Resolving governing jurisdictions…",
@@ -55,6 +56,7 @@ export default function DpaTool() {
     }
     setResult(generateDpa({ controllerName, processorName, regions, pixels, modules, effectiveDate }));
     setGenerating(false);
+    void recordToolUsageAction("dpa");
   }, [canGenerate, controllerName, processorName, regions, pixels, modules, effectiveDate]);
 
   return (
