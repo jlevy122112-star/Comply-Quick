@@ -145,3 +145,14 @@ export function regionsFromProjects(projects: { targetRegions: TargetRegion[] }[
   for (const p of projects) for (const r of p.targetRegions) seen.add(r);
   return [...seen];
 }
+
+/**
+ * Renders a compact, newest-first digest of current regulatory developments for
+ * use as grounding context (e.g. the AI assistant's system prompt). Optionally
+ * scoped to a set of regions. Returns an empty string when nothing is relevant.
+ */
+export function alertsDigest(regions?: TargetRegion[]): string {
+  const alerts = alertsForRegions(regions ?? []);
+  if (alerts.length === 0) return "";
+  return alerts.map((a) => `- [${a.date}] ${a.law}: ${a.title} — ${a.description} (source: ${a.sourceUrl})`).join("\n");
+}

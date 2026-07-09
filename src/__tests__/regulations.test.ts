@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { REGULATORY_ALERTS, alertsForRegions, regionsFromProjects } from "@/lib/regulations/alerts";
+import { REGULATORY_ALERTS, alertsForRegions, alertsDigest, regionsFromProjects } from "@/lib/regulations/alerts";
 import type { TargetRegion } from "@/components/ClauseEngine";
 
 describe("regulatory alerts dataset", () => {
@@ -57,5 +57,20 @@ describe("regionsFromProjects", () => {
 
   it("returns an empty array for no projects", () => {
     expect(regionsFromProjects([])).toEqual([]);
+  });
+});
+
+describe("alertsDigest", () => {
+  it("renders one source-linked line per alert for the full feed", () => {
+    const digest = alertsDigest();
+    const lines = digest.split("\n");
+    expect(lines).toHaveLength(REGULATORY_ALERTS.length);
+    expect(lines.every((l) => l.startsWith("- [") && l.includes("source: https://"))).toBe(true);
+  });
+
+  it("scopes to the given regions", () => {
+    const digest = alertsDigest(["california_ccpa"]);
+    const ccpa = alertsForRegions(["california_ccpa"]);
+    expect(digest.split("\n")).toHaveLength(ccpa.length);
   });
 });

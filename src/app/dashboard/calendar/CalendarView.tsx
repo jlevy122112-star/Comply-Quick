@@ -244,13 +244,17 @@ export default function CalendarView({
         </div>
       </div>
 
-      {(tier === "free" || tier === "solo") && (
+      {tier !== "enterprise" && (
         <div className="mb-6">
-          <UpsellCta
-            tier={tier}
-            title="Turn the calendar into an autopilot"
-            benefit="Upgrade for ongoing monitoring, auto-scheduled re-scans, and regulatory-change alerts that land on this calendar for you — instead of tracking renewals by hand."
-          />
+          {tier === "agency" ? (
+            <UpsellCta tier={tier} />
+          ) : (
+            <UpsellCta
+              tier={tier}
+              title="Turn the calendar into an autopilot"
+              benefit="Upgrade for ongoing monitoring, auto-scheduled re-scans, and regulatory-change alerts that land on this calendar for you — instead of tracking renewals by hand."
+            />
+          )}
         </div>
       )}
 
