@@ -46,7 +46,13 @@ export default function CommandCenterInsights({
 
   const coverage = aggregateScore?.overall ?? 0;
 
-  const roi = useMemo(() => computeRoi({ compliance_package: projects.length }, 0), [projects.length]);
+  // Net the subscriber's actual annual cost out of the headline so the ROI figure
+  // is defensible (net value, not gross) and can show a real return multiple.
+  const annualCost = getTierConfig(tier).annual;
+  const roi = useMemo(
+    () => computeRoi({ compliance_package: projects.length }, annualCost),
+    [projects.length, annualCost]
+  );
 
   const upsell = tier === "free" || tier === "solo";
   const nextTier = tier === "free" ? "solo" : "agency";
@@ -106,11 +112,15 @@ export default function CommandCenterInsights({
           <CardBody className="space-y-3">
             {roi.grossSaved > 0 ? (
               <>
-                <p className="text-3xl font-bold text-emerald-400">{formatUsd(roi.grossSaved)}</p>
+                <p className="text-3xl font-bold text-emerald-400">{formatUsd(roi.netSaved)}</p>
                 <p className="text-xs text-gray-400">
-                  Estimated legal fees saved across {projects.length} generated package
-                  {projects.length !== 1 ? "s" : ""} vs. commissioning counsel.
+                  Net legal fees saved across {projects.length} generated package
+                  {projects.length !== 1 ? "s" : ""} vs. commissioning counsel
+                  {annualCost > 0 ? `, after your ${formatUsd(annualCost)}/yr plan` : ""}.
                 </p>
+                {roi.roiMultiple !== null && (
+                  <Badge tone="emerald">{roi.roiMultiple}× return on your subscription</Badge>
+                )}
               </>
             ) : (
               <>
