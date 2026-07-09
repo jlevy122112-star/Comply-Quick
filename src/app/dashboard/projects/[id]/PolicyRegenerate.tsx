@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Modal, DiffViewer, Badge } from "@/components/ui";
-import type { ComplianceScore } from "@/components/ClauseEngine";
 import { regeneratePackageAction, applyRegeneratedPackageAction, type RegeneratePreview } from "./policy-actions";
 
 /**
@@ -37,10 +36,10 @@ export function PolicyRegenerate({ projectId }: { projectId: string }) {
   }
 
   async function apply() {
-    if (!preview?.score) return;
+    if (!preview?.hasChanges) return;
     setApplying(true);
     try {
-      const res = await applyRegeneratedPackageAction(projectId, preview.after, preview.score as ComplianceScore);
+      const res = await applyRegeneratedPackageAction(projectId);
       if (!res.ok) {
         setError(res.error ?? "Could not apply.");
         return;

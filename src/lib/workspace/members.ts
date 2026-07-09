@@ -34,21 +34,21 @@ export async function listProjectMembers(projectId: string): Promise<ProjectMemb
   if (!data || data.length === 0) return [];
 
   // Resolve emails via the admin client (auth.users isn't readable through RLS).
+  // Batched concurrently so N collaborators cost one round-trip, not N serial ones.
   const admin = createAdminClient();
-  const members: ProjectMember[] = [];
-  for (const row of data) {
-    let email = "";
-    const { data: authUser } = await admin.auth.admin.getUserById(row.user_id as string);
-    email = authUser.user?.email ?? "";
-    members.push({
-      id: row.id as string,
-      userId: row.user_id as string,
-      email,
-      role: row.role as ProjectMemberRole,
-      createdAt: row.created_at as string,
-    });
-  }
-  return members;
+  const emails = await Promise.all(
+    data.map(async (row) => {
+      const { data: authUser } = await admin.auth.admin.getUserById(row.user_id as string);
+      return authUser.user?.email ?? "";
+    })
+  );
+  return data.map((row, i) => ({
+    id: row.id as string,
+    userId: row.user_id as string,
+    email: emails[i],
+    role: row.role as ProjectMemberRole,
+    createdAt: row.created_at as string,
+  }));
 }
 
 export type AddMemberResult = { ok: true } | { ok: false; error: string };

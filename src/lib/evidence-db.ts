@@ -89,6 +89,21 @@ export async function saveEvidencePack(pack: AuditEvidencePack, projectId: strin
   }));
   if (rows.length === 0) return true;
 
+  // NULL project_id can't be an upsert conflict target (NULL != NULL in unique
+  // constraints), so for account-wide packs we clear the prior set for this
+  // (user, framework, no-project) scope and re-insert. The pack was compiled
+  // against the existing ledger, so preserved statuses carry into the new rows.
+  if (projectId === null) {
+    await supabase
+      .from("evidence_records")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("framework", pack.framework)
+      .is("project_id", null);
+    const { error } = await supabase.from("evidence_records").insert(rows);
+    return !error;
+  }
+
   const { error } = await supabase
     .from("evidence_records")
     .upsert(rows, { onConflict: "user_id,framework,control_id,project_id" });

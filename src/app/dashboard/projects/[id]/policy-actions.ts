@@ -54,13 +54,29 @@ export interface ApplyResult {
   error?: string;
 }
 
-/** Applies a reviewed regeneration to the project (owner-scoped) + audit log. */
-export async function applyRegeneratedPackageAction(
-  projectId: string,
-  packageMarkdown: string,
-  score: ComplianceScore
-): Promise<ApplyResult> {
-  const updated = await updateProjectPackage(projectId, packageMarkdown, score);
+/**
+ * Applies a reviewed regeneration to the project (owner-scoped) + audit log.
+ *
+ * The package and score are recomputed server-side from the project's stored
+ * inputs — the client sends nothing but the project id. This makes the action
+ * tamper-proof: a crafted request cannot persist an inflated score or arbitrary
+ * markdown, since the value written is always the deterministic ClauseEngine
+ * output (identical to what the preview showed the user).
+ */
+export async function applyRegeneratedPackageAction(projectId: string): Promise<ApplyResult> {
+  const project = await getProjectById(projectId);
+  if (!project) return { ok: false, error: "Project not found." };
+
+  const pkg = generateCompliancePackage({
+    userType: DEFAULT_USER_TYPE,
+    framework: project.framework,
+    trackingPixels: project.trackingPixels,
+    targetRegions: project.targetRegions,
+    complianceModules: project.complianceModules,
+  });
+  const packageMarkdown = exportToMarkdown(pkg);
+
+  const updated = await updateProjectPackage(projectId, packageMarkdown, pkg.complianceScore);
   if (!updated) return { ok: false, error: "Could not apply the update." };
 
   await recordAuditLog({
@@ -69,7 +85,7 @@ export async function applyRegeneratedPackageAction(
     entityId: projectId,
     projectId,
     summary: "Regenerated and applied the project's compliance package after reviewing the diff.",
-    metadata: { overall: score.overall },
+    metadata: { overall: pkg.complianceScore.overall },
   });
 
   revalidatePath(`/dashboard/projects/${projectId}`);
