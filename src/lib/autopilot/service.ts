@@ -328,6 +328,12 @@ export async function runAutopilot(
         .select("id")
         .single();
 
+      // If the proposal row didn't persist there is nothing for the user to
+      // approve, so skip the exposure penalty and notification — otherwise we'd
+      // strand an unresolvable impact (its version_id would be NULL, which the
+      // resolve-on-approve query can never match) and permanently lower the score.
+      if (!inserted) continue;
+
       await admin.from("projects").update({ status: "action_needed", updated_at: now }).eq("id", row.id);
 
       // Materialize the per-project regulatory exposure so the displayed score
@@ -335,7 +341,7 @@ export async function runAutopilot(
       await recordAlertImpact(admin, {
         userId: row.user_id,
         projectId: row.id,
-        versionId: inserted?.id ?? null,
+        versionId: inserted.id,
         regulationId: update.id,
         regulationName: update.name,
         riskLevel: riskFromDiff(proposal.diff.addedLines, proposal.diff.removedLines),
@@ -349,7 +355,7 @@ export async function runAutopilot(
           body: proposal.summary,
           url: "/dashboard/autopilot",
           relatedProjectId: row.id,
-          relatedVersionId: inserted?.id ?? null,
+          relatedVersionId: inserted.id,
         })
       );
       proposalsCreated += 1;

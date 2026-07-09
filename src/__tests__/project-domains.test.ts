@@ -14,4 +14,11 @@ describe("normalizeDomain", () => {
   it("leaves a bare host unchanged", () => {
     expect(normalizeDomain("sub.example.co.uk")).toBe("sub.example.co.uk");
   });
+
+  it("drops query strings, fragments, and explicit ports", () => {
+    expect(normalizeDomain("example.com?foo=bar")).toBe("example.com");
+    expect(normalizeDomain("example.com#top")).toBe("example.com");
+    expect(normalizeDomain("example.com:8080")).toBe("example.com");
+    expect(normalizeDomain("https://example.com:443/path?x=1")).toBe("example.com");
+  });
 });

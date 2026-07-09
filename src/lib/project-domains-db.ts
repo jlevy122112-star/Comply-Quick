@@ -32,11 +32,12 @@ function rowToDomain(row: ProjectDomainRow): ProjectDomain {
   };
 }
 
-/** Reduces free-form input ("https://Www.Example.com/x") to a bare host ("www.example.com"). */
+/** Reduces free-form input ("https://Www.Example.com:8080/x?y=1") to a bare host ("www.example.com"). */
 export function normalizeDomain(input: string): string {
   let value = input.trim().toLowerCase();
   value = value.replace(/^https?:\/\//, "");
-  value = value.replace(/\/.*$/, "");
+  value = value.replace(/[/?#].*$/, ""); // drop path, query, and fragment
+  value = value.replace(/:\d+$/, ""); // drop an explicit port
   return value;
 }
 
