@@ -240,6 +240,12 @@ export default function CommandCenterView({
               Evidence
             </Link>
             <Link
+              href="/dashboard/alerts"
+              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-amber-500/40 text-amber-300 text-sm font-medium hover:border-amber-400 hover:text-amber-200 transition-colors"
+            >
+              Alerts
+            </Link>
+            <Link
               href="/dashboard/audit"
               className="hidden sm:inline-block px-3 py-2 rounded-lg border border-gray-600/50 text-gray-300 text-sm font-medium hover:border-gray-400 hover:text-gray-100 transition-colors"
             >
