@@ -243,7 +243,10 @@ export async function createScan(url: string, opts: { force?: boolean } = {}): P
   try {
     await materializeScanFindings(data.id as string, outcome.url, outcome.findings);
   } catch (err) {
-    log.warn("Failed to materialize scan findings", { error: err instanceof Error ? err.message : String(err) });
+    // Never fail the scan on findings bookkeeping, but surface it to error
+    // tracking so a broken table/migration doesn't silently drop findings.
+    log.error("Failed to materialize scan findings", { error: err instanceof Error ? err.message : String(err) });
+    Sentry.captureException(err);
   }
 
   log.info("Scan completed", { userId: user.id, score: outcome.score, tools: outcome.detectedTools.length });

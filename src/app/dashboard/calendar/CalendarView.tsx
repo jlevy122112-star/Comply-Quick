@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { bucketByDay, parseDay, toDayKey, type CalendarEvent, type CalendarCategory } from "@/lib/calendar/events";
@@ -102,12 +102,14 @@ export default function CalendarView({
   activeClientId,
   feedToken,
   tier,
+  serverToday,
 }: {
   month: CalendarMonthData;
   clients: ClientOption[];
   activeClientId: string | null;
   feedToken: string;
   tier: Tier;
+  serverToday: string;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -118,9 +120,30 @@ export default function CalendarView({
   const [dueDate, setDueDate] = useState(month.monthStart);
   const [category, setCategory] = useState<CalendarCategory>("task");
 
-  const today = toDayKey(new Date());
+  // `today` starts from the server-computed value so SSR and first client render
+  // agree (no hydration mismatch), then is corrected to the viewer's local day
+  // after mount (clock is an external source, so an effect is appropriate here).
+  const [today, setToday] = useState(serverToday);
+  useEffect(() => {
+    const local = toDayKey(new Date());
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (local !== today) setToday(local);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const todayInMonth = today >= month.gridStart && today < month.gridEnd;
   const [selectedDay, setSelectedDay] = useState<string>(todayInMonth ? today : month.monthStart);
+
+  // On soft month navigation the client component is preserved (App Router keeps
+  // state across Link navigations), so reset the selected day and the add-task
+  // default date to the newly displayed month. Adjusting state during render on a
+  // changed prop is the React-recommended pattern (no effect needed).
+  const [prevMonthStart, setPrevMonthStart] = useState(month.monthStart);
+  if (month.monthStart !== prevMonthStart) {
+    setPrevMonthStart(month.monthStart);
+    setSelectedDay(todayInMonth ? today : month.monthStart);
+    setDueDate(month.monthStart);
+  }
 
   // ── One-way calendar linking (ICS subscription) ──
   const [showLink, setShowLink] = useState(false);
