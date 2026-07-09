@@ -11,6 +11,8 @@ import { listProposals, type ProposalListItem } from "@/lib/autopilot/service";
 import { listProjectScans, type ScanRecord } from "@/lib/scanner/service";
 import { listProjectTasks, type ProjectTask } from "@/lib/workspace/tasks";
 import { listProjectMembers, type ProjectMember } from "@/lib/workspace/members";
+import { pendingPressuresForProject } from "@/lib/regulations/alert-impacts";
+import { applyRegulatoryImpact, type RegulatoryScoreAdjustment } from "@/lib/regulations/score-impact";
 import { MODULE_OPTIONS, type ComplianceModule } from "@/components/EnterpriseModules";
 import type { ComplianceScore } from "@/components/ClauseEngine";
 import type { Severity } from "@/components/ui/SeverityPill";
@@ -43,6 +45,8 @@ export interface WorkspaceData {
   scans: ScanRecord[];
   tasks: ProjectTask[];
   members: ProjectMember[];
+  /** Displayed-score adjustment from open (unapproved) regulatory changes. */
+  regulatoryImpact: RegulatoryScoreAdjustment;
 }
 
 /** Score band → finding severity. Below 60 is critical, 60–79 warning, else info. */
@@ -139,13 +143,15 @@ export async function getWorkspaceData(projectId: string): Promise<WorkspaceData
   const project = await getProjectById(projectId);
   if (!project) return null;
 
-  const [proposals, scans, tasks, members] = await Promise.all([
+  const [proposals, scans, tasks, members, pressures] = await Promise.all([
     listProposals("all", projectId),
     listProjectScans(projectId),
     listProjectTasks(projectId),
     listProjectMembers(projectId),
+    pendingPressuresForProject(projectId),
   ]);
   const pendingCount = proposals.filter((p) => p.status === "proposed").length;
+  const regulatoryImpact = applyRegulatoryImpact(project.complianceScore.overall, pressures);
 
   return {
     project,
@@ -157,5 +163,6 @@ export async function getWorkspaceData(projectId: string): Promise<WorkspaceData
     scans,
     tasks,
     members,
+    regulatoryImpact,
   };
 }

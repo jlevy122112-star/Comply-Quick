@@ -176,11 +176,33 @@ function ScoreBreakdown({ score }: { score: WorkspaceData["project"]["compliance
 }
 
 function OverviewPanel({ data, basePath }: { data: WorkspaceData; basePath: string }) {
-  const { project, findings, pendingCount } = data;
+  const { project, findings, pendingCount, regulatoryImpact } = data;
   const criticalCount = findings.filter((f) => f.severity === "critical").length;
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      {regulatoryImpact.actionNeeded && (
+        <div className="lg:col-span-3 flex flex-col gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <span className="text-lg" aria-hidden>
+              ⚠️
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-amber-200">
+                Regulatory exposure: −{regulatoryImpact.penalty} points
+              </p>
+              <p className="mt-0.5 text-xs text-amber-200/80">
+                {regulatoryImpact.pendingCount} unapproved regulatory change
+                {regulatoryImpact.pendingCount !== 1 ? "s" : ""} lowered this project&apos;s effective score to{" "}
+                {regulatoryImpact.adjustedScore}/100. Approve the proposed fixes to restore it.
+              </p>
+            </div>
+          </div>
+          <Link href={`${basePath}?tab=approvals`} className="shrink-0">
+            <Button size="sm">Review fixes</Button>
+          </Link>
+        </div>
+      )}
       <Card className="lg:col-span-2">
         <CardHeader
           title="Compliance score breakdown"
