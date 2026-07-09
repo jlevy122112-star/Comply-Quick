@@ -5,10 +5,28 @@
 // additive RLS policies in migration 0024. All writes are gated to the project
 // owner by RLS; this module resolves the invited email to a user id first.
 
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type ProjectMemberRole = "owner" | "editor" | "viewer";
+
+const LOOKUP_PAGE_SIZE = 200;
+// Bound the search so a pathological account count can't turn one invite into an
+// unbounded scan; 20 pages × 200 = 40k accounts covers realistic usage.
+const LOOKUP_MAX_PAGES = 20;
+
+/** Finds an account by email, paging through the admin user list until found. */
+async function findUserByEmail(admin: SupabaseClient, normalizedEmail: string): Promise<User | null> {
+  for (let page = 1; page <= LOOKUP_MAX_PAGES; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: LOOKUP_PAGE_SIZE });
+    if (error || !data) return null;
+    const match = data.users.find((u) => u.email?.toLowerCase() === normalizedEmail);
+    if (match) return match;
+    if (data.users.length < LOOKUP_PAGE_SIZE) break; // last page reached
+  }
+  return null;
+}
 
 export interface ProjectMember {
   id: string;
@@ -73,9 +91,10 @@ export async function addProjectMember(
   if (!normalized || !normalized.includes("@")) return { ok: false, error: "Enter a valid email." };
 
   // Resolve the invitee to an existing account (invite-to-signup is out of scope).
+  // The admin API has no lookup-by-email, so page through until found or
+  // exhausted rather than only searching the first page.
   const admin = createAdminClient();
-  const { data: list } = await admin.auth.admin.listUsers({ perPage: 200 });
-  const invitee = list?.users.find((u) => u.email?.toLowerCase() === normalized);
+  const invitee = await findUserByEmail(admin, normalized);
   if (!invitee) return { ok: false, error: "No Comply-Quick account exists for that email yet." };
   if (invitee.id === user.id) return { ok: false, error: "You already own this project." };
 
