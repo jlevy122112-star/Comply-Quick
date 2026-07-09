@@ -12,6 +12,7 @@ import AutopilotPanel from "./AutopilotPanel";
 import ScannerPanel from "./ScannerPanel";
 import IntelligencePanel from "./IntelligencePanel";
 import NpsSurvey from "./NpsSurvey";
+import { alertsForRegions, regionsFromProjects, type RegulatoryAlert } from "@/lib/regulations/alerts";
 
 // ─── Framework Display Map ──────────────────────────────────────────────────
 
@@ -30,45 +31,6 @@ const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }>
 };
 
 // ─── Regulatory Alerts ──────────────────────────────────────────────────────
-
-interface RegulatoryAlert {
-  id: string;
-  date: string;
-  title: string;
-  description: string;
-  severity: "info" | "warning" | "critical";
-  affectedRegions: string[];
-}
-
-const REGULATORY_ALERTS: RegulatoryAlert[] = [
-  {
-    id: "alert_1",
-    date: "2026-07-01",
-    title: "CCPA Amendment — Expanded Consumer Rights",
-    description:
-      "California's updated CCPA provisions expand opt-out requirements for automated decision-making. Review affected packages.",
-    severity: "warning",
-    affectedRegions: ["california_ccpa"],
-  },
-  {
-    id: "alert_2",
-    date: "2026-06-15",
-    title: "GDPR Cookie Consent Enforcement Update",
-    description:
-      "EU regulators issued new enforcement guidance requiring explicit per-purpose consent for analytics cookies. Pre-checked boxes are non-compliant.",
-    severity: "critical",
-    affectedRegions: ["eu_gdpr"],
-  },
-  {
-    id: "alert_3",
-    date: "2026-06-01",
-    title: "Brazil LGPD — New Data Breach Notification Rules",
-    description:
-      "ANPD published updated breach notification timelines reducing the reporting window from 72 hours to 48 hours for high-risk incidents.",
-    severity: "info",
-    affectedRegions: ["brazil_lgpd"],
-  },
-];
 
 const ALERT_SEVERITY_STYLES: Record<string, { border: string; icon: string }> = {
   info: { border: "border-sky-500/30", icon: "ℹ️" },
@@ -158,6 +120,8 @@ export default function CommandCenterView({
   const [isPending, startTransition] = useTransition();
   const [portalLoading, setPortalLoading] = useState(false);
   const projectsNeedingAttention = projects.filter((p) => p.status !== "current").length;
+  // Only surface regulatory alerts that touch the jurisdictions this account targets.
+  const alerts = alertsForRegions(regionsFromProjects(projects));
 
   const handleDeleteProject = useCallback((id: string) => {
     startTransition(() => {
@@ -393,15 +357,24 @@ export default function CommandCenterView({
                 )}
               </div>
               {tier === "enterprise" ? (
-                <div className="space-y-3">
-                  {REGULATORY_ALERTS.map((alert) => (
-                    <AlertCard key={alert.id} alert={alert} />
-                  ))}
-                </div>
+                alerts.length > 0 ? (
+                  <div className="space-y-3">
+                    {alerts.map((alert) => (
+                      <AlertCard key={alert.id} alert={alert} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 text-center">
+                    <p className="text-sm text-gray-400">
+                      No open regulatory changes for your targeted jurisdictions. We&apos;ll alert you here when
+                      something shifts.
+                    </p>
+                  </div>
+                )
               ) : (
                 <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
                   <div className="space-y-3 blur-sm opacity-60 select-none pointer-events-none">
-                    {REGULATORY_ALERTS.slice(0, 2).map((alert) => (
+                    {alerts.slice(0, 2).map((alert) => (
                       <div key={alert.id} className="p-3 bg-gray-800/50 rounded-lg">
                         <div className="h-3 bg-gray-700 rounded w-3/4 mb-2" />
                         <div className="h-2 bg-gray-700/50 rounded w-full mb-1" />
