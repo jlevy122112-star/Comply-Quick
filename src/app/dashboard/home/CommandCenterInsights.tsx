@@ -112,15 +112,20 @@ export default function CommandCenterInsights({
           <CardBody className="space-y-3">
             {roi.grossSaved > 0 ? (
               <>
-                <p className="text-3xl font-bold text-emerald-400">{formatUsd(roi.netSaved)}</p>
+                <p className="text-3xl font-bold text-emerald-400">{formatUsd(roi.grossSaved)}</p>
                 <p className="text-xs text-gray-400">
-                  Net legal fees saved across {projects.length} generated package
-                  {projects.length !== 1 ? "s" : ""} vs. commissioning counsel
-                  {annualCost > 0 ? `, after your ${formatUsd(annualCost)}/yr plan` : ""}.
+                  Legal fees avoided across {projects.length} generated package
+                  {projects.length !== 1 ? "s" : ""} vs. commissioning counsel.
                 </p>
-                {roi.roiMultiple !== null && (
-                  <Badge tone="emerald">{roi.roiMultiple}× return on your subscription</Badge>
-                )}
+                {annualCost > 0 &&
+                  (roi.netSaved > 0 ? (
+                    <Badge tone="emerald">
+                      {formatUsd(roi.netSaved)} net after your {formatUsd(annualCost)}/yr plan
+                      {roi.roiMultiple !== null ? ` · ${roi.roiMultiple}× return` : ""}
+                    </Badge>
+                  ) : (
+                    <Badge tone="indigo">Generate more to exceed your {formatUsd(annualCost)}/yr plan cost</Badge>
+                  ))}
               </>
             ) : (
               <>

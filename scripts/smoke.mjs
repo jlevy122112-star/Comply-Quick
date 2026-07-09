@@ -12,7 +12,7 @@
 //   SMOKE_PORT       port to boot next start on (default 3210)
 //   SMOKE_BUDGET_MS  per-screen load budget in ms (default 3000)
 
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { setTimeout as sleep } from "node:timers/promises";
 
 const PORT = Number(process.env.SMOKE_PORT ?? 3210);
@@ -63,8 +63,9 @@ async function checkPublicWithMarker({ path, marker }) {
     failures.push(`${path} → request failed: ${err.message}`);
     return;
   }
-  const ms = Math.round(performance.now() - start);
+  // Drain the body before measuring so the budget reflects full transfer.
   const body = await res.text();
+  const ms = Math.round(performance.now() - start);
   if (res.status !== 200) {
     failures.push(`${path} → HTTP ${res.status} (expected 200)`);
     return;
@@ -116,6 +117,23 @@ async function waitForServer(timeoutMs = 60000) {
 }
 
 let server = null;
+
+// Kill the whole spawned process tree — `next start` runs as a grandchild of the
+// npx wrapper, so a plain server.kill() would orphan the real server locally.
+function stopServer() {
+  if (!server || server.killed) return;
+  try {
+    if (process.platform === "win32") {
+      // Synchronous so the tree is gone before we process.exit().
+      spawnSync("taskkill", ["/pid", String(server.pid), "/t", "/f"]);
+    } else {
+      process.kill(-server.pid, "SIGTERM");
+    }
+  } catch {
+    server.kill();
+  }
+}
+
 async function main() {
   if (!EXTERNAL) {
     console.log(`Starting next start on :${PORT} …`);
@@ -127,11 +145,13 @@ async function main() {
       },
       stdio: "inherit",
       shell: process.platform === "win32",
+      // Own process group on POSIX so we can signal the whole tree.
+      detached: process.platform !== "win32",
     });
     const up = await waitForServer();
     if (!up) {
       console.error("✗ server did not become ready in time");
-      if (server) server.kill();
+      stopServer();
       process.exit(1);
     }
   }
@@ -142,7 +162,7 @@ async function main() {
   console.log("\nProtected screens (must gate to /login):");
   for (const p of PROTECTED_SCREENS) await checkProtected(p);
 
-  if (server) server.kill();
+  stopServer();
 
   if (failures.length) {
     console.error(`\n✗ ${failures.length} screen check(s) failed:`);
@@ -155,6 +175,6 @@ async function main() {
 
 main().catch((err) => {
   console.error("smoke run crashed:", err);
-  if (server) server.kill();
+  stopServer();
   process.exit(1);
 });
