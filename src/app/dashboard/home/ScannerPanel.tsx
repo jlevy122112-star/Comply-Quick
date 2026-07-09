@@ -5,6 +5,8 @@ import Link from "next/link";
 import { computePaywallTriggers } from "@/lib/funnel/triggers";
 import { computeImprovementPath } from "@/lib/score/improvement";
 import { trackFunnel } from "@/lib/funnel/client";
+import { alertsForRegions } from "@/lib/regulations/alerts";
+import type { Tier } from "@/lib/pricing";
 
 interface DetectedTool {
   id: string;
@@ -53,7 +55,7 @@ function scoreColor(score: number): string {
  * findings + score) and shows scan history. Free tier is quota-limited; Pro is
  * unlimited.
  */
-export default function ScannerPanel() {
+export default function ScannerPanel({ tier }: { tier: Tier }) {
   const [url, setUrl] = useState("");
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -140,6 +142,10 @@ export default function ScannerPanel() {
     if (!active || active.score === null) return null;
     return computeImprovementPath(active.score, active.findings);
   }, [active]);
+
+  // Current regulatory developments to reference alongside scan results, from the
+  // canonical feed (single source of truth shared with the dashboard + AI).
+  const regulatoryWatch = useMemo(() => alertsForRegions([]).slice(0, 3), []);
 
   const publish = useCallback(async () => {
     if (!active?.id) return;
@@ -299,6 +305,68 @@ export default function ScannerPanel() {
                     </li>
                   ))}
                 </ol>
+              </div>
+            )}
+
+            {regulatoryWatch.length > 0 && (
+              <div className="mt-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-gray-300">Regulatory watch</p>
+                  {tier === "enterprise" ? (
+                    <span className="text-[11px] text-gray-500">Current developments to stay ahead of</span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-300">
+                      Enterprise
+                    </span>
+                  )}
+                </div>
+                {tier === "enterprise" ? (
+                  <ul className="mt-2 space-y-1.5">
+                    {regulatoryWatch.map((a) => {
+                      const s = SEVERITY_STYLES[a.severity] ?? SEVERITY_STYLES.info;
+                      return (
+                        <li key={a.id} className={`rounded-lg bg-gray-800/50 border ${s.border} p-3`}>
+                          <div className="flex items-center justify-between gap-2">
+                            <p className={`text-xs font-medium ${s.text}`}>
+                              {s.icon} {a.title}
+                            </p>
+                            <span className="shrink-0 text-[11px] text-gray-500">{a.date}</span>
+                          </div>
+                          <p className="mt-1 text-xs text-gray-400">{a.description}</p>
+                          <a
+                            href={a.sourceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-1 inline-block text-[11px] text-indigo-400 hover:text-indigo-300"
+                          >
+                            {a.law} — source &rarr;
+                          </a>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <div className="mt-2 rounded-lg border border-gray-700 bg-gray-800/50 p-3">
+                    <div className="space-y-2 blur-sm opacity-60 select-none pointer-events-none">
+                      {regulatoryWatch.slice(0, 2).map((a) => (
+                        <div key={a.id}>
+                          <p className="text-xs font-medium text-gray-300">{a.title}</p>
+                          <p className="text-[11px] text-gray-500">{a.law}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="mt-2 text-xs text-gray-400">
+                      Live regulatory monitoring tracks your jurisdictions and surfaces changes here.
+                    </p>
+                    <Link
+                      href="/#pricing"
+                      onClick={() => trackFunnel("upgrade_cta_clicked", { surface: "scanner_regwatch" })}
+                      className="mt-2 inline-block text-xs font-semibold text-amber-300 hover:text-amber-200"
+                    >
+                      Upgrade to Enterprise &rarr;
+                    </Link>
+                  </div>
+                )}
               </div>
             )}
 

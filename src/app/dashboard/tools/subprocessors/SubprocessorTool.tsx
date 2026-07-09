@@ -6,6 +6,7 @@ import { buildSubprocessorMap } from "@/lib/tools/subprocessors";
 import type { TrackingPixel } from "@/lib/tools/data";
 import { PixelPicker } from "../_components/Selectors";
 import { NextStepCard, ValueBanner } from "../_components/ToolExtras";
+import { recordToolUsageAction } from "../actions";
 
 function download(filename: string, contents: string, type: string) {
   const blob = new Blob([contents], { type });
@@ -28,6 +29,9 @@ export default function SubprocessorTool() {
 
   const map = useMemo(() => buildSubprocessorMap(pixels), [pixels]);
 
+  // The register is derived reactively, so "usage" is when the user exports it.
+  const markUsed = useCallback(() => void recordToolUsageAction("subprocessors"), []);
+
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
       <div className="lg:col-span-2">
@@ -36,12 +40,15 @@ export default function SubprocessorTool() {
           <CardBody className="space-y-5">
             <PixelPicker selected={pixels} onToggle={toggle} />
             <div className="flex flex-wrap gap-2">
-              <CopyButton value={map.csv} label="Copy CSV" />
-              <CopyButton value={map.markdown} label="Copy Markdown" />
+              <CopyButton value={map.csv} label="Copy CSV" onCopy={markUsed} />
+              <CopyButton value={map.markdown} label="Copy Markdown" onCopy={markUsed} />
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => download("subprocessors.csv", map.csv, "text/csv")}
+                onClick={() => {
+                  download("subprocessors.csv", map.csv, "text/csv");
+                  markUsed();
+                }}
                 disabled={map.rows.length === 0}
               >
                 Download .csv

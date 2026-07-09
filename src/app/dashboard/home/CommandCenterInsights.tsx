@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import type { DbProject } from "@/lib/projects-db";
+import type { QuickToolKey } from "@/lib/tools/usage";
 import type { ComplianceScore } from "@/components/ClauseEngine";
 import type { Tier } from "@/lib/entitlements";
-import { getTierConfig } from "@/lib/pricing";
-import { Badge, Card, CardBody, CardHeader, ProgressBar } from "@/components/ui";
+import { Badge, Card, CardBody, CardHeader, ProgressBar, UpsellCta } from "@/components/ui";
 import { ARTIFACT_VALUES, computeRoi, formatUsd } from "@/lib/roi/value";
 
 interface OnboardingStep {
@@ -18,15 +18,26 @@ interface OnboardingStep {
 
 const MAJOR_REGIMES = ["eu_gdpr", "california_ccpa"];
 
-function buildSteps(projects: DbProject[]): OnboardingStep[] {
+function buildSteps(projects: DbProject[], completedTools: QuickToolKey[]): OnboardingStep[] {
   const hasProject = projects.length > 0;
   const coversRegime = projects.some((p) => p.targetRegions.some((r) => MAJOR_REGIMES.includes(r)));
+  const used = new Set(completedTools);
   return [
     { key: "package", label: "Generate your first compliance package", href: "/dashboard", done: hasProject },
     { key: "regime", label: "Cover a GDPR or CCPA jurisdiction", href: "/dashboard", done: coversRegime },
-    { key: "banner", label: "Add a cookie consent banner", href: "/dashboard/tools/cookie-banner", done: false },
-    { key: "dpa", label: "Generate a DPA for your vendors", href: "/dashboard/tools/dpa", done: false },
-    { key: "subs", label: "Map your subprocessors", href: "/dashboard/tools/subprocessors", done: false },
+    {
+      key: "banner",
+      label: "Add a cookie consent banner",
+      href: "/dashboard/tools/cookie-banner",
+      done: used.has("cookie_banner"),
+    },
+    { key: "dpa", label: "Generate a DPA for your vendors", href: "/dashboard/tools/dpa", done: used.has("dpa") },
+    {
+      key: "subs",
+      label: "Map your subprocessors",
+      href: "/dashboard/tools/subprocessors",
+      done: used.has("subprocessors"),
+    },
   ];
 }
 
@@ -34,12 +45,14 @@ export default function CommandCenterInsights({
   projects,
   tier,
   aggregateScore,
+  completedTools,
 }: {
   projects: DbProject[];
   tier: Tier;
   aggregateScore: ComplianceScore | null;
+  completedTools: QuickToolKey[];
 }) {
-  const steps = useMemo(() => buildSteps(projects), [projects]);
+  const steps = useMemo(() => buildSteps(projects, completedTools), [projects, completedTools]);
   const doneCount = steps.filter((s) => s.done).length;
   const onboardingPct = Math.round((doneCount / steps.length) * 100);
   const nextStep = steps.find((s) => !s.done) ?? null;
@@ -51,10 +64,6 @@ export default function CommandCenterInsights({
   // show a return multiple: we don't track subscription tenure or billing cadence,
   // so any net/ROI-multiple figure would mismatch the lifetime-cumulative value.
   const roi = useMemo(() => computeRoi({ compliance_package: projects.length }), [projects.length]);
-
-  const upsell = tier === "free" || tier === "solo";
-  const nextTier = tier === "free" ? "solo" : "agency";
-  const nextTierCfg = getTierConfig(nextTier);
 
   return (
     <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -131,25 +140,7 @@ export default function CommandCenterInsights({
           </CardBody>
         </Card>
 
-        {upsell && (
-          <Card>
-            <CardBody className="space-y-2">
-              <Badge tone="amber">Upgrade</Badge>
-              <p className="text-sm font-semibold text-white">Unlock more with {nextTierCfg.label}</p>
-              <p className="text-xs text-gray-400">
-                {nextTier === "solo"
-                  ? "Unlimited generations, 20 scans/mo, and full contract shields."
-                  : "Ongoing monitoring, 5 seats, white-label exports and 100 scans/mo."}
-              </p>
-              <Link
-                href="/#pricing"
-                className="mt-1 block w-full rounded-lg bg-amber-500 px-4 py-2 text-center text-sm font-semibold text-gray-950 transition-colors hover:bg-amber-400"
-              >
-                Upgrade to {nextTierCfg.label} — {formatUsd(nextTierCfg.monthly)}/mo
-              </Link>
-            </CardBody>
-          </Card>
-        )}
+        <UpsellCta tier={tier} />
       </div>
     </section>
   );

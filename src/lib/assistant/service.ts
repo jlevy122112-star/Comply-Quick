@@ -9,6 +9,7 @@
 import { FRAMEWORKS, TRACKING_PIXELS, TARGET_REGIONS } from "@/components/ClauseEngine";
 import { COMPLIANCE_MODULES } from "@/components/EnterpriseModules";
 import { REGION_RULES, PIXEL_VENDORS } from "@/lib/tools/data";
+import { alertsDigest } from "@/lib/regulations/alerts";
 import { getAiClient } from "@/services/ai";
 
 export type AssistantRole = "user" | "assistant";
@@ -45,6 +46,15 @@ export function buildSystemPrompt(context?: AssistantContext): string {
       }.`
     : "";
 
+  const digest = alertsDigest();
+  const regulatory = digest
+    ? [
+        "",
+        "Current regulatory developments to reference when relevant (do not fabricate beyond these; cite the linked source):",
+        digest,
+      ].join("\n")
+    : "";
+
   return [
     "You are the Comply-Quick Compliance Assistant, an expert guide for web developers, agencies, and merchants on privacy and web-compliance topics (GDPR, CCPA/CPRA, LGPD, PIPEDA, Australian Privacy Principles, ADA/WCAG, HIPAA, PCI-DSS, SOC 2).",
     "You help users understand their obligations AND drive them to the right in-app tool. Be concise, practical, and specific. Use short paragraphs or bullet lists.",
@@ -62,6 +72,7 @@ export function buildSystemPrompt(context?: AssistantContext): string {
     `Enterprise modules: ${COMPLIANCE_MODULES.join(", ")}.`,
     "",
     "Rules: Never claim to give legal advice — add a brief reminder that outputs are not legal advice for consequential questions. Do not invent regulations or citations. If a question is outside privacy/web-compliance, briefly redirect. When a user asks 'what should I do', give a concrete next step tied to a specific tool above.",
+    regulatory,
     ctx,
   ].join("\n");
 }

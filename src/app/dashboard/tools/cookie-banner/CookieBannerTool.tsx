@@ -6,6 +6,7 @@ import { generateConsentBanner, type CookieConsentResult } from "@/lib/tools/coo
 import type { TargetRegion, TrackingPixel } from "@/lib/tools/data";
 import { PixelPicker, RegionPicker } from "../_components/Selectors";
 import { GenerateProgress, NextStepCard, ValueBanner } from "../_components/ToolExtras";
+import { recordToolUsageAction } from "../actions";
 
 const GEN_STEPS = [
   "Resolving governing consent model…",
@@ -57,6 +58,7 @@ export default function CookieBannerTool() {
     setResult(output);
     setGenerating(false);
     setTab("preview");
+    void recordToolUsageAction("cookie_banner");
   }, [canGenerate, companyName, privacyPolicyUrl, regions, pixels]);
 
   const previewSrcDoc = useMemo(() => {
