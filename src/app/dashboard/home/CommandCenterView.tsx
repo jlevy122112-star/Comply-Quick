@@ -554,7 +554,17 @@ function AlertCard({ alert }: { alert: RegulatoryAlert }) {
         <div>
           <h3 className="text-sm font-medium text-white">{alert.title}</h3>
           <p className="text-xs text-gray-400 mt-1">{alert.description}</p>
-          <p className="text-xs text-gray-500 mt-2">{alert.date}</p>
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <a
+              href={alert.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-indigo-400 hover:text-indigo-300"
+            >
+              {alert.law} — source &rarr;
+            </a>
+            <span className="shrink-0 text-xs text-gray-500">{alert.date}</span>
+          </div>
         </div>
       </div>
     </div>

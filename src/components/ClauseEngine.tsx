@@ -703,7 +703,16 @@ const REVIEW_CADENCE_DAYS = 90;
  * package always yields the same ID.
  */
 function documentId(pkg: CompliancePackage, generatedOn: string): string {
-  const seed = `${pkg.inwardContractShield.preamble}|${pkg.complianceScore.overall}|${pkg.developerPreLaunchChecklist.items.length}`;
+  // Seed spans the full package so distinct configurations yield distinct IDs.
+  const seed = [
+    pkg.inwardContractShield.preamble,
+    pkg.inwardContractShield.clauses.map((c) => c.title).join(","),
+    pkg.consumerPrivacyPolicyAddendum.scriptDeclarations.length,
+    pkg.consumerPrivacyPolicyAddendum.regionalDisclosures.join("|"),
+    pkg.developerPreLaunchChecklist.items.map((i) => i.action).join(","),
+    (pkg.enterpriseModules ?? []).map((m) => m.moduleName).join(","),
+    pkg.complianceScore.overall,
+  ].join("||");
   let hash = 5381;
   for (let i = 0; i < seed.length; i++) hash = ((hash << 5) + hash + seed.charCodeAt(i)) >>> 0;
   return `CQ-${generatedOn.replace(/-/g, "")}-${hash.toString(36).toUpperCase().padStart(6, "0").slice(0, 6)}`;
