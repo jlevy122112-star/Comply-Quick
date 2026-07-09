@@ -278,6 +278,18 @@ describe("exportToMarkdown", () => {
     expect(md).toContain(`**Compliance Score: ${pkg.complianceScore.overall}/100**`);
   });
 
+  it("includes an enterprise document-control block with a stable, deterministic id", () => {
+    const md = exportToMarkdown(pkg);
+    expect(md).toContain("### Document Control");
+    expect(md).toContain("| Version | 1.0 |");
+    expect(md).toContain("| Effective date |");
+    expect(md).toContain("| Next scheduled review |");
+    const id = md.match(/\| Document ID \| (CQ-\d{8}-[0-9A-Z]{6}) \|/);
+    expect(id).not.toBeNull();
+    // Deterministic: the same package renders the same document ID.
+    expect(exportToMarkdown(pkg)).toContain(id![1]);
+  });
+
   it("includes all sections: contract shield, privacy, checklist, enterprise, score breakdown", () => {
     const md = exportToMarkdown(pkg);
     expect(md).toContain("## 1. Inward Contract Shield");

@@ -335,7 +335,7 @@ export default function CommandCenterView({
 
             {/* Compliance Scanner */}
             <div id="scanner" className="scroll-mt-8">
-              <ScannerPanel />
+              <ScannerPanel tier={tier} />
             </div>
 
             {/* Compliance Intelligence — proactive monitoring + alerts */}
