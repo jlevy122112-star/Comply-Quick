@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useTransition } from "react";
+import { useState, useCallback, useMemo, useTransition } from "react";
 import Link from "next/link";
 import type { DbProject } from "@/lib/projects-db";
 import type { ComplianceScore } from "@/components/ClauseEngine";
@@ -124,7 +124,7 @@ export default function CommandCenterView({
   const [portalLoading, setPortalLoading] = useState(false);
   const projectsNeedingAttention = projects.filter((p) => p.status !== "current").length;
   // Only surface regulatory alerts that touch the jurisdictions this account targets.
-  const alerts = alertsForRegions(regionsFromProjects(projects));
+  const alerts = useMemo(() => alertsForRegions(regionsFromProjects(projects)), [projects]);
 
   const handleDeleteProject = useCallback((id: string) => {
     startTransition(() => {
@@ -382,8 +382,8 @@ export default function CommandCenterView({
               ) : (
                 <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
                   <div className="space-y-3 blur-sm opacity-60 select-none pointer-events-none">
-                    {alerts.slice(0, 2).map((alert) => (
-                      <div key={alert.id} className="p-3 bg-gray-800/50 rounded-lg">
+                    {[0, 1].map((i) => (
+                      <div key={i} className="p-3 bg-gray-800/50 rounded-lg">
                         <div className="h-3 bg-gray-700 rounded w-3/4 mb-2" />
                         <div className="h-2 bg-gray-700/50 rounded w-full mb-1" />
                         <div className="h-2 bg-gray-700/50 rounded w-2/3" />

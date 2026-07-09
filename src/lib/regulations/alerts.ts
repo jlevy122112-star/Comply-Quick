@@ -31,8 +31,9 @@ export interface RegulatoryAlert {
 }
 
 /**
- * Current regulatory developments, newest first. Extend this list as
- * regulations change — every consuming surface updates automatically.
+ * Current regulatory developments. Array order is not significant — consumers go
+ * through `alertsForRegions`, which sorts newest-first. Extend this list as
+ * regulations change and every consuming surface updates automatically.
  */
 export const REGULATORY_ALERTS: RegulatoryAlert[] = [
   {
