@@ -89,19 +89,41 @@ export async function saveEvidencePack(pack: AuditEvidencePack, projectId: strin
   }));
   if (rows.length === 0) return true;
 
-  // NULL project_id can't be an upsert conflict target (NULL != NULL in unique
-  // constraints), so for account-wide packs we clear the prior set for this
-  // (user, framework, no-project) scope and re-insert. The pack was compiled
-  // against the existing ledger, so preserved statuses carry into the new rows.
+  // NULL project_id can't be a PostgREST `onConflict` upsert target — the
+  // partial unique index from 0026 (…WHERE project_id IS NULL) needs an
+  // ON CONFLICT WHERE predicate PostgREST can't express. So upsert each row
+  // manually: update the existing (user, framework, control, no-project) row if
+  // present, else insert. Crucially this never deletes first, so a mid-run
+  // failure can only leave some rows un-refreshed — it can never wipe the
+  // user's evidence, unlike the previous delete-then-insert.
   if (projectId === null) {
-    await supabase
-      .from("evidence_records")
-      .delete()
-      .eq("user_id", user.id)
-      .eq("framework", pack.framework)
-      .is("project_id", null);
-    const { error } = await supabase.from("evidence_records").insert(rows);
-    return !error;
+    let ok = true;
+    for (const row of rows) {
+      const { data: updated, error: updateError } = await supabase
+        .from("evidence_records")
+        .update({
+          control_title: row.control_title,
+          risk_level: row.risk_level,
+          status: row.status,
+          required_evidence: row.required_evidence,
+          source_url: row.source_url,
+          generated_at: row.generated_at,
+          updated_at: row.updated_at,
+        })
+        .eq("user_id", user.id)
+        .eq("framework", row.framework)
+        .eq("control_id", row.control_id)
+        .is("project_id", null)
+        .select("id");
+      if (updateError) {
+        ok = false;
+        continue;
+      }
+      if (updated && updated.length > 0) continue; // row existed → updated
+      const { error: insertError } = await supabase.from("evidence_records").insert(row);
+      if (insertError) ok = false;
+    }
+    return ok;
   }
 
   const { error } = await supabase
