@@ -43,8 +43,15 @@ export interface NotificationItem {
   createdAt: string;
 }
 
-/** Lists the current user's proposals (defaults to those awaiting review). */
-export async function listProposals(status: "proposed" | "all" = "proposed"): Promise<ProposalListItem[]> {
+/**
+ * Lists the current user's proposals (defaults to those awaiting review).
+ * Pass `projectId` to scope the DB query to a single project instead of
+ * fetching every proposal and filtering in memory.
+ */
+export async function listProposals(
+  status: "proposed" | "all" = "proposed",
+  projectId?: string
+): Promise<ProposalListItem[]> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -57,6 +64,7 @@ export async function listProposals(status: "proposed" | "all" = "proposed"): Pr
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
   if (status === "proposed") query = query.eq("status", "proposed");
+  if (projectId) query = query.eq("project_id", projectId);
 
   const { data, error } = await query;
   if (error || !data) return [];

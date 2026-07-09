@@ -222,6 +222,12 @@ export default function CommandCenterView({
               Partners
             </Link>
             <Link
+              href="/dashboard/findings"
+              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-rose-500/40 text-rose-300 text-sm font-medium hover:border-rose-400 hover:text-rose-200 transition-colors"
+            >
+              Findings
+            </Link>
+            <Link
               href="/dashboard/calendar"
               className="hidden sm:inline-block px-3 py-2 rounded-lg border border-sky-500/40 text-sky-300 text-sm font-medium hover:border-sky-400 hover:text-sky-200 transition-colors"
             >

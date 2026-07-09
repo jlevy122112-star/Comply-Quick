@@ -133,8 +133,7 @@ export async function getWorkspaceData(projectId: string): Promise<WorkspaceData
   const project = await getProjectById(projectId);
   if (!project) return null;
 
-  const all = await listProposals("all");
-  const proposals = all.filter((p) => p.projectId === projectId);
+  const proposals = await listProposals("all", projectId);
   const pendingCount = proposals.filter((p) => p.status === "proposed").length;
 
   return {

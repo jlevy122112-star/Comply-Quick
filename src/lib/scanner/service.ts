@@ -13,6 +13,7 @@ import { UnauthorizedError } from "@/services/errors";
 import { recordScanUsage, currentPeriod, periodStartIso } from "@/lib/billing/usage";
 import { scanLimit } from "@/lib/pricing";
 import { runScan } from "./pipeline";
+import { materializeScanFindings } from "@/lib/findings-db";
 import { normalizeScanUrl } from "./crawler";
 import type { DetectedTool, Finding } from "./analyzer";
 
@@ -236,6 +237,14 @@ export async function createScan(url: string, opts: { force?: boolean } = {}): P
     userId: user.id,
     properties: { score: outcome.score ?? 0, tools: outcome.detectedTools.length },
   });
+
+  // Promote this scan's findings into first-class, trackable rows (scan-first:
+  // works even when the user has no project). Best-effort — never fail the scan.
+  try {
+    await materializeScanFindings(data.id as string, outcome.url, outcome.findings);
+  } catch (err) {
+    log.warn("Failed to materialize scan findings", { error: err instanceof Error ? err.message : String(err) });
+  }
 
   log.info("Scan completed", { userId: user.id, score: outcome.score, tools: outcome.detectedTools.length });
   return mapRow(data);
