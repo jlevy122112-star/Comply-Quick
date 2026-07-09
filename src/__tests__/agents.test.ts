@@ -139,6 +139,13 @@ describe("ingestion normalizers", () => {
     expect(h1).toBe(h2);
   });
 
+  it("strips script/style bodies even with whitespace or attributes in the close tag", () => {
+    const base = hashPageText("Hello World");
+    expect(hashPageText("<script>evil()</script >Hello World")).toBe(base);
+    expect(hashPageText("<script src='x'>evil()</script\n>Hello World")).toBe(base);
+    expect(hashPageText("<style>.a{}</style  >Hello World")).toBe(base);
+  });
+
   it("normalizes an OSCAL catalog into controls", () => {
     const raw = {
       catalog: {
