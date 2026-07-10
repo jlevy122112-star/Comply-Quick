@@ -3,7 +3,13 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Clarity } from "@/components/analytics/Clarity";
+import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 import "./globals.css";
+
+// Google Search Console verification token (env-gated). Validated to the token
+// charset so a misconfigured env var can't inject arbitrary meta content.
+const GSC_TOKEN = process.env.NEXT_PUBLIC_GSC_VERIFICATION;
+const GSC_VERIFICATION = GSC_TOKEN && /^[A-Za-z0-9_-]{1,128}$/.test(GSC_TOKEN) ? GSC_TOKEN : undefined;
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -57,6 +63,7 @@ export const metadata: Metadata = {
     follow: true,
     googleBot: { index: true, follow: true },
   },
+  ...(GSC_VERIFICATION ? { verification: { google: GSC_VERIFICATION } } : {}),
 };
 
 export default function RootLayout({
@@ -71,6 +78,7 @@ export default function RootLayout({
         <Analytics />
         <SpeedInsights />
         <Clarity />
+        <GoogleAnalytics />
       </body>
     </html>
   );

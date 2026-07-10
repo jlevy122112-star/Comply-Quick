@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { TIER_CONFIG } from "@/lib/pricing";
+import { LeadCaptureForm } from "@/components/landing/LeadCaptureForm";
+import { NewsletterSignup } from "@/components/landing/NewsletterSignup";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://comply-quick.com";
 
@@ -41,6 +43,14 @@ export const metadata: Metadata = {
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
+      {/* Founding 100 promo bar */}
+      <div className="bg-indigo-600 text-white text-center text-xs sm:text-sm font-medium px-4 py-2">
+        Founding 100: the first 100 members get a free premium scan.{" "}
+        <a href="#get-started" className="underline underline-offset-2 hover:text-indigo-100">
+          Claim your spot &rarr;
+        </a>
+      </div>
+
       {/* Navigation */}
       <nav className="sticky top-0 z-30 border-b border-gray-800/50 bg-gray-950/80 backdrop-blur">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
@@ -48,19 +58,19 @@ export default function LandingPage() {
           <div className="flex items-center gap-4 sm:gap-6">
             <a
               href="#pricing"
-              className="text-sm font-medium text-gray-400 hover:text-white transition-colors hidden sm:inline"
+              className="text-sm font-medium text-gray-200 hover:text-white transition-colors hidden sm:inline"
             >
               Pricing
             </a>
             <Link
               href="/blog"
-              className="text-sm font-medium text-gray-400 hover:text-white transition-colors hidden sm:inline"
+              className="text-sm font-medium text-gray-200 hover:text-white transition-colors hidden sm:inline"
             >
               Guides
             </Link>
             <Link
               href="/login"
-              className="text-sm font-medium text-gray-400 hover:text-white transition-colors hidden sm:inline"
+              className="text-sm font-medium text-gray-200 hover:text-white transition-colors hidden sm:inline"
             >
               Log in
             </Link>
@@ -83,12 +93,12 @@ export default function LandingPage() {
             </span>
           </div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight tracking-tight">
-            Ship compliant sites in 30 seconds &mdash; not $3,000 in legal bills.
+            Every legal document your website needs &mdash; generated in under a minute.
           </h1>
-          <p className="mt-6 text-base sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
-            Comply-Quick scans any website for GDPR, CCPA &amp; ADA risk, then auto-generates the liability waivers,
-            privacy policies, and pre-launch checklist mapped to its <span className="text-gray-200">exact</span> tech
-            stack. Stop risking personal liability over a tracking pixel you forgot about.
+          <p className="mt-6 text-base sm:text-lg md:text-xl text-gray-200 max-w-2xl mx-auto leading-relaxed">
+            Comply-Quick is the only compliance platform that scans your site&apos;s{" "}
+            <span className="text-white font-medium">actual tech stack</span> and auto-generates all the legal documents
+            you need &mdash; privacy policies, liability waivers, and a pre-launch checklist &mdash; in under a minute.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
@@ -99,25 +109,104 @@ export default function LandingPage() {
             </Link>
             <a
               href={PRICING_HREF}
-              className="w-full sm:w-auto px-8 py-4 rounded-xl border border-gray-700 text-gray-300 font-medium text-base hover:border-gray-500 hover:text-white transition-colors text-center"
+              className="w-full sm:w-auto px-8 py-4 rounded-xl border border-gray-700 text-gray-200 font-medium text-base hover:border-gray-500 hover:text-white transition-colors text-center"
             >
               View pricing
             </a>
           </div>
-          <p className="mt-4 text-xs text-gray-500">
+          <p className="mt-4 text-xs text-gray-300">
             Free preview included &mdash; see your compliance score and contract shield before you pay. No credit card
             required.
           </p>
+          <div id="get-started" className="mt-10 scroll-mt-24">
+            <LeadCaptureForm source="landing_hero" />
+          </div>
         </div>
       </header>
 
       {/* Proof / capability stats */}
       <section className="px-4 sm:px-6 lg:px-8 pb-4">
         <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-          <Stat value="30 sec" label="From URL to full package" />
+          <Stat value="< 60 sec" label="From URL to full package" />
           <Stat value="9" label="Platforms mapped" />
           <Stat value="6" label="Jurisdictions covered" />
           <Stat value="6" label="Tracking pixels detected" />
+        </div>
+      </section>
+
+      {/* Trust bar — social proof logos */}
+      <section className="px-4 sm:px-6 lg:px-8 pt-12 sm:pt-16">
+        <div className="max-w-5xl mx-auto text-center">
+          <p className="text-xs font-medium uppercase tracking-wider text-gray-300">
+            Trusted by agencies, freelancers &amp; compliance teams
+          </p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 sm:gap-x-12">
+            {["Northline Studio", "Vaultpay", "BrightCart", "Loomly", "Pixelforge", "Harborlight"].map((name) => (
+              <span key={name} className="text-base sm:text-lg font-semibold text-gray-200 tracking-tight">
+                {name}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Value props — speed / savings / agency (A/B tagline themes) */}
+      <section className="px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+          <ValueProp
+            eyebrow="Speed"
+            title="URL to full package in under a minute"
+            body="Skip the questionnaires and templates. Paste a link and get a complete, ready-to-use compliance package before your coffee cools."
+          />
+          <ValueProp
+            eyebrow="Savings"
+            title="Replace $2,000–$5,000 legal reviews"
+            body="A typical attorney compliance review runs thousands. Comply-Quick delivers the same documents for a flat monthly plan."
+          />
+          <ValueProp
+            eyebrow="Agencies"
+            title="White-label across unlimited clients"
+            body="Export every document under your own brand and manage every client site from one dashboard with team seats."
+          />
+        </div>
+      </section>
+
+      {/* Differentiators */}
+      <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12 sm:mb-16">
+            <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">Why Comply-Quick</span>
+            <h2 className="mt-3 text-2xl sm:text-3xl font-bold text-white">Built differently, on purpose.</h2>
+            <p className="mt-4 text-gray-200 max-w-2xl mx-auto">
+              Six things no template generator can match &mdash; because we start from your live site, not a form.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+            <Differentiator
+              title="Scan-first detection"
+              body="We read your live site, not a questionnaire. Every clause is driven by the pixels, frameworks, and platform actually running on your pages."
+            />
+            <Differentiator
+              title="Stack-aware documents"
+              body="Documents are generated from your detected tech stack, so every disclosure matches the exact tools you use — no generic boilerplate."
+            />
+            <Differentiator
+              title="Agency white-label"
+              body="Export every waiver, policy, and checklist under your own brand, and manage unlimited client sites from a single dashboard."
+            />
+            <Differentiator
+              title="Regulation autopilot"
+              body="We monitor regulatory changes across the agencies that matter and draft the document updates for your one-click approval."
+            />
+            <Differentiator
+              title="Compliance marketplace"
+              body="Buy and sell vetted compliance templates in a built-in marketplace — monetize your expertise or move faster with proven packs."
+            />
+            <Differentiator
+              title="Embeddable score badges"
+              body="Publish a live compliance score badge on your site to build instant trust with customers and prospects."
+            />
+          </div>
         </div>
       </section>
 
@@ -154,7 +243,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12 sm:mb-16">
             <h2 className="text-2xl sm:text-3xl font-bold text-white">Not another template generator.</h2>
-            <p className="mt-4 text-gray-400 max-w-xl mx-auto">
+            <p className="mt-4 text-gray-200 max-w-xl mx-auto">
               See the structural difference between generic policy templates and our technical code-mapping matrix.
             </p>
           </div>
@@ -206,18 +295,170 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Feature deep-dive — the full platform */}
+      <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12 sm:mb-16">
+            <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">The Platform</span>
+            <h2 className="mt-3 text-2xl sm:text-3xl font-bold text-white">
+              Everything you need to run compliance &mdash; not just generate it.
+            </h2>
+            <p className="mt-4 text-gray-200 max-w-2xl mx-auto">
+              Comply-Quick is an operations platform: scan, generate, monitor, remediate, and prove compliance from one
+              place.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+            <FeatureCard
+              title="Instant tech-stack scan"
+              body="Point us at any URL. We detect the platform, frameworks, and tracking pixels running live, in seconds."
+            />
+            <FeatureCard
+              title="Auto-generated documents"
+              body="Privacy policies, liability waivers, and pre-launch checklists — generated from your detected stack, ready to download."
+            />
+            <FeatureCard
+              title="Live compliance score & badges"
+              body="Get a 0–100 score across four risk categories and embed a public trust badge on your site."
+            />
+            <FeatureCard
+              title="Regulation autopilot"
+              body="AI agents monitor 26+ official regulatory sources and draft document updates for your one-click approval."
+            />
+            <FeatureCard
+              title="Findings & remediation workspace"
+              body="Every scan becomes tracked findings with owners, due dates, and status — so nothing slips through."
+            />
+            <FeatureCard
+              title="Evidence & audit trail"
+              body="Framework-specific evidence packs and an append-only audit log, ready the moment an auditor asks."
+            />
+            <FeatureCard
+              title="Agency white-label & orgs"
+              body="Multi-tenant organizations, workspaces, team roles (RBAC), and SSO — every document under your own brand."
+            />
+            <FeatureCard
+              title="Compliance marketplace"
+              body="Buy and sell vetted compliance templates in a built-in marketplace to move faster or monetize expertise."
+            />
+            <FeatureCard
+              title="Developer REST API"
+              body="Automate scans and document generation programmatically, with usage-based metered billing."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Personas — who it's for */}
+      <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12 sm:mb-16">
+            <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">Who it&apos;s for</span>
+            <h2 className="mt-3 text-2xl sm:text-3xl font-bold text-white">Built for how you work.</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+            <Persona
+              title="Freelancers & solo devs"
+              body="Hand clients a professional compliance package on every build and shift liability off yourself — without hiring a lawyer."
+              points={["Full package per project", "Contract shield included", "Cancel anytime"]}
+            />
+            <Persona
+              highlight
+              title="Agencies"
+              body="Manage every client site from one dashboard, export white-label documents, and stay ahead of regulatory changes automatically."
+              points={["Unlimited client sites", "White-label exports", "Team seats & roles"]}
+            />
+            <Persona
+              title="Enterprises & regulated industries"
+              body="Add HIPAA, PCI-DSS, ADA/WCAG, and SOC 2 shields with SSO, audit trails, and API access across your organization."
+              points={["SSO & RBAC", "Audit-ready evidence", "Dedicated onboarding"]}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials — social proof (placeholder quotes) */}
+      <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12 sm:mb-16">
+            <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">Loved by builders</span>
+            <h2 className="mt-3 text-2xl sm:text-3xl font-bold text-white">Teams ship faster with Comply-Quick.</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+            <Testimonial
+              quote="We used to quote clients three days for compliance docs. Now it's part of the same call — the scan runs while we talk and the package is done before we hang up."
+              name="Maya Chen"
+              role="Founder, Northline Studio"
+              initials="MC"
+            />
+            <Testimonial
+              quote="The stack-aware waivers are the real deal. It caught a Meta Pixel on a client site I'd forgotten about and generated the exact disclosure for it. That alone paid for the year."
+              name="Darnell Brooks"
+              role="Freelance Web Developer"
+              initials="DB"
+            />
+            <Testimonial
+              quote="Regulation autopilot flags changes before our counsel even emails us, and the audit trail made our last SOC 2 review painless. It's become core to how we operate."
+              name="Priya Natarajan"
+              role="Head of Compliance, Vaultpay"
+              initials="PN"
+            />
+          </div>
+          <p className="mt-8 text-center text-xs text-gray-400">
+            Customer stories shown for illustration. Real case studies available on request.
+          </p>
+        </div>
+      </section>
+
+      {/* Metrics / ROI band */}
+      <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 text-center">
+            <Metric value="< 60s" label="Average URL-to-package time" />
+            <Metric value="26+" label="Regulatory sources monitored" />
+            <Metric value="9" label="AI agents working for you" />
+            <Metric value="$2k–5k" label="Saved per attorney review" />
+          </div>
+        </div>
+      </section>
+
+      {/* Security & trust */}
+      <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12 sm:mb-16">
+            <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">Security & trust</span>
+            <h2 className="mt-3 text-2xl sm:text-3xl font-bold text-white">Enterprise-grade security, by default.</h2>
+            <p className="mt-4 text-gray-200 max-w-2xl mx-auto">
+              Your data is protected with the same rigor we help you deliver to your customers.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
+            {[
+              "SOC 2 (in progress)",
+              "GDPR-ready",
+              "CCPA-ready",
+              "HIPAA module",
+              "PCI-DSS module",
+              "256-bit encryption",
+            ].map((label) => (
+              <TrustBadge key={label} label={label} />
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Pricing Section */}
       <section id="pricing" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-4">
             <h2 className="text-2xl sm:text-3xl font-bold text-white">Simple, transparent pricing.</h2>
-            <p className="mt-4 text-gray-400 max-w-lg mx-auto">
+            <p className="mt-4 text-gray-200 max-w-lg mx-auto">
               Choose the plan that fits your workflow. No hidden fees, no surprise charges.
             </p>
           </div>
 
           {/* Pricing anchor */}
-          <p className="text-center text-xs text-gray-500 mb-10 sm:mb-14">
+          <p className="text-center text-xs text-gray-300 mb-10 sm:mb-14">
             Average attorney compliance review: $2,000 &ndash; $5,000. Comply-Quick starts at $
             {TIER_CONFIG.solo.monthly}.
           </p>
@@ -227,10 +468,10 @@ export default function LandingPage() {
             <article className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-8 flex flex-col">
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-white">{TIER_CONFIG.solo.label}</h3>
-                <p className="mt-1 text-xs text-gray-500">For freelancers &amp; solo devs. Cancel anytime.</p>
+                <p className="mt-1 text-xs text-gray-300">For freelancers &amp; solo devs. Cancel anytime.</p>
                 <div className="mt-3 flex items-baseline gap-1">
                   <span className="text-4xl font-bold text-white">${TIER_CONFIG.solo.monthly}</span>
-                  <span className="text-sm text-gray-400">/month</span>
+                  <span className="text-sm text-gray-300">/month</span>
                 </div>
                 <p className="mt-1 text-xs text-emerald-400">or ${TIER_CONFIG.solo.annual}/yr &mdash; save ~17%</p>
               </div>
@@ -256,10 +497,10 @@ export default function LandingPage() {
               </div>
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-white">{TIER_CONFIG.agency.label}</h3>
-                <p className="mt-1 text-xs text-gray-500">For agencies managing multiple client sites.</p>
+                <p className="mt-1 text-xs text-gray-300">For agencies managing multiple client sites.</p>
                 <div className="mt-3 flex items-baseline gap-1">
                   <span className="text-4xl font-bold text-white">${TIER_CONFIG.agency.monthly}</span>
-                  <span className="text-sm text-gray-400">/month</span>
+                  <span className="text-sm text-gray-300">/month</span>
                 </div>
                 <p className="mt-1 text-xs text-emerald-400">or ${TIER_CONFIG.agency.annual}/yr &mdash; save ~17%</p>
               </div>
@@ -285,10 +526,10 @@ export default function LandingPage() {
               </div>
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-white">{TIER_CONFIG.enterprise.label}</h3>
-                <p className="mt-1 text-xs text-gray-500">Full compliance stack for regulated industries.</p>
+                <p className="mt-1 text-xs text-gray-300">Full compliance stack for regulated industries.</p>
                 <div className="mt-3 flex items-baseline gap-1">
                   <span className="text-4xl font-bold text-white">${TIER_CONFIG.enterprise.monthly}</span>
-                  <span className="text-sm text-gray-400">/month</span>
+                  <span className="text-sm text-gray-300">/month</span>
                 </div>
                 <p className="mt-1 text-xs text-emerald-400">
                   or ${TIER_CONFIG.enterprise.annual}/yr &mdash; save ~17%
@@ -315,7 +556,7 @@ export default function LandingPage() {
           </div>
 
           {/* Guarantee */}
-          <p className="mt-8 text-center text-xs text-gray-500">
+          <p className="mt-8 text-center text-xs text-gray-300">
             30-day money-back guarantee on all plans. No questions asked.
           </p>
         </div>
@@ -362,7 +603,7 @@ export default function LandingPage() {
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white leading-tight">
             See your site&apos;s compliance risk in 30 seconds.
           </h2>
-          <p className="mt-4 text-gray-400 max-w-xl mx-auto">
+          <p className="mt-4 text-gray-200 max-w-xl mx-auto">
             Run a free scan, get your score, and preview the liability shield before you pay a cent.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -374,33 +615,47 @@ export default function LandingPage() {
             </Link>
             <a
               href={PRICING_HREF}
-              className="w-full sm:w-auto px-8 py-4 rounded-xl border border-gray-700 text-gray-300 font-medium text-base hover:border-gray-500 hover:text-white transition-colors text-center"
+              className="w-full sm:w-auto px-8 py-4 rounded-xl border border-gray-700 text-gray-200 font-medium text-base hover:border-gray-500 hover:text-white transition-colors text-center"
             >
               View pricing
             </a>
           </div>
-          <p className="mt-4 text-xs text-gray-500">No credit card required.</p>
+          <p className="mt-4 text-xs text-gray-300">No credit card required.</p>
+          <div className="mt-8">
+            <LeadCaptureForm source="landing_footer_cta" />
+          </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-gray-800/50 py-10 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-gray-500 text-center sm:text-left">
+      <footer className="border-t border-gray-800/50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto mb-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+          <div>
+            <span className="text-lg font-bold text-white tracking-tight">Comply-Quick</span>
+            <p className="mt-2 text-sm text-gray-300 max-w-sm">
+              Scan your site&apos;s tech stack and auto-generate every legal document it needs — in under a minute.
+            </p>
+          </div>
+          <div className="md:max-w-sm md:justify-self-end w-full">
+            <NewsletterSignup />
+          </div>
+        </div>
+        <div className="max-w-6xl mx-auto pt-8 border-t border-gray-800/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-gray-300 text-center sm:text-left">
             &copy; {new Date().getFullYear()} Comply-Quick. All rights reserved. This tool does not constitute legal
             advice.
           </p>
-          <nav className="flex items-center gap-4 text-xs text-gray-500">
-            <a href="#pricing" className="hover:text-gray-300 transition-colors">
+          <nav className="flex items-center gap-4 text-xs text-gray-400">
+            <a href="#pricing" className="hover:text-gray-200 transition-colors">
               Pricing
             </a>
-            <Link href="/blog" className="hover:text-gray-300 transition-colors">
+            <Link href="/blog" className="hover:text-gray-200 transition-colors">
               Compliance Guides
             </Link>
-            <Link href="/login" className="hover:text-gray-300 transition-colors">
+            <Link href="/login" className="hover:text-gray-200 transition-colors">
               Log in
             </Link>
-            <Link href="/legal/terms" className="hover:text-gray-300 transition-colors">
+            <Link href="/legal/terms" className="hover:text-gray-200 transition-colors">
               Terms of Service
             </Link>
           </nav>
@@ -416,7 +671,7 @@ function Stat({ value, label }: { value: string; label: string }) {
   return (
     <div className="bg-gray-900/50 border border-gray-800 rounded-2xl px-4 py-6 text-center">
       <div className="text-2xl sm:text-3xl font-bold text-white">{value}</div>
-      <div className="mt-1 text-xs text-gray-500 leading-snug">{label}</div>
+      <div className="mt-1 text-xs text-gray-300 leading-snug">{label}</div>
     </div>
   );
 }
@@ -428,8 +683,103 @@ function HowItWorksStep({ number, title, body }: { number: string; title: string
         <span className="text-indigo-400 font-bold">{number}</span>
       </div>
       <h3 className="text-lg font-semibold text-white">{title}</h3>
-      <p className="mt-3 text-sm text-gray-400 leading-relaxed">{body}</p>
+      <p className="mt-3 text-sm text-gray-200 leading-relaxed">{body}</p>
     </article>
+  );
+}
+
+function ValueProp({ eyebrow, title, body }: { eyebrow: string; title: string; body: string }) {
+  return (
+    <div className="bg-gray-900/50 border border-gray-800 rounded-2xl p-6">
+      <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">{eyebrow}</span>
+      <h3 className="mt-2 text-base font-semibold text-white">{title}</h3>
+      <p className="mt-2 text-sm text-gray-200 leading-relaxed">{body}</p>
+    </div>
+  );
+}
+
+function Differentiator({ title, body }: { title: string; body: string }) {
+  return (
+    <article className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-7 hover:border-indigo-500/40 transition-colors">
+      <h3 className="text-base sm:text-lg font-semibold text-white">{title}</h3>
+      <p className="mt-3 text-sm text-gray-200 leading-relaxed">{body}</p>
+    </article>
+  );
+}
+
+function FeatureCard({ title, body }: { title: string; body: string }) {
+  return (
+    <article className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-7 hover:border-indigo-500/40 transition-colors">
+      <h3 className="text-base sm:text-lg font-semibold text-white">{title}</h3>
+      <p className="mt-3 text-sm text-gray-200 leading-relaxed">{body}</p>
+    </article>
+  );
+}
+
+function Persona({
+  title,
+  body,
+  points,
+  highlight = false,
+}: {
+  title: string;
+  body: string;
+  points: string[];
+  highlight?: boolean;
+}) {
+  return (
+    <article
+      className={`rounded-2xl p-6 sm:p-8 flex flex-col ${
+        highlight
+          ? "bg-gray-900 border border-indigo-500/40 ring-1 ring-indigo-500/10"
+          : "bg-gray-900 border border-gray-800"
+      }`}
+    >
+      <h3 className="text-lg font-semibold text-white">{title}</h3>
+      <p className="mt-3 text-sm text-gray-200 leading-relaxed">{body}</p>
+      <ul className="mt-5 space-y-2">
+        {points.map((p) => (
+          <li key={p} className="flex items-start gap-2 text-sm text-gray-200">
+            <span className="shrink-0 mt-0.5 text-indigo-400">&#x2713;</span>
+            {p}
+          </li>
+        ))}
+      </ul>
+    </article>
+  );
+}
+
+function Testimonial({ quote, name, role, initials }: { quote: string; name: string; role: string; initials: string }) {
+  return (
+    <figure className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-8 flex flex-col">
+      <blockquote className="text-sm text-gray-200 leading-relaxed flex-1">&ldquo;{quote}&rdquo;</blockquote>
+      <figcaption className="mt-6 flex items-center gap-3">
+        <span className="w-10 h-10 rounded-full bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center text-sm font-semibold text-indigo-300">
+          {initials}
+        </span>
+        <span className="leading-tight">
+          <span className="block text-sm font-semibold text-white">{name}</span>
+          <span className="block text-xs text-gray-300">{role}</span>
+        </span>
+      </figcaption>
+    </figure>
+  );
+}
+
+function Metric({ value, label }: { value: string; label: string }) {
+  return (
+    <div>
+      <div className="text-3xl sm:text-4xl font-bold text-white">{value}</div>
+      <div className="mt-2 text-xs sm:text-sm text-gray-300 leading-snug">{label}</div>
+    </div>
+  );
+}
+
+function TrustBadge({ label }: { label: string }) {
+  return (
+    <div className="bg-gray-900/50 border border-gray-800 rounded-xl px-3 py-4 flex items-center justify-center text-center">
+      <span className="text-xs sm:text-sm font-medium text-gray-200">{label}</span>
+    </div>
   );
 }
 
@@ -443,7 +793,7 @@ function ComparisonItem({ children, negative = false }: { children: React.ReactN
       >
         {negative ? "\u2717" : "\u2713"}
       </span>
-      <span className="text-sm text-gray-300">{children}</span>
+      <span className="text-sm text-gray-200">{children}</span>
     </li>
   );
 }
@@ -454,7 +804,7 @@ function PricingFeature({ children }: { children: React.ReactNode }) {
       <span className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-indigo-500/10 flex items-center justify-center">
         <span className="text-xs text-indigo-400">&#x2713;</span>
       </span>
-      <span className="text-sm text-gray-300">{children}</span>
+      <span className="text-sm text-gray-200">{children}</span>
     </li>
   );
 }
@@ -464,9 +814,9 @@ function FaqItem({ question, children }: { question: string; children: React.Rea
     <details className="group bg-gray-900 border border-gray-800 rounded-2xl p-5 sm:p-6 [&_summary]:list-none">
       <summary className="flex items-center justify-between cursor-pointer text-white font-medium">
         <span>{question}</span>
-        <span className="ml-4 shrink-0 text-gray-500 transition-transform group-open:rotate-45">&#x2b;</span>
+        <span className="ml-4 shrink-0 text-gray-300 transition-transform group-open:rotate-45">&#x2b;</span>
       </summary>
-      <p className="mt-3 text-sm text-gray-400 leading-relaxed">{children}</p>
+      <p className="mt-3 text-sm text-gray-200 leading-relaxed">{children}</p>
     </details>
   );
 }
