@@ -33,6 +33,32 @@ export function isBlockedScanHost(hostname: string): boolean {
   );
 }
 
+/** Expands any valid IPv6 string into its 8 numeric 16-bit groups. */
+function expandIPv6(addr: string): number[] {
+  // Split off a trailing embedded IPv4 (e.g. ::ffff:127.0.0.1) into two groups.
+  let head = addr;
+  const v4 = addr.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
+  let tailGroups: number[] = [];
+  if (v4) {
+    const o = v4[1].split(".").map(Number);
+    tailGroups = [(o[0] << 8) | o[1], (o[2] << 8) | o[3]];
+    head = addr.slice(0, addr.length - v4[1].length).replace(/:$/, "") || "::";
+  }
+  const [left, right] = head.split("::");
+  const leftParts = left ? left.split(":").filter(Boolean) : [];
+  const rightParts = right ? right.split(":").filter(Boolean) : [];
+  const leftNums = leftParts.map((h) => parseInt(h, 16));
+  const rightNums = rightParts.map((h) => parseInt(h, 16));
+  const groups = [...leftNums];
+  if (head.includes("::")) {
+    const fill = 8 - tailGroups.length - leftNums.length - rightNums.length;
+    for (let i = 0; i < fill; i++) groups.push(0);
+  }
+  groups.push(...rightNums, ...tailGroups);
+  while (groups.length < 8) groups.push(0);
+  return groups.slice(0, 8);
+}
+
 /** True when a resolved IP address is not in public/routable space. */
 export function isPrivateIp(ip: string): boolean {
   const addr = ip.toLowerCase();
@@ -50,16 +76,22 @@ export function isPrivateIp(ip: string): boolean {
     );
   }
   if (net.isIPv6(addr)) {
-    // IPv4-mapped (::ffff:a.b.c.d) — validate the embedded v4 address.
-    const mapped = addr.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-    if (mapped) return isPrivateIp(mapped[1]);
+    const g = expandIPv6(addr);
+    // IPv4-mapped (::ffff:a.b.c.d) and IPv4-compatible — validate the embedded
+    // v4 address regardless of dotted-decimal or hex encoding.
+    const isMapped = g[0] === 0 && g[1] === 0 && g[2] === 0 && g[3] === 0 && g[4] === 0;
+    if (isMapped && (g[5] === 0xffff || g[5] === 0)) {
+      const v4 = `${g[6] >> 8}.${g[6] & 0xff}.${g[7] >> 8}.${g[7] & 0xff}`;
+      // ::/128 and ::1/128 are handled below; only recurse for real embedded v4.
+      if (g[6] !== 0 || g[7] > 1) return isPrivateIp(v4);
+    }
+    const allZeroButLast = g.slice(0, 7).every((x) => x === 0);
     return (
-      addr === "::1" || // loopback
-      addr === "::" || // unspecified
-      addr.startsWith("fc") || // unique-local
-      addr.startsWith("fd") || // unique-local
-      addr.startsWith("fe80") || // link-local
-      addr.startsWith("ff") // multicast
+      (allZeroButLast && g[7] === 1) || // ::1 loopback
+      g.every((x) => x === 0) || // :: unspecified
+      (g[0] & 0xfe00) === 0xfc00 || // fc00::/7 unique-local
+      (g[0] & 0xffc0) === 0xfe80 || // fe80::/10 link-local
+      (g[0] & 0xff00) === 0xff00 // ff00::/8 multicast
     );
   }
   return true; // unparseable — treat as unsafe.
