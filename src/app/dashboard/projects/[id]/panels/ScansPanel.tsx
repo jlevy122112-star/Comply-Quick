@@ -1,0 +1,65 @@
+import {
+  Card,
+  CardHeader,
+  CardBody,
+  Badge,
+  EmptyState,
+  Table,
+  THead,
+  TBody,
+  TR,
+  TH,
+  TD,
+  toneForScore,
+} from "@/components/ui";
+import type { WorkspaceData } from "@/lib/workspace/data";
+import { ScoreTrend } from "./ScoreTrend";
+
+/** Scans tab — score trend sparkline + scan history table. */
+export function ScansPanel({ scans }: { scans: WorkspaceData["scans"] }) {
+  if (scans.length === 0) {
+    return (
+      <EmptyState
+        icon="📡"
+        title="No scans for this project yet"
+        description="Run a scan for this project to track its compliance score over time. Findings from each scan are triaged automatically."
+      />
+    );
+  }
+  // scans arrive newest-first; trend wants oldest→newest.
+  const trend = [...scans].reverse().map((s) => s.score ?? 0);
+  return (
+    <div className="space-y-6">
+      {trend.length >= 2 && (
+        <Card>
+          <CardHeader title="Score trend" description="Compliance score across this project's scans." />
+          <CardBody>
+            <ScoreTrend scores={trend} />
+          </CardBody>
+        </Card>
+      )}
+      <Table>
+        <THead>
+          <TR>
+            <TH>Scanned</TH>
+            <TH>URL</TH>
+            <TH>Tools</TH>
+            <TH className="text-right">Score</TH>
+          </TR>
+        </THead>
+        <TBody>
+          {scans.map((s) => (
+            <TR key={s.id}>
+              <TD className="tabular-nums text-gray-400">{new Date(s.createdAt).toLocaleDateString()}</TD>
+              <TD className="max-w-xs truncate text-white">{s.url}</TD>
+              <TD className="tabular-nums text-gray-400">{s.detectedTools.length}</TD>
+              <TD className="text-right">
+                <Badge tone={toneForScore(s.score ?? 0)}>{s.score ?? 0}/100</Badge>
+              </TD>
+            </TR>
+          ))}
+        </TBody>
+      </Table>
+    </div>
+  );
+}

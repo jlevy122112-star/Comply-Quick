@@ -234,6 +234,12 @@ export default function CommandCenterView({
               Calendar
             </Link>
             <Link
+              href="/dashboard/approvals"
+              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-indigo-500/40 text-indigo-300 text-sm font-medium hover:border-indigo-400 hover:text-indigo-200 transition-colors"
+            >
+              Approvals
+            </Link>
+            <Link
               href="/dashboard/evidence"
               className="hidden sm:inline-block px-3 py-2 rounded-lg border border-emerald-500/40 text-emerald-300 text-sm font-medium hover:border-emerald-400 hover:text-emerald-200 transition-colors"
             >
@@ -259,6 +265,18 @@ export default function CommandCenterView({
                 Legal Review
               </Link>
             )}
+            <Link
+              href="/dashboard/onboarding"
+              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-gray-600/50 text-gray-300 text-sm font-medium hover:border-gray-400 hover:text-gray-100 transition-colors"
+            >
+              Guided setup
+            </Link>
+            <Link
+              href="/dashboard/settings/integrations"
+              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-gray-600/50 text-gray-300 text-sm font-medium hover:border-gray-400 hover:text-gray-100 transition-colors"
+            >
+              Integrations
+            </Link>
             <Link
               href="/dashboard"
               className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors"

@@ -11,6 +11,7 @@ import { listProposals, type ProposalListItem } from "@/lib/autopilot/service";
 import { listProjectScans, type ScanRecord } from "@/lib/scanner/service";
 import { listProjectTasks, type ProjectTask } from "@/lib/workspace/tasks";
 import { listProjectMembers, type ProjectMember } from "@/lib/workspace/members";
+import { listProjectDomains, type ProjectDomain } from "@/lib/project-domains-db";
 import { pendingPressuresForProject } from "@/lib/regulations/alert-impacts";
 import { applyRegulatoryImpact, type RegulatoryScoreAdjustment } from "@/lib/regulations/score-impact";
 import { MODULE_OPTIONS, type ComplianceModule } from "@/components/EnterpriseModules";
@@ -45,6 +46,7 @@ export interface WorkspaceData {
   scans: ScanRecord[];
   tasks: ProjectTask[];
   members: ProjectMember[];
+  domains: ProjectDomain[];
   /** Displayed-score adjustment from open (unapproved) regulatory changes. */
   regulatoryImpact: RegulatoryScoreAdjustment;
 }
@@ -143,11 +145,12 @@ export async function getWorkspaceData(projectId: string): Promise<WorkspaceData
   const project = await getProjectById(projectId);
   if (!project) return null;
 
-  const [proposals, scans, tasks, members, pressures] = await Promise.all([
+  const [proposals, scans, tasks, members, domains, pressures] = await Promise.all([
     listProposals("all", projectId),
     listProjectScans(projectId),
     listProjectTasks(projectId),
     listProjectMembers(projectId),
+    listProjectDomains(projectId),
     pendingPressuresForProject(projectId),
   ]);
   const pendingCount = proposals.filter((p) => p.status === "proposed").length;
@@ -163,6 +166,7 @@ export async function getWorkspaceData(projectId: string): Promise<WorkspaceData
     scans,
     tasks,
     members,
+    domains,
     regulatoryImpact,
   };
 }

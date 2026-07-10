@@ -31,4 +31,5 @@ export { TabNav } from "./Tabs";
 export type { TabItem } from "./Tabs";
 export { DiffViewer, computeLineDiff, diffStats } from "./DiffViewer";
 export type { DiffLine, DiffOp } from "./DiffViewer";
-export { Drawer, Modal } from "./Drawer";
+export { Drawer } from "./Drawer";
+export { Modal } from "./Modal";
