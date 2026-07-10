@@ -137,7 +137,7 @@ export function useCalendarController({
     [month.events, today]
   );
 
-  const selectedEvents = buckets.get(selectedDay) ?? [];
+  const selectedEvents = useMemo(() => buckets.get(selectedDay) ?? [], [buckets, selectedDay]);
   const agenda = useMemo(
     () =>
       [...month.events]
