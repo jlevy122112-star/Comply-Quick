@@ -71,7 +71,7 @@ export const COMPARISONS: Comparison[] = [
       },
       {
         q: "Does Comply-Quick cost more than Termly?",
-        a: "Comply-Quick starts at $29/mo, with unlimited scans and full Regulation Autopilot from $99/mo. Compare that to a $2,000–$5,000 attorney review it can replace.",
+        a: "Comply-Quick starts at $29/mo — and that plan already includes full Regulation Autopilot and monitoring. Compare that to a $2,000–$5,000 attorney review it can replace.",
       },
     ],
   },

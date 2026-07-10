@@ -212,8 +212,8 @@ export default function LandingPage() {
               Comply-Quick monitors <span className="text-white font-medium">federal and state agencies</span> directly
               for new and changed legal regulations. The moment a requirement shifts, we alert you, generate an{" "}
               <span className="text-white font-medium">immediate implementation strategy</span>, and apply it to your
-              storefront for you &mdash; fully automated. Scanning starts at ${TIER_CONFIG.solo.monthly}/mo; add
-              unlimited scans and full Autopilot from ${TIER_CONFIG.agency.monthly}/mo.
+              storefront for you &mdash; fully automated. Full Regulation Autopilot is included on every paid plan,
+              starting at just ${TIER_CONFIG.solo.monthly}/mo &mdash; no team required.
             </p>
           </div>
           <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
@@ -242,8 +242,8 @@ export default function LandingPage() {
             </Link>
           </div>
           <p className="mt-4 text-center text-xs text-gray-300">
-            Set it and forget it. Full Autopilot with unlimited scans and automated implementations from $
-            {TIER_CONFIG.agency.monthly}/mo &mdash; you focus on the business.
+            Set it and forget it. Automated monitoring and implementations on every paid plan &mdash; you focus on the
+            business.
           </p>
         </div>
       </section>
@@ -772,7 +772,7 @@ export default function LandingPage() {
             </FaqItem>
             <FaqItem question="How does the automated regulation monitoring work?">
               Comply-Quick monitors 26+ official federal and state regulatory sources directly. When a rule changes, our
-              AI alerts you, drafts an implementation strategy, and — on Autopilot plans — applies the fix to keep your
+              AI alerts you, drafts an implementation strategy, and — on any paid plan — applies the fix to keep your
               storefront compliant. Every change is proposed for your approval, so nothing ships without you.
             </FaqItem>
             <FaqItem question="How is the free preview different from paid?">

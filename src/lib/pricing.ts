@@ -6,9 +6,10 @@
 // never drift between the checkout, the webhook, the paywall, and the UI.
 //
 // Pricing decisions (owner-approved 2026-07-06 — value-based repricing):
-//   • Solo: $29/mo, 20 scans — freelancers / solo devs.
-//   • Agency: $99/mo, 5 seats, 100 scans — the primary ICP (monitoring +
-//     Autopilot + white-label).
+//   • Solo: $29/mo, 20 scans — freelancers / solo devs. Includes Regulation
+//     monitoring + Autopilot (gated on isPremium, i.e. any active paid tier).
+//   • Agency: $99/mo, 5 seats, 100 scans — the primary ICP. Adds team seats +
+//     white-label on top of the monitoring + Autopilot every paid tier gets.
 //   • Enterprise: $299/mo, unlimited seats + scans — regulated industries.
 //   • Free tier stays capped at 1 scan / month (freemium funnel hook).
 //   • Machine keys are free/solo/agency/enterprise. `solo` replaces the earlier

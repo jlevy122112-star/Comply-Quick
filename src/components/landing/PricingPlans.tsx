@@ -21,9 +21,9 @@ const PLANS: Plan[] = [
     features: [
       "Unlimited project generations",
       `${TIER_CONFIG.solo.scanLimit} compliance scans / month`,
-      "Direct markdown download",
+      "Regulation Autopilot + federal/state monitoring",
       "Full contract shield + privacy addendum + checklist",
-      "Compliance score breakdown",
+      "Compliance score breakdown + embeddable badge",
     ],
     cta: "Get Started",
     variant: "default",
@@ -32,9 +32,9 @@ const PLANS: Plan[] = [
     key: "agency",
     blurb: "For agencies managing multiple client sites.",
     features: [
+      "Everything in Solo, plus:",
       `${TIER_CONFIG.agency.scanLimit} compliance scans / month`,
       `${TIER_CONFIG.agency.seats} team seats included`,
-      "Ongoing monitoring + automated regulatory updates",
       "White-label exports & priority support",
       "All 9 platforms, 6 pixels, and 6 regions",
     ],
