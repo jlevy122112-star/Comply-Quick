@@ -17,6 +17,10 @@ export interface SendEmailInput {
   subject: string;
   html: string;
   text: string;
+  /** Override the default NOTIFICATIONS_FROM_EMAIL sender (e.g. support@ / info@). */
+  from?: string;
+  /** Optional Reply-To so customer replies thread back to the right inbox. */
+  replyTo?: string;
 }
 
 export interface SendEmailResult {
@@ -36,7 +40,7 @@ export async function sendTransactionalEmail(
   const fetchImpl = deps.fetchImpl ?? fetch;
   const env = deps.env ?? process.env;
   const apiKey = env.RESEND_API_KEY;
-  const from = env.NOTIFICATIONS_FROM_EMAIL;
+  const from = input.from ?? env.NOTIFICATIONS_FROM_EMAIL;
   if (!apiKey || !from) return { delivered: false, reason: "not_configured" };
   if (!input.to) return { delivered: false, reason: "no_address" };
 
@@ -50,6 +54,7 @@ export async function sendTransactionalEmail(
         subject: input.subject,
         html: input.html,
         text: input.text,
+        ...(input.replyTo ? { reply_to: input.replyTo } : {}),
       }),
     });
     if (!res.ok) return { delivered: false, reason: `http_${res.status}` };

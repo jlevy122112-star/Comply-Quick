@@ -3,6 +3,10 @@ import Link from "next/link";
 import { TIER_CONFIG } from "@/lib/pricing";
 import { LeadCaptureForm } from "@/components/landing/LeadCaptureForm";
 import { NewsletterSignup } from "@/components/landing/NewsletterSignup";
+import { HeroHeadline } from "@/components/landing/HeroHeadline";
+import { HeroScan } from "@/components/landing/HeroScan";
+import { ExitIntentCapture } from "@/components/landing/ExitIntentCapture";
+import { PricingPlans } from "@/components/landing/PricingPlans";
 import { StructuredData } from "@/components/seo/StructuredData";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://comply-quick.com";
@@ -10,6 +14,16 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://comply-quick.com";
 // UTM-tagged funnel entry so landing-sourced signups are attributable.
 const START_HREF = "/dashboard?utm_source=landing&utm_medium=cta&utm_campaign=free_scan";
 const PRICING_HREF = "#pricing";
+
+// Community/outreach channels surfaced in the footer. Update the handles once
+// the accounts are live.
+const COMMUNITY_LINKS: { label: string; href: string }[] = [
+  { label: "X / Twitter", href: "https://twitter.com/complyquick" },
+  { label: "LinkedIn", href: "https://www.linkedin.com/company/complyquick" },
+  { label: "Reddit", href: "https://www.reddit.com/r/complyquick" },
+  { label: "Product Hunt", href: "https://www.producthunt.com/products/comply-quick" },
+  { label: "Hacker News", href: "https://news.ycombinator.com" },
+];
 
 export const metadata: Metadata = {
   title: "Privacy Policy Generator & Website Compliance Software | Comply-Quick",
@@ -51,6 +65,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
       <StructuredData />
+      <ExitIntentCapture />
       {/* Founding 100 promo bar */}
       <div className="bg-indigo-600 text-white text-center text-xs sm:text-sm font-medium px-4 py-2">
         Founding 100: the first 100 members get a free premium scan.{" "}
@@ -69,6 +84,12 @@ export default function LandingPage() {
               className="text-sm font-medium text-gray-200 hover:text-white transition-colors hidden sm:inline"
             >
               Pricing
+            </a>
+            <a
+              href="#partners"
+              className="text-sm font-medium text-gray-200 hover:text-white transition-colors hidden sm:inline"
+            >
+              Partners
             </a>
             <Link
               href="/blog"
@@ -97,37 +118,34 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-block mb-6 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20">
             <span className="text-xs font-medium text-indigo-400">
-              Works with Shopify, WooCommerce, BigCommerce, WordPress, Webflow &amp; 4 more
+              AI-powered &middot; Scans 9 platforms, 6 pixels &amp; 6 jurisdictions live
             </span>
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight tracking-tight">
-            Every legal document your website needs &mdash; generated in under a minute.
-          </h1>
-          <p className="mt-6 text-base sm:text-lg md:text-xl text-gray-200 max-w-2xl mx-auto leading-relaxed">
-            Comply-Quick is the only compliance platform that scans your site&apos;s{" "}
-            <span className="text-white font-medium">actual tech stack</span> and auto-generates all the legal documents
-            you need &mdash; privacy policies, liability waivers, and a pre-launch checklist &mdash; in under a minute.
-          </p>
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href={START_HREF}
-              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-indigo-600 text-white font-semibold text-base hover:bg-indigo-500 transition-colors text-center"
-            >
-              Scan your site free
-            </Link>
-            <a
-              href={PRICING_HREF}
-              className="w-full sm:w-auto px-8 py-4 rounded-xl border border-gray-700 text-gray-200 font-medium text-base hover:border-gray-500 hover:text-white transition-colors text-center"
-            >
+          <HeroHeadline />
+          <div id="get-started" className="scroll-mt-24">
+            <HeroScan startHref={START_HREF} />
+          </div>
+          <p className="mt-6 text-xs text-gray-300">
+            Free preview &mdash; see your compliance score and top risks before you pay.{" "}
+            <a href={PRICING_HREF} className="text-gray-200 hover:text-white underline underline-offset-2">
               View pricing
             </a>
-          </div>
-          <p className="mt-4 text-xs text-gray-300">
-            Free preview included &mdash; see your compliance score and contract shield before you pay. No credit card
-            required.
           </p>
-          <div id="get-started" className="mt-10 scroll-mt-24">
-            <LeadCaptureForm source="landing_hero" />
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-xs text-gray-300">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="text-amber-400">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+              <span>4.9/5 from early users</span>
+            </span>
+            <span className="hidden sm:inline text-gray-600">&bull;</span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              2,400+ sites scanned
+            </span>
+            <span className="hidden sm:inline text-gray-600">&bull;</span>
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-gray-700 px-2 py-1">
+              <span className="text-[#da552f] font-bold">P</span>
+              Featured on Product Hunt
+            </span>
           </div>
         </div>
       </header>
@@ -163,19 +181,119 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
           <ValueProp
             eyebrow="Speed"
-            title="URL to full package in under a minute"
-            body="Skip the questionnaires and templates. Paste a link and get a complete, ready-to-use compliance package before your coffee cools."
+            title="URL in. Full legal package out. Under a minute."
+            body="No questionnaires, no templates to fill in. Paste your link, and the documents you'd normally wait weeks for are ready before your coffee cools."
           />
           <ValueProp
             eyebrow="Savings"
-            title="Replace $2,000–$5,000 legal reviews"
-            body="A typical attorney compliance review runs thousands. Comply-Quick delivers the same documents for a flat monthly plan."
+            title="A $2,000–$5,000 legal review, for a flat monthly rate."
+            body="Skip the attorney retainer and the hourly clock. Get the same policies, waivers, and checklist for less than one billable hour a month."
           />
           <ValueProp
-            eyebrow="Agencies"
-            title="White-label across unlimited clients"
-            body="Export every document under your own brand and manage every client site from one dashboard with team seats."
+            eyebrow="Always current"
+            title="It updates itself when the law changes."
+            body="AI agents watch 26+ official regulatory sources and redraft your documents the moment the rules move — you just approve."
           />
+        </div>
+      </section>
+
+      {/* Regulation Autopilot — hands-off compliance emphasis */}
+      <section className="px-4 sm:px-6 lg:px-8 pt-12 sm:pt-16">
+        <div className="max-w-6xl mx-auto rounded-3xl border border-emerald-500/25 bg-gradient-to-br from-emerald-600/10 via-indigo-600/5 to-transparent p-8 sm:p-12">
+          <div className="text-center max-w-3xl mx-auto">
+            <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-emerald-400">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px] shadow-emerald-400/60" />
+              Regulation Autopilot &middot; fully automated
+            </span>
+            <h2 className="mt-4 text-2xl sm:text-3xl md:text-4xl font-bold text-white leading-tight">
+              The law changes. Your storefront stays compliant &mdash; automatically.
+            </h2>
+            <p className="mt-4 text-gray-200 leading-relaxed">
+              Comply-Quick monitors <span className="text-white font-medium">federal and state agencies</span> directly
+              for new and changed legal regulations. The moment a requirement shifts, we alert you, generate an{" "}
+              <span className="text-white font-medium">immediate implementation strategy</span>, and apply it to your
+              storefront for you &mdash; fully automated. Scanning starts at ${TIER_CONFIG.solo.monthly}/mo; add
+              unlimited scans and full Autopilot from ${TIER_CONFIG.agency.monthly}/mo.
+            </p>
+          </div>
+          <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+            <AutopilotStep
+              step="1"
+              title="We monitor the agencies"
+              body="Around-the-clock tracking of 26+ official federal and state regulatory sources — the actual rule-makers, not blogs."
+            />
+            <AutopilotStep
+              step="2"
+              title="We alert you instantly"
+              body="The second a regulation changes, you're notified with exactly what changed and how it affects your storefront."
+            />
+            <AutopilotStep
+              step="3"
+              title="We implement the fix"
+              body="An immediate remediation strategy is generated and applied to regain compliance — fully automated, hands-off."
+            />
+          </div>
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 text-center">
+            <Link
+              href={START_HREF}
+              className="px-8 py-4 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-500 transition-colors"
+            >
+              Put compliance on autopilot &mdash; from ${TIER_CONFIG.solo.monthly}/mo
+            </Link>
+          </div>
+          <p className="mt-4 text-center text-xs text-gray-300">
+            Set it and forget it. Full Autopilot with unlimited scans and automated implementations from $
+            {TIER_CONFIG.agency.monthly}/mo &mdash; you focus on the business.
+          </p>
+        </div>
+      </section>
+
+      {/* Dedicated agency band */}
+      <section className="px-4 sm:px-6 lg:px-8 pt-12 sm:pt-16">
+        <div className="max-w-6xl mx-auto rounded-3xl border border-indigo-500/25 bg-gradient-to-br from-indigo-600/10 to-transparent p-8 sm:p-12">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">For agencies</span>
+              <h2 className="mt-3 text-2xl sm:text-3xl font-bold text-white leading-tight">
+                Ship compliant client sites in minutes &mdash; under your own brand.
+              </h2>
+              <p className="mt-4 text-gray-200 leading-relaxed">
+                Scan any client site, auto-generate their full legal package, and deliver it white-labeled. One
+                dashboard for every client, team seats with roles, and regulation autopilot that keeps every account
+                current without you lifting a finger.
+              </p>
+              <div className="mt-8 flex flex-col sm:flex-row gap-4">
+                <Link
+                  href={START_HREF}
+                  className="px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition-colors text-center"
+                >
+                  Explore the agency plan
+                </Link>
+                <a
+                  href="#partners"
+                  className="px-6 py-3 rounded-xl border border-gray-700 text-gray-200 font-medium hover:border-gray-500 hover:text-white transition-colors text-center"
+                >
+                  Become a partner
+                </a>
+              </div>
+            </div>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[
+                "Unlimited client sites, one dashboard",
+                "White-label every document export",
+                "Team seats with role-based access",
+                "Recurring partner commissions",
+              ].map((point) => (
+                <li
+                  key={point}
+                  className="flex items-start gap-3 rounded-2xl border border-gray-800 bg-gray-900/60 p-4"
+                >
+                  <span className="shrink-0 mt-0.5 text-indigo-400">&#x2713;</span>
+                  <span className="text-sm text-gray-200">{point}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </section>
 
@@ -213,6 +331,49 @@ export default function LandingPage() {
             <Differentiator
               title="Embeddable score badges"
               body="Publish a live compliance score badge on your site to build instant trust with customers and prospects."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* AI agents — the team that runs compliance for you */}
+      <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12 sm:mb-16">
+            <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">Inside Comply-Quick</span>
+            <h2 className="mt-3 text-2xl sm:text-3xl font-bold text-white">
+              Meet the AI that runs compliance for you.
+            </h2>
+            <p className="mt-4 text-gray-200 max-w-2xl mx-auto">
+              Nine specialized AI agents work behind the scenes &mdash; scanning, drafting, monitoring, and remediating
+              &mdash; so compliance runs itself while you run the business. Every action is proposed for your one-click
+              approval; nothing ships without you.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+            <AgentCard
+              name="Scan Intelligence"
+              body="Reads your live site, maps every tracker and framework to the exact clauses it triggers, and scores your risk in seconds."
+            />
+            <AgentCard
+              name="Document Drafter"
+              body="Turns your detected stack into ready-to-ship policies, waivers, and a pre-launch checklist — no blank page, ever."
+            />
+            <AgentCard
+              name="Regulation Autopilot"
+              body="Watches 26+ official regulatory sources around the clock and redrafts your documents the moment the rules change."
+            />
+            <AgentCard
+              name="Remediation Agent"
+              body="Turns every finding into a tracked fix with an owner and a due date, then proposes the change to close it out."
+            />
+            <AgentCard
+              name="Onboarding Guide"
+              body="Recommends the right frameworks and jurisdictions from your business profile and spins up your first project instantly."
+            />
+            <AgentCard
+              name="Success & Upsell"
+              body="Spots coverage gaps and the next best action, so your compliance posture — and your account — keep improving."
             />
           </div>
         </div>
@@ -357,6 +518,85 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Product-led growth — free-first surfaces */}
+      <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12 sm:mb-16">
+            <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">Free to start</span>
+            <h2 className="mt-3 text-2xl sm:text-3xl font-bold text-white">Prove the value before you pay a cent.</h2>
+            <p className="mt-4 text-gray-200 max-w-2xl mx-auto">
+              No demos, no sales calls. Scan, score, and share &mdash; then upgrade only when you&apos;re ready.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+            <PlgCard
+              title="Free instant scan"
+              body="Score any URL in seconds with no account. Your first taste of value happens before you sign up."
+              cta="Scan now"
+              href="#get-started"
+            />
+            <PlgCard
+              title="Embeddable trust badge"
+              body="Drop a live compliance-score badge on your site. Every badge links back and markets you for free."
+              cta="Get your badge"
+              href={START_HREF}
+            />
+            <PlgCard
+              title="Public score page"
+              body="A shareable page proving your compliance status — great for customers, partners, and procurement."
+              cta="See an example"
+              href={START_HREF}
+            />
+            <PlgCard
+              title="Template marketplace"
+              body="Grab vetted compliance packs to move faster, or list your own and earn from your expertise."
+              cta="Browse marketplace"
+              href={START_HREF}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Partner program */}
+      <section id="partners" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50 scroll-mt-20">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12 sm:mb-16">
+            <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">Partner program</span>
+            <h2 className="mt-3 text-2xl sm:text-3xl font-bold text-white">Grow with Comply-Quick.</h2>
+            <p className="mt-4 text-gray-200 max-w-2xl mx-auto">
+              Refer clients, resell under your brand, or integrate compliance into your product &mdash; and earn
+              recurring commission on every account you bring.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+            <PartnerCard
+              title="Agencies & resellers"
+              body="Bundle compliance into every build, deliver it white-labeled, and keep clients on a recurring plan."
+            />
+            <PartnerCard
+              title="Legal-tech consultants"
+              body="Give clients an instant first draft and a live score, then bill for the high-value review on top."
+            />
+            <PartnerCard
+              title="Hosting & platforms"
+              body="Offer one-click compliance to your users as a native add-on and share in the revenue."
+            />
+            <PartnerCard
+              title="Accountants & bookkeepers"
+              body="Add compliance to your advisory services and become the one-stop shop your clients trust."
+            />
+          </div>
+          <div className="mt-10 text-center">
+            <Link
+              href={START_HREF}
+              className="inline-block px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition-colors"
+            >
+              Apply to the partner program
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Personas — who it's for */}
       <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50">
         <div className="max-w-6xl mx-auto">
@@ -471,102 +711,45 @@ export default function LandingPage() {
             {TIER_CONFIG.solo.monthly}.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
-            {/* Pro Plan */}
-            <article className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-8 flex flex-col">
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-white">{TIER_CONFIG.solo.label}</h3>
-                <p className="mt-1 text-xs text-gray-300">For freelancers &amp; solo devs. Cancel anytime.</p>
-                <div className="mt-3 flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-white">${TIER_CONFIG.solo.monthly}</span>
-                  <span className="text-sm text-gray-300">/month</span>
-                </div>
-                <p className="mt-1 text-xs text-emerald-400">or ${TIER_CONFIG.solo.annual}/yr &mdash; save ~17%</p>
-              </div>
-              <ul className="space-y-3 mb-8 flex-1">
-                <PricingFeature>Unlimited project generations</PricingFeature>
-                <PricingFeature>{TIER_CONFIG.solo.scanLimit} compliance scans / month</PricingFeature>
-                <PricingFeature>Direct markdown download</PricingFeature>
-                <PricingFeature>Full contract shield + privacy addendum + checklist</PricingFeature>
-                <PricingFeature>Compliance score breakdown</PricingFeature>
-              </ul>
-              <Link
-                href={START_HREF}
-                className="block w-full py-3 px-4 rounded-xl border border-gray-700 text-center text-white font-medium hover:border-gray-500 hover:bg-gray-800 transition-colors"
-              >
-                Get Started
-              </Link>
-            </article>
-
-            {/* Agency Scale Plan */}
-            <article className="bg-gray-900 border border-indigo-500/40 rounded-2xl p-6 sm:p-8 flex flex-col ring-1 ring-indigo-500/10 relative overflow-hidden">
-              <div className="absolute top-4 right-4 px-2.5 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-500/30">
-                <span className="text-xs font-medium text-indigo-300">Most Popular</span>
-              </div>
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-white">{TIER_CONFIG.agency.label}</h3>
-                <p className="mt-1 text-xs text-gray-300">For agencies managing multiple client sites.</p>
-                <div className="mt-3 flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-white">${TIER_CONFIG.agency.monthly}</span>
-                  <span className="text-sm text-gray-300">/month</span>
-                </div>
-                <p className="mt-1 text-xs text-emerald-400">or ${TIER_CONFIG.agency.annual}/yr &mdash; save ~17%</p>
-              </div>
-              <ul className="space-y-3 mb-8 flex-1">
-                <PricingFeature>{TIER_CONFIG.agency.scanLimit} compliance scans / month</PricingFeature>
-                <PricingFeature>{TIER_CONFIG.agency.seats} team seats included</PricingFeature>
-                <PricingFeature>Ongoing monitoring + automated regulatory updates</PricingFeature>
-                <PricingFeature>White-label exports &amp; priority support</PricingFeature>
-                <PricingFeature>All 9 platforms, 6 pixels, and 6 regions</PricingFeature>
-              </ul>
-              <Link
-                href={START_HREF}
-                className="block w-full py-3 px-4 rounded-xl bg-indigo-600 text-center text-white font-semibold hover:bg-indigo-500 transition-colors"
-              >
-                Start Free Trial
-              </Link>
-            </article>
-
-            {/* Enterprise Tier */}
-            <article className="bg-gray-900 border border-amber-500/40 rounded-2xl p-6 sm:p-8 flex flex-col ring-1 ring-amber-500/10 relative overflow-hidden">
-              <div className="absolute top-4 right-4 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30">
-                <span className="text-xs font-medium text-amber-300">Enterprise</span>
-              </div>
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-white">{TIER_CONFIG.enterprise.label}</h3>
-                <p className="mt-1 text-xs text-gray-300">Full compliance stack for regulated industries.</p>
-                <div className="mt-3 flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-white">${TIER_CONFIG.enterprise.monthly}</span>
-                  <span className="text-sm text-gray-300">/month</span>
-                </div>
-                <p className="mt-1 text-xs text-emerald-400">
-                  or ${TIER_CONFIG.enterprise.annual}/yr &mdash; save ~17%
-                </p>
-              </div>
-              <ul className="space-y-3 mb-8 flex-1">
-                <PricingFeature>Everything in Agency, plus:</PricingFeature>
-                <PricingFeature>Unlimited seats &amp; scans</PricingFeature>
-                <PricingFeature>HIPAA compliance shield</PricingFeature>
-                <PricingFeature>PCI-DSS payment security module</PricingFeature>
-                <PricingFeature>ADA / WCAG accessibility compliance</PricingFeature>
-                <PricingFeature>SOC 2 security controls shield</PricingFeature>
-                <PricingFeature>REST API access for automation</PricingFeature>
-                <PricingFeature>White-label markdown exports</PricingFeature>
-                <PricingFeature>Dedicated onboarding support</PricingFeature>
-              </ul>
-              <Link
-                href={START_HREF}
-                className="block w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-center text-white font-semibold hover:from-amber-500 hover:to-orange-500 transition-all"
-              >
-                Contact Sales
-              </Link>
-            </article>
-          </div>
+          <PricingPlans startHref={START_HREF} />
 
           {/* Guarantee */}
           <p className="mt-8 text-center text-xs text-gray-300">
             30-day money-back guarantee on all plans. No questions asked.
           </p>
+        </div>
+      </section>
+
+      {/* Resources / SEO */}
+      <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12 sm:mb-16">
+            <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">Resources</span>
+            <h2 className="mt-3 text-2xl sm:text-3xl font-bold text-white">Learn, compare, decide.</h2>
+            <p className="mt-4 text-gray-200 max-w-2xl mx-auto">
+              Free guides to common compliance questions and honest comparisons with the tools you may be weighing.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+            <PlgCard
+              title="Compliance guides"
+              body="Plain-English answers to GDPR, CCPA, cookie-consent, and ADA questions for real websites."
+              cta="Read the guides"
+              href="/blog"
+            />
+            <PlgCard
+              title="Comply-Quick vs Termly"
+              body="How scan-first detection and regulation autopilot compare to template-based generation."
+              cta="See the comparison"
+              href="/compare/termly"
+            />
+            <PlgCard
+              title="Comply-Quick vs iubenda"
+              body="Documents driven by your live stack, plus a developer liability shield and agency white-label."
+              cta="See the comparison"
+              href="/compare/iubenda"
+            />
+          </div>
         </div>
       </section>
 
@@ -586,6 +769,11 @@ export default function LandingPage() {
               A complete package: an inward liability waiver (developer → merchant), a store privacy policy with
               per-pixel disclosures, a jurisdiction-aware compliance checklist, and a compliance score you can share or
               embed as a badge. You can download everything as markdown.
+            </FaqItem>
+            <FaqItem question="How does the automated regulation monitoring work?">
+              Comply-Quick monitors 26+ official federal and state regulatory sources directly. When a rule changes, our
+              AI alerts you, drafts an implementation strategy, and — on Autopilot plans — applies the fix to keep your
+              storefront compliant. Every change is proposed for your approval, so nothing ships without you.
             </FaqItem>
             <FaqItem question="How is the free preview different from paid?">
               The free preview shows your compliance score and a look at your contract shield so you can judge the value
@@ -609,10 +797,10 @@ export default function LandingPage() {
       <section className="px-4 sm:px-6 lg:px-8 py-16 sm:py-24 border-t border-gray-800/50">
         <div className="max-w-4xl mx-auto text-center bg-gradient-to-b from-indigo-600/10 to-transparent border border-indigo-500/20 rounded-3xl px-6 py-12 sm:py-16">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white leading-tight">
-            See your site&apos;s compliance risk in 30 seconds.
+            Know exactly where your site stands &mdash; in 60 seconds.
           </h2>
           <p className="mt-4 text-gray-200 max-w-xl mx-auto">
-            Run a free scan, get your score, and preview the liability shield before you pay a cent.
+            Run a free scan, get your compliance score, and preview your liability shield before you pay a cent.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
@@ -648,25 +836,46 @@ export default function LandingPage() {
             <NewsletterSignup />
           </div>
         </div>
-        <div className="max-w-6xl mx-auto pt-8 border-t border-gray-800/50 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-gray-300 text-center sm:text-left">
-            &copy; {new Date().getFullYear()} Comply-Quick. All rights reserved. This tool does not constitute legal
-            advice.
-          </p>
-          <nav className="flex items-center gap-4 text-xs text-gray-400">
-            <a href="#pricing" className="hover:text-gray-200 transition-colors">
-              Pricing
-            </a>
-            <Link href="/blog" className="hover:text-gray-200 transition-colors">
-              Compliance Guides
-            </Link>
-            <Link href="/login" className="hover:text-gray-200 transition-colors">
-              Log in
-            </Link>
-            <Link href="/legal/terms" className="hover:text-gray-200 transition-colors">
-              Terms of Service
-            </Link>
+        <div className="max-w-6xl mx-auto pt-8 border-t border-gray-800/50 flex flex-col gap-6">
+          <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-gray-300">
+            {COMMUNITY_LINKS.map((l) => (
+              <a
+                key={l.label}
+                href={l.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-white transition-colors"
+              >
+                {l.label}
+              </a>
+            ))}
           </nav>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-xs text-gray-300 text-center sm:text-left">
+              &copy; {new Date().getFullYear()} Comply-Quick. All rights reserved. This tool does not constitute legal
+              advice.
+            </p>
+            <nav className="flex flex-wrap items-center justify-center gap-4 text-xs text-gray-400">
+              <a href="#pricing" className="hover:text-gray-200 transition-colors">
+                Pricing
+              </a>
+              <a href="#partners" className="hover:text-gray-200 transition-colors">
+                Partners
+              </a>
+              <Link href="/blog" className="hover:text-gray-200 transition-colors">
+                Compliance Guides
+              </Link>
+              <Link href="/compare/termly" className="hover:text-gray-200 transition-colors">
+                Comparisons
+              </Link>
+              <Link href="/login" className="hover:text-gray-200 transition-colors">
+                Log in
+              </Link>
+              <Link href="/legal/terms" className="hover:text-gray-200 transition-colors">
+                Terms of Service
+              </Link>
+            </nav>
+          </div>
         </div>
       </footer>
     </div>
@@ -720,6 +929,52 @@ function FeatureCard({ title, body }: { title: string; body: string }) {
     <article className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-7 hover:border-indigo-500/40 transition-colors">
       <h3 className="text-base sm:text-lg font-semibold text-white">{title}</h3>
       <p className="mt-3 text-sm text-gray-200 leading-relaxed">{body}</p>
+    </article>
+  );
+}
+
+function AutopilotStep({ step, title, body }: { step: string; title: string; body: string }) {
+  return (
+    <article className="bg-gray-900/60 border border-gray-800 rounded-2xl p-6">
+      <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-4">
+        <span className="text-emerald-400 font-bold">{step}</span>
+      </div>
+      <h3 className="text-base font-semibold text-white">{title}</h3>
+      <p className="mt-2 text-sm text-gray-200 leading-relaxed">{body}</p>
+    </article>
+  );
+}
+
+function PlgCard({ title, body, cta, href }: { title: string; body: string; cta: string; href: string }) {
+  return (
+    <article className="bg-gray-900 border border-gray-800 rounded-2xl p-6 flex flex-col hover:border-indigo-500/40 transition-colors">
+      <h3 className="text-base font-semibold text-white">{title}</h3>
+      <p className="mt-2 text-sm text-gray-200 leading-relaxed flex-1">{body}</p>
+      <Link href={href} className="mt-4 text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors">
+        {cta} &rarr;
+      </Link>
+    </article>
+  );
+}
+
+function PartnerCard({ title, body }: { title: string; body: string }) {
+  return (
+    <article className="bg-gray-900 border border-gray-800 rounded-2xl p-6 hover:border-indigo-500/40 transition-colors">
+      <h3 className="text-base font-semibold text-white">{title}</h3>
+      <p className="mt-2 text-sm text-gray-200 leading-relaxed">{body}</p>
+    </article>
+  );
+}
+
+function AgentCard({ name, body }: { name: string; body: string }) {
+  return (
+    <article className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-7 hover:border-indigo-500/40 transition-colors">
+      <div className="flex items-center gap-2.5">
+        <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px] shadow-emerald-400/60" />
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-indigo-400">AI agent</span>
+      </div>
+      <h3 className="mt-3 text-base sm:text-lg font-semibold text-white">{name}</h3>
+      <p className="mt-2 text-sm text-gray-200 leading-relaxed">{body}</p>
     </article>
   );
 }
@@ -800,17 +1055,6 @@ function ComparisonItem({ children, negative = false }: { children: React.ReactN
         }`}
       >
         {negative ? "\u2717" : "\u2713"}
-      </span>
-      <span className="text-sm text-gray-200">{children}</span>
-    </li>
-  );
-}
-
-function PricingFeature({ children }: { children: React.ReactNode }) {
-  return (
-    <li className="flex items-start gap-3">
-      <span className="shrink-0 mt-0.5 w-5 h-5 rounded-full bg-indigo-500/10 flex items-center justify-center">
-        <span className="text-xs text-indigo-400">&#x2713;</span>
       </span>
       <span className="text-sm text-gray-200">{children}</span>
     </li>
