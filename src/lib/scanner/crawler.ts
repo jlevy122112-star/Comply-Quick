@@ -5,7 +5,7 @@
 // hostnames that resolve to loopback/private/link-local space by name.
 
 import { ValidationError, ServiceUnavailableError } from "@/services/errors";
-import { assertPublicScanHost, isBlockedScanHost } from "@/lib/security";
+import { assertPublicScanHost, getScanDispatcher, isBlockedScanHost } from "@/lib/security";
 
 const MAX_BYTES = 2_000_000; // 2 MB cap — enough for markup, avoids huge payloads.
 const FETCH_TIMEOUT_MS = 10_000;
@@ -60,11 +60,14 @@ export async function fetchPageHtml(
     let current = normalizeScanUrl(raw);
     for (let hop = 0; ; hop++) {
       await assertHost(current.hostname);
+      // The dispatcher pins the socket to a DNS result that is re-validated at
+      // connect time, so even a rebinding DNS answer can't reach a private IP.
       const res = await fetchImpl(current.toString(), {
         redirect: "manual",
         signal: controller.signal,
+        dispatcher: getScanDispatcher(),
         headers: { "user-agent": "ComplyQuickScanner/1.0 (+https://comply-quick.com)", accept: "text/html" },
-      });
+      } as RequestInit & { dispatcher: unknown });
       if (res.status >= 300 && res.status < 400 && res.headers.get("location")) {
         if (hop >= MAX_REDIRECTS) {
           throw new ServiceUnavailableError("That website redirected too many times.");
@@ -168,6 +171,9 @@ export async function scanPage(
   const workerUrl = process.env.SCANNER_WORKER_URL;
   if (workerUrl) {
     try {
+      // Validate the resolved host before delegating to the worker too, so the
+      // DNS-based SSRF guard applies regardless of which render path is used.
+      await assertHost(normalizeScanUrl(raw).hostname);
       return await renderPageViaWorker(raw, workerUrl, process.env.SCANNER_WORKER_SECRET, fetchImpl);
     } catch (err) {
       if (err instanceof ValidationError) throw err;

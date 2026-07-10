@@ -176,7 +176,7 @@ describe("scanPage", () => {
       new Response(JSON.stringify({ url: "https://example.com/", status: 200, html: CLEAN_PAGE, requestUrls: [] }), {
         status: 200,
       })) as unknown as typeof fetch;
-    const page = await scanPage("example.com", workerFetch);
+    const page = await scanPage("example.com", workerFetch, async () => ["93.184.216.34"]);
     expect(page.rendered).toBe(true);
   });
 

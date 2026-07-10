@@ -12,7 +12,10 @@
 // redirect hop (see the crawler's manual redirect handling).
 
 import { lookup } from "node:dns/promises";
-import net from "node:net";
+import { lookup as lookupCb } from "node:dns";
+import net, { type LookupFunction } from "node:net";
+import { Agent, type Dispatcher } from "undici";
+import { ValidationError } from "@/services/errors";
 
 const BLOCKED_HOSTNAMES = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"]);
 
@@ -69,23 +72,59 @@ export function isPrivateIp(ip: string): boolean {
  */
 export async function assertPublicScanHost(hostname: string): Promise<string[]> {
   if (isBlockedScanHost(hostname)) {
-    throw new Error("host is not a public address");
+    throw new ValidationError("That address points at a private network and can't be scanned.");
   }
   // A bare IP literal never hits DNS; validate it directly.
   if (net.isIP(hostname)) {
-    if (isPrivateIp(hostname)) throw new Error("host is not a public address");
+    if (isPrivateIp(hostname)) {
+      throw new ValidationError("That address points at a private network and can't be scanned.");
+    }
     return [hostname];
   }
   let records: { address: string }[];
   try {
     records = await lookup(hostname, { all: true });
   } catch {
-    throw new Error("host could not be resolved");
+    throw new ValidationError("That website's address could not be resolved.");
   }
   if (records.length === 0 || records.some((r) => isPrivateIp(r.address))) {
-    throw new Error("host is not a public address");
+    throw new ValidationError("That address points at a private network and can't be scanned.");
   }
   return records.map((r) => r.address);
+}
+
+/**
+ * A DNS lookup that rejects any resolution to non-public space. Used as the
+ * connector's `lookup` so the address the socket actually connects to is the
+ * one we validate — closing the check-vs-use (DNS-rebinding) gap that a
+ * separate pre-flight resolution would leave open.
+ */
+const guardedLookup: LookupFunction = (hostname, options, callback) => {
+  lookupCb(hostname, { ...options, all: false }, (err, address, family) => {
+    if (err) return callback(err, address, family);
+    if (isPrivateIp(address)) {
+      return callback(
+        Object.assign(new Error("connection to a private address is not allowed"), { code: "EAI_PRIVATE" }),
+        address,
+        family
+      );
+    }
+    callback(null, address, family);
+  });
+};
+
+let cachedDispatcher: Dispatcher | undefined;
+
+/**
+ * A fetch dispatcher whose socket connections resolve DNS through
+ * {@link guardedLookup}, so a scan fetch physically cannot open a socket to a
+ * private/loopback address even if DNS rebinds between validation and use.
+ */
+export function getScanDispatcher(): Dispatcher {
+  if (!cachedDispatcher) {
+    cachedDispatcher = new Agent({ connect: { lookup: guardedLookup } });
+  }
+  return cachedDispatcher;
 }
 
 /**
