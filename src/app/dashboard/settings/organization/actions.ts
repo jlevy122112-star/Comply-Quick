@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { can, isRole, type Permission, type Role } from "@/lib/rbac";
+import { can, isRole, assignableRoles, type Permission, type Role } from "@/lib/rbac";
 import {
   getMyOrgRole,
   updateOrganization,
@@ -15,13 +15,14 @@ import { createSsoConnection, setSsoEnabled, deleteSsoConnection, type SsoProtoc
 const PATH = "/dashboard/settings/organization";
 
 type Denied = { ok: false; error: string };
+type Authorized = { ok: true; role: Role };
 
 /** Resolve the caller's role in `orgId` and require `permission`. */
-async function authorize(orgId: string, permission: Permission): Promise<{ role: Role } | Denied> {
+async function authorize(orgId: string, permission: Permission): Promise<Authorized | Denied> {
   const role = await getMyOrgRole(orgId);
   if (!role) return { ok: false, error: "You are not a member of this organization." };
   if (!can(role, permission)) return { ok: false, error: "You don't have permission to do that." };
-  return { role };
+  return { ok: true, role };
 }
 
 export async function updateOrgAction(
@@ -29,7 +30,7 @@ export async function updateOrgAction(
   patch: { name?: string; plan?: "free" | "team" | "enterprise" }
 ): Promise<{ ok: true } | Denied> {
   const gate = await authorize(orgId, "org:update");
-  if ("ok" in gate) return gate;
+  if (!gate.ok) return gate;
   const ok = await updateOrganization(orgId, patch);
   revalidatePath(PATH);
   return ok ? { ok: true } : { ok: false, error: "Could not update the organization." };
@@ -37,8 +38,11 @@ export async function updateOrgAction(
 
 export async function addMemberAction(orgId: string, email: string, role: string): Promise<{ ok: true } | Denied> {
   const gate = await authorize(orgId, "member:invite");
-  if ("ok" in gate) return gate;
-  if (!isRole(role)) return { ok: false, error: "Invalid role." };
+  if (!gate.ok) return gate;
+  if (!isRole(role) || role === "owner") return { ok: false, error: "Invalid role." };
+  if (!assignableRoles(gate.role).includes(role)) {
+    return { ok: false, error: "You can't assign a role above your own." };
+  }
   const res = await addOrgMemberByEmail(orgId, email, role);
   revalidatePath(PATH);
   return res;
@@ -50,8 +54,11 @@ export async function updateMemberRoleAction(
   role: string
 ): Promise<{ ok: true } | Denied> {
   const gate = await authorize(orgId, "member:role");
-  if ("ok" in gate) return gate;
-  if (!isRole(role)) return { ok: false, error: "Invalid role." };
+  if (!gate.ok) return gate;
+  if (!isRole(role) || role === "owner") return { ok: false, error: "Invalid role." };
+  if (!assignableRoles(gate.role).includes(role)) {
+    return { ok: false, error: "You can't assign a role above your own." };
+  }
   const ok = await updateOrgMemberRole(memberId, role);
   revalidatePath(PATH);
   return ok ? { ok: true } : { ok: false, error: "Could not change the role." };
@@ -59,7 +66,7 @@ export async function updateMemberRoleAction(
 
 export async function removeMemberAction(orgId: string, memberId: string): Promise<{ ok: true } | Denied> {
   const gate = await authorize(orgId, "member:remove");
-  if ("ok" in gate) return gate;
+  if (!gate.ok) return gate;
   const ok = await removeOrgMember(memberId);
   revalidatePath(PATH);
   return ok ? { ok: true } : { ok: false, error: "Could not remove the member." };
@@ -67,7 +74,7 @@ export async function removeMemberAction(orgId: string, memberId: string): Promi
 
 export async function createWorkspaceAction(orgId: string, name: string): Promise<{ ok: true } | Denied> {
   const gate = await authorize(orgId, "workspace:create");
-  if ("ok" in gate) return gate;
+  if (!gate.ok) return gate;
   const res = await createWorkspace(orgId, name);
   revalidatePath(PATH);
   return res.ok ? { ok: true } : res;
@@ -75,7 +82,7 @@ export async function createWorkspaceAction(orgId: string, name: string): Promis
 
 export async function renameWorkspaceAction(orgId: string, id: string, name: string): Promise<{ ok: true } | Denied> {
   const gate = await authorize(orgId, "workspace:update");
-  if ("ok" in gate) return gate;
+  if (!gate.ok) return gate;
   const ok = await renameWorkspace(id, name);
   revalidatePath(PATH);
   return ok ? { ok: true } : { ok: false, error: "Could not rename the workspace." };
@@ -83,7 +90,7 @@ export async function renameWorkspaceAction(orgId: string, id: string, name: str
 
 export async function deleteWorkspaceAction(orgId: string, id: string): Promise<{ ok: true } | Denied> {
   const gate = await authorize(orgId, "workspace:delete");
-  if ("ok" in gate) return gate;
+  if (!gate.ok) return gate;
   const ok = await deleteWorkspace(id);
   revalidatePath(PATH);
   return ok ? { ok: true } : { ok: false, error: "Could not delete the workspace." };
@@ -94,7 +101,7 @@ export async function createSsoAction(
   input: { displayName: string; protocol: SsoProtocol; emailDomain: string; metadataUrl?: string }
 ): Promise<{ ok: true } | Denied> {
   const gate = await authorize(orgId, "sso:manage");
-  if ("ok" in gate) return gate;
+  if (!gate.ok) return gate;
   const res = await createSsoConnection(orgId, input);
   revalidatePath(PATH);
   return res.ok ? { ok: true } : res;
@@ -102,7 +109,7 @@ export async function createSsoAction(
 
 export async function setSsoEnabledAction(orgId: string, id: string, enabled: boolean): Promise<{ ok: true } | Denied> {
   const gate = await authorize(orgId, "sso:manage");
-  if ("ok" in gate) return gate;
+  if (!gate.ok) return gate;
   const ok = await setSsoEnabled(id, enabled);
   revalidatePath(PATH);
   return ok ? { ok: true } : { ok: false, error: "Could not update the connection." };
@@ -110,7 +117,7 @@ export async function setSsoEnabledAction(orgId: string, id: string, enabled: bo
 
 export async function deleteSsoAction(orgId: string, id: string): Promise<{ ok: true } | Denied> {
   const gate = await authorize(orgId, "sso:manage");
-  if ("ok" in gate) return gate;
+  if (!gate.ok) return gate;
   const ok = await deleteSsoConnection(id);
   revalidatePath(PATH);
   return ok ? { ok: true } : { ok: false, error: "Could not delete the connection." };

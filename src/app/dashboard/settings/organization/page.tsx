@@ -2,8 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Badge, TabNav, type TabItem } from "@/components/ui";
 import { ROLE_LABELS, can } from "@/lib/rbac";
-import { getOrCreateOrganization, getMyOrgRole, listOrgMembers } from "@/lib/organizations-db";
-import { listWorkspaces } from "@/lib/workspaces-db";
+import { getOrCreateOrganization, getMyOrgRole, listOrgMembers, countOrgMembers } from "@/lib/organizations-db";
+import { listWorkspaces, countWorkspaces } from "@/lib/workspaces-db";
 import { listSsoConnections, ssoEnabled } from "@/lib/sso-db";
 import { OrgProfilePanel } from "./OrgProfilePanel";
 import { MembersPanel } from "./MembersPanel";
@@ -25,16 +25,18 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
     ? (tabParam as Tab)
     : "profile";
 
-  const [members, workspaces, sso] = await Promise.all([
-    listOrgMembers(org.id),
-    listWorkspaces(org.id),
-    listSsoConnections(org.id),
-  ]);
+  // Cheap counts drive the tab badges on every load; the heavy list (member
+  // email resolution, workspace project tallies, SSO rows) is fetched only for
+  // the active tab so, e.g., viewing Profile never pays the members email cost.
+  const [memberCount, workspaceCount] = await Promise.all([countOrgMembers(org.id), countWorkspaces(org.id)]);
+  const members = tab === "members" ? await listOrgMembers(org.id) : [];
+  const workspaces = tab === "workspaces" ? await listWorkspaces(org.id) : [];
+  const sso = tab === "sso" ? await listSsoConnections(org.id) : [];
 
   const tabs: TabItem[] = [
     { key: "profile", label: "Profile" },
-    { key: "members", label: "Members", count: members.length },
-    { key: "workspaces", label: "Workspaces", count: workspaces.length },
+    { key: "members", label: "Members", count: memberCount },
+    { key: "workspaces", label: "Workspaces", count: workspaceCount },
     { key: "sso", label: "SSO" },
   ];
 
