@@ -46,7 +46,7 @@ export function Drawer({
       />
       <div
         className={cn(
-          "relative ml-auto flex h-full w-full max-w-md flex-col border-gray-800 bg-gray-950 shadow-2xl",
+          "relative flex h-full w-full max-w-md flex-col border-gray-800 bg-gray-950 shadow-2xl",
           "motion-safe:animate-[slideIn_.2s_ease-out]",
           side === "right" ? "ml-auto border-l" : "mr-auto border-r",
           className
