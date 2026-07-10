@@ -33,13 +33,13 @@ export async function POST(request: Request) {
   try {
     payload = await request.json();
   } catch {
-    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
+    return NextResponse.json({ error: "invalid_json" }, { status: 400, headers: rateHeaders });
   }
 
   const body = (payload ?? {}) as Record<string, unknown>;
   const rawUrl = typeof body.url === "string" ? body.url : "";
   if (!rawUrl.trim()) {
-    return NextResponse.json({ error: "Enter a website URL to scan." }, { status: 400 });
+    return NextResponse.json({ error: "Enter a website URL to scan." }, { status: 400, headers: rateHeaders });
   }
 
   try {
@@ -63,9 +63,12 @@ export async function POST(request: Request) {
     return NextResponse.json(result, { headers: rateHeaders });
   } catch (err) {
     if (err instanceof ValidationError) {
-      return NextResponse.json({ error: err.message }, { status: 400 });
+      return NextResponse.json({ error: err.message }, { status: 400, headers: rateHeaders });
     }
     log.warn("public scan failed", { reason: err instanceof Error ? err.message : "error" });
-    return NextResponse.json({ error: "Could not reach that website. Check the URL and try again." }, { status: 502 });
+    return NextResponse.json(
+      { error: "Could not reach that website. Check the URL and try again." },
+      { status: 502, headers: rateHeaders }
+    );
   }
 }

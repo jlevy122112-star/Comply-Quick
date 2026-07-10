@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { timingSafeEqual } from "crypto";
+import { createHash, timingSafeEqual } from "crypto";
 
 // Owner-only CSV export of the collected email list. Guarded by a shared secret
 // (LEADS_EXPORT_TOKEN) supplied via the `Authorization: Bearer <token>` header,
@@ -8,9 +8,11 @@ import { timingSafeEqual } from "crypto";
 // hard 404 so it can't be probed. Never exposed to the client bundle.
 
 function tokenMatches(provided: string, expected: string): boolean {
-  const a = Buffer.from(provided);
-  const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
+  // Hash both to a fixed-length digest first so the comparison is constant-time
+  // regardless of input length (a raw length check would leak the token length).
+  const a = createHash("sha256").update(provided).digest();
+  const b = createHash("sha256").update(expected).digest();
+  return timingSafeEqual(a, b);
 }
 
 // Neutralize spreadsheet formula injection: a leading =, +, -, @, tab, or CR
