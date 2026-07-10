@@ -3,6 +3,7 @@ import Link from "next/link";
 import { TIER_CONFIG } from "@/lib/pricing";
 import { LeadCaptureForm } from "@/components/landing/LeadCaptureForm";
 import { NewsletterSignup } from "@/components/landing/NewsletterSignup";
+import { StructuredData } from "@/components/seo/StructuredData";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://comply-quick.com";
 
@@ -11,38 +12,45 @@ const START_HREF = "/dashboard?utm_source=landing&utm_medium=cta&utm_campaign=fr
 const PRICING_HREF = "#pricing";
 
 export const metadata: Metadata = {
-  title: "Comply-Quick — Instant Web Compliance Packages for Agencies & Freelancers",
+  title: "Privacy Policy Generator & Website Compliance Software | Comply-Quick",
   description:
-    "Scan any site for GDPR, CCPA & ADA risks in 30 seconds, then generate the liability waivers, privacy policies, and pre-launch checklist mapped to its exact tech stack. Free preview — no card required.",
+    "Scan your site for GDPR, CCPA & cookie-consent risk and auto-generate a privacy policy, cookie disclosures, liability waivers & a compliance checklist in under a minute. Free preview — no card required.",
   keywords: [
-    "web compliance",
-    "GDPR compliance tool",
-    "CCPA compliance",
     "privacy policy generator",
+    "website compliance software",
+    "GDPR compliance software",
+    "CCPA compliance",
+    "cookie consent",
+    "cookie policy generator",
+    "terms and conditions generator",
+    "data privacy compliance",
+    "compliance automation software",
+    "consent management platform",
+    "ADA website compliance",
     "developer liability waiver",
-    "agency compliance",
-    "cookie tracking compliance",
+    "agency compliance tool",
   ],
   alternates: { canonical: SITE_URL },
   openGraph: {
     type: "website",
     url: SITE_URL,
     siteName: "Comply-Quick",
-    title: "Instant Web Compliance Packages — mapped to your exact tech stack",
+    title: "Privacy Policy Generator & Website Compliance Software",
     description:
-      "Scan for GDPR/CCPA/ADA risk in 30s and auto-generate the waivers, policies, and checklist that shift liability off your agency. Free preview, no card required.",
+      "Scan for GDPR, CCPA & cookie-consent risk and auto-generate stack-aware privacy policies, cookie disclosures, waivers & a compliance checklist in under a minute. Free preview, no card required.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Comply-Quick — Instant Web Compliance Packages",
+    title: "Comply-Quick — Privacy Policy Generator & Compliance Software",
     description:
-      "Scan for GDPR/CCPA/ADA risk in 30 seconds and generate stack-specific waivers, policies & checklists. Free preview.",
+      "Scan for GDPR/CCPA/cookie risk and auto-generate stack-aware privacy policies, cookie disclosures, waivers & a compliance checklist in under a minute. Free preview.",
   },
 };
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
+      <StructuredData />
       {/* Founding 100 promo bar */}
       <div className="bg-indigo-600 text-white text-center text-xs sm:text-sm font-medium px-4 py-2">
         Founding 100: the first 100 members get a free premium scan.{" "}

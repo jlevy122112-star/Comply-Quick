@@ -15,7 +15,7 @@ function tokenMatches(provided: string, expected: string): boolean {
 
 function csvCell(value: string | null): string {
   const v = value ?? "";
-  return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+  return /[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
 }
 
 export async function GET(request: Request) {

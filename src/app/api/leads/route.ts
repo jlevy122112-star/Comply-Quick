@@ -3,13 +3,21 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendTransactionalEmail } from "@/lib/email/send";
 import { leadMagnetEmail } from "@/lib/email/templates";
 import { FOUNDING_COUPON_CODE, FOUNDING_COUPON_REWARD, FOUNDING_MEMBER_LIMIT } from "@/lib/promo";
-import { logger } from "@/services";
+import { createRateLimiter, getClientKey, enforceRateLimit, errorResponse, logger } from "@/services";
 
 const log = logger.child({ module: "api:leads" });
+
+// Public endpoint that both writes to the DB and can send email — cap volume per
+// client so it can't be abused as a spam relay or to flood the leads table.
+const limiter = createRateLimiter({ limit: 5, windowMs: 60_000 });
 
 // RFC-5322-lite: good enough to reject obvious junk without over-rejecting.
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const UTM_MAX = 200;
+// Postgres unique-violation SQLSTATE — a concurrent duplicate insert.
+const UNIQUE_VIOLATION = "23505";
+
+type LeadRow = { id: string; welcomed: boolean; founding_member: boolean };
 
 function clean(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim().slice(0, UTM_MAX) : null;
@@ -17,10 +25,18 @@ function clean(value: unknown): string | null {
 
 /**
  * Public lead-capture endpoint. Stores the email (first-touch UTM attribution)
- * and fires the lead-magnet email. Idempotent on email: a repeat submission is
- * accepted without error and without re-sending the welcome mail.
+ * and fires the lead-magnet email. Idempotent on email: a repeat submission
+ * (even a concurrent one racing on the unique constraint) is accepted without
+ * error and without re-sending the welcome mail.
  */
 export async function POST(request: Request) {
+  let rateHeaders: Record<string, string>;
+  try {
+    rateHeaders = enforceRateLimit(await limiter.check(getClientKey(request.headers)));
+  } catch (limitErr) {
+    return errorResponse(limitErr);
+  }
+
   let payload: unknown;
   try {
     payload = await request.json();
@@ -36,20 +52,20 @@ export async function POST(request: Request) {
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     log.warn("lead capture skipped: supabase not configured");
-    return NextResponse.json({ ok: true, stored: false });
+    return NextResponse.json({ ok: true, stored: false }, { headers: rateHeaders });
   }
 
   const supabase = createAdminClient();
+  const source = clean(body.source) ?? "landing";
 
-  // Upsert on the unique email so duplicate signups don't error; only a freshly
-  // inserted row is "new" and triggers the welcome email.
-  const { data: existing } = await supabase
+  let existing: LeadRow | null = null;
+  const { data: found } = await supabase
     .from("leads")
     .select("id, welcomed, founding_member")
     .eq("email", email)
     .maybeSingle();
+  existing = found ?? null;
 
-  const source = clean(body.source) ?? "landing";
   let founding = existing?.founding_member ?? false;
 
   if (!existing) {
@@ -65,9 +81,23 @@ export async function POST(request: Request) {
       utm_campaign: clean(body.utm_campaign),
       founding_member: founding,
     });
+
     if (error) {
-      log.error("lead insert failed", { reason: error.message });
-      return NextResponse.json({ error: "store_failed" }, { status: 500 });
+      // A concurrent request for the same email won the insert race. Treat it as
+      // the duplicate it is: re-fetch the row and fall through as "already exists"
+      // so the response stays idempotent instead of 500-ing.
+      if (error.code === UNIQUE_VIOLATION) {
+        const { data: raced } = await supabase
+          .from("leads")
+          .select("id, welcomed, founding_member")
+          .eq("email", email)
+          .maybeSingle();
+        existing = raced ?? null;
+        founding = existing?.founding_member ?? false;
+      } else {
+        log.error("lead insert failed", { reason: error.message });
+        return NextResponse.json({ error: "store_failed" }, { status: 500 });
+      }
     }
   }
 
@@ -84,11 +114,14 @@ export async function POST(request: Request) {
     }
   }
 
-  return NextResponse.json({
-    ok: true,
-    stored: true,
-    emailed,
-    founding,
-    ...(founding ? { couponCode: FOUNDING_COUPON_CODE } : {}),
-  });
+  return NextResponse.json(
+    {
+      ok: true,
+      stored: true,
+      emailed,
+      founding,
+      ...(founding ? { couponCode: FOUNDING_COUPON_CODE } : {}),
+    },
+    { headers: rateHeaders }
+  );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { FOUNDING_COUPON_REWARD } from "@/lib/promo";
 
 type Status = "idle" | "submitting" | "success" | "error";
@@ -25,6 +25,7 @@ function readUtm(): Record<string, string> {
 }
 
 export function LeadCaptureForm({ source = "landing_hero" }: { source?: string }) {
+  const inputId = useId();
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [result, setResult] = useState<LeadResponse | null>(null);
@@ -69,11 +70,11 @@ export function LeadCaptureForm({ source = "landing_hero" }: { source?: string }
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-md mx-auto">
       <div className="flex flex-col sm:flex-row gap-3">
-        <label htmlFor="lead-email" className="sr-only">
+        <label htmlFor={inputId} className="sr-only">
           Work email
         </label>
         <input
-          id="lead-email"
+          id={inputId}
           type="email"
           required
           value={email}
