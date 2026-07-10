@@ -60,7 +60,7 @@ export function StructuredData() {
           "@type": "AggregateOffer",
           priceCurrency: "USD",
           lowPrice: String(TIER_CONFIG.solo.monthly),
-          highPrice: String(TIER_CONFIG.agency.monthly),
+          highPrice: String(TIER_CONFIG.enterprise.monthly),
           offerCount: "3",
         },
       },

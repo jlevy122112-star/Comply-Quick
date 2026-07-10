@@ -13,10 +13,16 @@ function tokenMatches(provided: string, expected: string): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
+// Neutralize spreadsheet formula injection: a leading =, +, -, @, tab, or CR
+// can be interpreted as a formula by Excel/Sheets, so prefix such cells with a
+// single quote before applying normal RFC-4180 quoting.
 function csvCell(value: string | null): string {
-  const v = value ?? "";
+  let v = value ?? "";
+  if (/^[=+\-@\t\r]/.test(v)) v = `'${v}`;
   return /[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
 }
+
+const PAGE_SIZE = 1000;
 
 export async function GET(request: Request) {
   const expected = process.env.LEADS_EXPORT_TOKEN;
@@ -33,15 +39,34 @@ export async function GET(request: Request) {
   }
 
   const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("leads")
-    .select("email, source, utm_source, utm_medium, utm_campaign, founding_member, welcomed, created_at")
-    .order("created_at", { ascending: false });
 
-  if (error) return NextResponse.json({ error: "query_failed" }, { status: 500 });
+  // Page through the full table so the export isn't silently truncated at
+  // PostgREST's default row cap once the list grows past a single page.
+  type Row = {
+    email: string;
+    source: string | null;
+    utm_source: string | null;
+    utm_medium: string | null;
+    utm_campaign: string | null;
+    founding_member: boolean;
+    welcomed: boolean;
+    created_at: string;
+  };
+  const all: Row[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("leads")
+      .select("email, source, utm_source, utm_medium, utm_campaign, founding_member, welcomed, created_at")
+      .order("created_at", { ascending: false })
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) return NextResponse.json({ error: "query_failed" }, { status: 500 });
+    if (!data || data.length === 0) break;
+    all.push(...(data as Row[]));
+    if (data.length < PAGE_SIZE) break;
+  }
 
   const header = "email,source,utm_source,utm_medium,utm_campaign,founding_member,welcomed,created_at";
-  const rows = (data ?? []).map((r) =>
+  const rows = all.map((r) =>
     [
       csvCell(r.email),
       csvCell(r.source),
