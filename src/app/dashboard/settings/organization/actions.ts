@@ -39,7 +39,7 @@ export async function updateOrgAction(
 export async function addMemberAction(orgId: string, email: string, role: string): Promise<{ ok: true } | Denied> {
   const gate = await authorize(orgId, "member:invite");
   if (!gate.ok) return gate;
-  if (!isRole(role)) return { ok: false, error: "Invalid role." };
+  if (!isRole(role) || role === "owner") return { ok: false, error: "Invalid role." };
   if (!assignableRoles(gate.role).includes(role)) {
     return { ok: false, error: "You can't assign a role above your own." };
   }
@@ -55,7 +55,7 @@ export async function updateMemberRoleAction(
 ): Promise<{ ok: true } | Denied> {
   const gate = await authorize(orgId, "member:role");
   if (!gate.ok) return gate;
-  if (!isRole(role)) return { ok: false, error: "Invalid role." };
+  if (!isRole(role) || role === "owner") return { ok: false, error: "Invalid role." };
   if (!assignableRoles(gate.role).includes(role)) {
     return { ok: false, error: "You can't assign a role above your own." };
   }
