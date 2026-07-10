@@ -41,13 +41,13 @@ export async function POST(request: Request) {
   try {
     payload = await request.json();
   } catch {
-    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
+    return NextResponse.json({ error: "invalid_json" }, { status: 400, headers: rateHeaders });
   }
 
   const body = (payload ?? {}) as Record<string, unknown>;
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   if (!email || email.length > 320 || !EMAIL_PATTERN.test(email)) {
-    return NextResponse.json({ error: "invalid_email" }, { status: 400 });
+    return NextResponse.json({ error: "invalid_email" }, { status: 400, headers: rateHeaders });
   }
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
         founding = existing?.founding_member ?? false;
       } else {
         log.error("lead insert failed", { reason: error.message });
-        return NextResponse.json({ error: "store_failed" }, { status: 500 });
+        return NextResponse.json({ error: "store_failed" }, { status: 500, headers: rateHeaders });
       }
     }
   }
