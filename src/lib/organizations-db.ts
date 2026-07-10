@@ -91,11 +91,24 @@ export const getOrCreateOrganization = cache(async (): Promise<Organization | nu
     .single();
   if (error || !data) return null;
 
+  // Best-effort: the owner membership row keeps membership checks uniform, but
+  // its failure is non-fatal — org_role() and is_org_member() both fall back to
+  // organizations.owner_id, so the owner always resolves to 'owner' regardless.
   await supabase
     .from("organization_members")
     .insert({ organization_id: (data as OrgRow).id, user_id: user.id, role: "owner" });
   return mapOrg(data as OrgRow);
 });
+
+/** Cheap head-count of members for tab badges (no email resolution). */
+export async function countOrgMembers(orgId: string): Promise<number> {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("organization_members")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", orgId);
+  return count ?? 0;
+}
 
 export async function updateOrganization(
   id: string,

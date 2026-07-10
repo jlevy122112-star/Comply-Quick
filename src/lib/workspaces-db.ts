@@ -56,6 +56,16 @@ export async function listWorkspaces(orgId: string): Promise<Workspace[]> {
   }));
 }
 
+/** Cheap head-count of workspaces for tab badges (no project tallying). */
+export async function countWorkspaces(orgId: string): Promise<number> {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("workspaces")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", orgId);
+  return count ?? 0;
+}
+
 export async function createWorkspace(
   orgId: string,
   name: string
