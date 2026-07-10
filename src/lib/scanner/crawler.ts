@@ -5,10 +5,11 @@
 // hostnames that resolve to loopback/private/link-local space by name.
 
 import { ValidationError, ServiceUnavailableError } from "@/services/errors";
-import { isBlockedScanHost } from "@/lib/security";
+import { assertPublicScanHost, isBlockedScanHost } from "@/lib/security";
 
 const MAX_BYTES = 2_000_000; // 2 MB cap — enough for markup, avoids huge payloads.
 const FETCH_TIMEOUT_MS = 10_000;
+const MAX_REDIRECTS = 5;
 
 /** Validates and normalizes a target URL, rejecting non-public destinations. */
 export function normalizeScanUrl(raw: string): URL {
@@ -40,22 +41,44 @@ export interface FetchedPage {
   rendered: boolean;
 }
 
-/** Fetches the HTML of a public page, enforcing timeout and size limits. */
-export async function fetchPageHtml(raw: string, fetchImpl: typeof fetch = fetch): Promise<FetchedPage> {
-  const url = normalizeScanUrl(raw);
+/**
+ * Fetches the HTML of a public page, enforcing timeout and size limits.
+ *
+ * Redirects are followed manually (max MAX_REDIRECTS hops) so every hop's host
+ * is re-validated against private/loopback space — otherwise a public URL could
+ * 30x-redirect the fetch to an internal address (SSRF). Each destination is
+ * resolved via DNS and rejected if it points anywhere non-public.
+ */
+export async function fetchPageHtml(
+  raw: string,
+  fetchImpl: typeof fetch = fetch,
+  assertHost: (hostname: string) => Promise<unknown> = assertPublicScanHost
+): Promise<FetchedPage> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
-    const res = await fetchImpl(url.toString(), {
-      redirect: "follow",
-      signal: controller.signal,
-      headers: { "user-agent": "ComplyQuickScanner/1.0 (+https://comply-quick.com)", accept: "text/html" },
-    });
-    const body = await res.text();
-    const html = body.length > MAX_BYTES ? body.slice(0, MAX_BYTES) : body;
-    return { url: url.toString(), status: res.status, html, requestUrls: [], rendered: false };
+    let current = normalizeScanUrl(raw);
+    for (let hop = 0; ; hop++) {
+      await assertHost(current.hostname);
+      const res = await fetchImpl(current.toString(), {
+        redirect: "manual",
+        signal: controller.signal,
+        headers: { "user-agent": "ComplyQuickScanner/1.0 (+https://comply-quick.com)", accept: "text/html" },
+      });
+      if (res.status >= 300 && res.status < 400 && res.headers.get("location")) {
+        if (hop >= MAX_REDIRECTS) {
+          throw new ServiceUnavailableError("That website redirected too many times.");
+        }
+        // Re-normalize (rejects non-http(s) targets) and loop to re-validate.
+        current = normalizeScanUrl(new URL(res.headers.get("location")!, current).toString());
+        continue;
+      }
+      const body = await res.text();
+      const html = body.length > MAX_BYTES ? body.slice(0, MAX_BYTES) : body;
+      return { url: current.toString(), status: res.status, html, requestUrls: [], rendered: false };
+    }
   } catch (err) {
-    if (err instanceof ValidationError) throw err;
+    if (err instanceof ValidationError || err instanceof ServiceUnavailableError) throw err;
     throw new ServiceUnavailableError("Could not reach that website. Check the URL and try again.");
   } finally {
     clearTimeout(timer);
@@ -137,7 +160,11 @@ export async function renderPageViaWorker(
  * page (executing JS to catch dynamically-injected trackers); otherwise, or if
  * the worker fails, it falls back to a plain server-side fetch of the markup.
  */
-export async function scanPage(raw: string, fetchImpl: typeof fetch = fetch): Promise<FetchedPage> {
+export async function scanPage(
+  raw: string,
+  fetchImpl: typeof fetch = fetch,
+  assertHost: (hostname: string) => Promise<unknown> = assertPublicScanHost
+): Promise<FetchedPage> {
   const workerUrl = process.env.SCANNER_WORKER_URL;
   if (workerUrl) {
     try {
@@ -147,5 +174,5 @@ export async function scanPage(raw: string, fetchImpl: typeof fetch = fetch): Pr
       // Worker unavailable — degrade gracefully to a static fetch.
     }
   }
-  return fetchPageHtml(raw, fetchImpl);
+  return fetchPageHtml(raw, fetchImpl, assertHost);
 }

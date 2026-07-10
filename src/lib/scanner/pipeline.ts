@@ -46,9 +46,14 @@ function fallbackSummary(tools: DetectedTool[], findings: Finding[], score: numb
 }
 
 /** Runs a full scan: fetch → analyze → summarize. */
-export async function runScan(params: { url: string; ai: AiClient; fetchImpl?: typeof fetch }): Promise<ScanOutcome> {
-  const { url, ai, fetchImpl } = params;
-  const page = await scanPage(url, fetchImpl ?? fetch);
+export async function runScan(params: {
+  url: string;
+  ai: AiClient;
+  fetchImpl?: typeof fetch;
+  assertHost?: (hostname: string) => Promise<unknown>;
+}): Promise<ScanOutcome> {
+  const { url, ai, fetchImpl, assertHost } = params;
+  const page = await scanPage(url, fetchImpl ?? fetch, assertHost);
   const analysis = analyzeHtml(page.html, page.requestUrls);
 
   let summary: string;

@@ -93,9 +93,12 @@ describe("normalizeScanUrl", () => {
 });
 
 describe("fetchPageHtml", () => {
+  // Stub the DNS-based host guard so unit tests stay hermetic (no real network).
+  const allowHost = async () => ["93.184.216.34"];
+
   it("returns fetched html via an injected fetch", async () => {
     const fakeFetch = (async () => new Response(CLEAN_PAGE, { status: 200 })) as unknown as typeof fetch;
-    const page = await fetchPageHtml("example.com", fakeFetch);
+    const page = await fetchPageHtml("example.com", fakeFetch, allowHost);
     expect(page.status).toBe(200);
     expect(page.html).toContain("Privacy Policy");
   });
@@ -104,7 +107,31 @@ describe("fetchPageHtml", () => {
     const failing = (async () => {
       throw new Error("network down");
     }) as unknown as typeof fetch;
-    await expect(fetchPageHtml("example.com", failing)).rejects.toBeInstanceOf(ServiceUnavailableError);
+    await expect(fetchPageHtml("example.com", failing, allowHost)).rejects.toBeInstanceOf(ServiceUnavailableError);
+  });
+
+  it("follows redirects but re-validates every hop's host", async () => {
+    const seen: string[] = [];
+    const redirectingFetch = (async (input: RequestInfo | URL) => {
+      const url = String(input);
+      seen.push(url);
+      if (url === "https://example.com/") {
+        return new Response(null, { status: 302, headers: { location: "https://example.org/final" } });
+      }
+      return new Response(CLEAN_PAGE, { status: 200 });
+    }) as unknown as typeof fetch;
+    const page = await fetchPageHtml("example.com", redirectingFetch, allowHost);
+    expect(seen).toEqual(["https://example.com/", "https://example.org/final"]);
+    expect(page.url).toBe("https://example.org/final");
+  });
+
+  it("rejects a redirect that points at a private host", async () => {
+    const toPrivate = (async () =>
+      new Response(null, {
+        status: 302,
+        headers: { location: "http://169.254.169.254/latest/meta-data" },
+      })) as unknown as typeof fetch;
+    await expect(fetchPageHtml("example.com", toPrivate, allowHost)).rejects.toBeInstanceOf(ValidationError);
   });
 });
 
@@ -161,7 +188,7 @@ describe("scanPage", () => {
       if (String(input).includes("/scan")) throw new Error("worker down");
       return new Response(CLEAN_PAGE, { status: 200 });
     }) as unknown as typeof fetch;
-    const page = await scanPage("example.com", flakyFetch);
+    const page = await scanPage("example.com", flakyFetch, async () => ["93.184.216.34"]);
     expect(page.rendered).toBe(false);
     expect(page.html).toContain("Privacy Policy");
     expect(calls).toBe(2); // worker attempt, then fallback fetch
@@ -169,9 +196,16 @@ describe("scanPage", () => {
 });
 
 describe("runScan", () => {
+  const allowHost = async () => ["93.184.216.34"];
+
   it("produces a scored outcome with a deterministic summary", async () => {
     const fakeFetch = (async () => new Response(RISKY_PAGE, { status: 200 })) as unknown as typeof fetch;
-    const outcome = await runScan({ url: "example.com", ai: new DeterministicAiClient(), fetchImpl: fakeFetch });
+    const outcome = await runScan({
+      url: "example.com",
+      ai: new DeterministicAiClient(),
+      fetchImpl: fakeFetch,
+      assertHost: allowHost,
+    });
     expect(outcome.score).toBeLessThan(60);
     expect(outcome.detectedTools.length).toBeGreaterThan(0);
     expect(outcome.summary).toContain("Compliance score");
@@ -186,7 +220,7 @@ describe("runScan", () => {
         return "  Looks compliant.  ";
       },
     };
-    const outcome = await runScan({ url: "example.com", ai: fakeLive, fetchImpl: fakeFetch });
+    const outcome = await runScan({ url: "example.com", ai: fakeLive, fetchImpl: fakeFetch, assertHost: allowHost });
     expect(outcome.summary).toBe("Looks compliant.");
   });
 });
