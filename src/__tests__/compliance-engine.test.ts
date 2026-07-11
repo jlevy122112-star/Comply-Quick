@@ -184,6 +184,29 @@ describe("lintCompliance — rule-based checker", () => {
     expect(us.find((f) => f.id === "trackers_without_consent")!.severity).toBe("warning");
   });
 
+  it("does NOT raise trackers_without_consent for error-monitoring-only (Sentry)", () => {
+    // Sentry touches online_activity-shaped data but is not a consent-gated
+    // behavioral tracker (consentGated: false), so a site running only Sentry
+    // without a consent mechanism must not be flagged.
+    const findings = lintCompliance({
+      ...base,
+      services: ["sentry"],
+      dpaWith: ["sentry"],
+      hasConsentMechanism: false,
+    });
+    expect(findings.some((f) => f.id === "trackers_without_consent")).toBe(false);
+  });
+
+  it("still raises trackers_without_consent for behavioral monitoring (Datadog RUM)", () => {
+    const findings = lintCompliance({
+      ...base,
+      services: ["datadog"],
+      dpaWith: ["datadog"],
+      hasConsentMechanism: false,
+    });
+    expect(findings.some((f) => f.id === "trackers_without_consent")).toBe(true);
+  });
+
   it("errors when EU data goes to a non-EU vendor without SCCs", () => {
     const findings = lintCompliance({ ...base, mentionsSccs: false });
     expect(findings.some((f) => f.id === "transfers_without_sccs" && f.severity === "error")).toBe(true);
