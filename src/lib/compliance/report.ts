@@ -29,13 +29,21 @@ export interface ReportInput {
 /** Builds the deterministic detection→obligations report for a scanned page. */
 export function buildObligationReport(input: ReportInput): ObligationReport {
   const detected = detectToolsDetailed(input.html, input.requestUrls ?? []);
-  const services = detected.map((d) => d.id);
+
+  // Only CONFIDENT detections drive legal obligations. Weak-only detections
+  // (matched purely by generic signals, e.g. a self-hosted `analytics.min.js`)
+  // are low-confidence hints capped at WEAK_ONLY_CONFIDENCE_CAP; letting them
+  // derive obligations would falsely impose, say, Segment's full obligation set
+  // on any site with a generically-named analytics bundle. The full `detected`
+  // array (including weak hints) is still returned for transparency.
+  const confident = detected.filter((d) => !d.isWeakOnly);
+  const services = confident.map((d) => d.id);
   const obligations = deriveObligations({ services, jurisdictions: input.jurisdictions });
 
   const detectionConfidence =
-    detected.length === 0
+    confident.length === 0
       ? 0
-      : Math.round((detected.reduce((sum, d) => sum + d.confidence, 0) / detected.length) * 100) / 100;
+      : Math.round((confident.reduce((sum, d) => sum + d.confidence, 0) / confident.length) * 100) / 100;
 
   return {
     detected,

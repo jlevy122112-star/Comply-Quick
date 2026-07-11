@@ -232,6 +232,32 @@ describe("buildObligationReport — orchestration", () => {
     expect(report.dataCategories).toEqual(expect.arrayContaining(["financial", "online_activity"]));
   });
 
+  it("does NOT derive obligations from a weak-only detection (self-hosted analytics.min.js)", () => {
+    // A generic bundle name is a weak-only hint: it must appear in `detected`
+    // for transparency but must NOT impose Segment's legal obligation set.
+    const report = buildObligationReport({
+      html: '<script src="https://acme.example.com/js/analytics.min.js"></script>',
+      jurisdictions: ["eu"],
+    });
+    const seg = report.detected.find((d) => d.id === "segment");
+    expect(seg).toBeDefined();
+    expect(seg!.isWeakOnly).toBe(true);
+    expect(report.obligations).toHaveLength(0);
+    expect(report.dataCategories).toHaveLength(0);
+    expect(report.detectionConfidence).toBe(0);
+  });
+
+  it("DOES derive obligations from a strong (vendor-specific) Segment detection", () => {
+    const report = buildObligationReport({
+      html: '<script src="https://cdn.segment.com/analytics.js/v1/x/analytics.min.js"></script>',
+      jurisdictions: ["eu"],
+    });
+    const seg = report.detected.find((d) => d.id === "segment");
+    expect(seg!.isWeakOnly).toBe(false);
+    expect(report.obligations.length).toBeGreaterThan(0);
+    expect(report.detectionConfidence).toBeGreaterThan(0.3);
+  });
+
   it("returns zero confidence and no obligations for a clean page", () => {
     const report = buildObligationReport({ html: "<html><body>hello</body></html>", jurisdictions: ["eu"] });
     expect(report.detected).toHaveLength(0);

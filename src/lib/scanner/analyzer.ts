@@ -190,6 +190,14 @@ export interface DetectedToolDetail extends DetectedTool {
   layer: DetectionLayer;
   /** The raw regex sources that matched (evidence for the audit trail). */
   signals: string[];
+  /**
+   * True when the detection is backed ONLY by generic/weak signals (no
+   * vendor-specific strong signal fired), so confidence is capped at
+   * WEAK_ONLY_CONFIDENCE_CAP. Such detections are low-confidence hints for
+   * transparency and MUST NOT drive definite compliance obligations — see
+   * buildObligationReport, which filters them out before deriving obligations.
+   */
+  isWeakOnly: boolean;
 }
 
 // Deterministic confidence model. A runtime/network match (the tool actually
@@ -271,11 +279,11 @@ export function detectToolsDetailed(html: string, requestUrls: string[] = []): D
     // hint. `signals` lists every distinct pattern that matched (strong first)
     // as evidence for the audit trail.
     const signals = [...strongSignals, ...weakSignals];
-    const { confidence, layer } =
-      strongMatches > 0
-        ? scoreConfidence(strongHtml, strongRuntime, strongSignals.length, weakMatches > 0)
-        : scoreWeakOnly(weakHtml, weakRuntime);
-    found.push({ id: fp.id, name: fp.name, category: fp.category, confidence, layer, signals });
+    const isWeakOnly = strongMatches === 0;
+    const { confidence, layer } = isWeakOnly
+      ? scoreWeakOnly(weakHtml, weakRuntime)
+      : scoreConfidence(strongHtml, strongRuntime, strongSignals.length, weakMatches > 0);
+    found.push({ id: fp.id, name: fp.name, category: fp.category, confidence, layer, signals, isWeakOnly });
   }
   return found;
 }
