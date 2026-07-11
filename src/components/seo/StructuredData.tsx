@@ -56,6 +56,15 @@ export function StructuredData() {
         url: SITE_URL,
         description:
           "Scan any website for GDPR, CCPA, and ADA risk and auto-generate stack-aware privacy policies, cookie disclosures, liability waivers, and a pre-launch compliance checklist in under a minute.",
+        featureList: [
+          "One-click tech-stack and tracker detection",
+          "Auto-generated privacy policy and cookie disclosures",
+          "Developer-to-merchant liability waiver",
+          "Jurisdiction-aware compliance checklist",
+          "Automated regulatory-change monitoring across official sources",
+          "White-label export for agencies",
+          "Embeddable compliance score badge",
+        ],
         offers: {
           "@type": "AggregateOffer",
           priceCurrency: "USD",

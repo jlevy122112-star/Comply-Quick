@@ -154,6 +154,26 @@ export default function LandingPage() {
                 Create Free Agency Account
               </Link>
             </div>
+            {/* Purchase-risk reducers (all truthful: see pricing + FAQ) */}
+            <ul className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-gray-300">
+              {["No Credit Card Required", "30-Day Money-Back Guarantee", "Cancel Anytime"].map((point) => (
+                <li key={point} className="inline-flex items-center gap-1.5">
+                  <svg
+                    className="w-3.5 h-3.5 text-emerald-400"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0L3.3 9.7a1 1 0 011.4-1.4l3.1 3.1 6.8-6.8a1 1 0 011.4 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  {point}
+                </li>
+              ))}
+            </ul>
             {/* Trust bar */}
             <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs text-gray-300">
               <span className="inline-flex items-center gap-1.5">
@@ -219,6 +239,17 @@ export default function LandingPage() {
               </span>
             ))}
           </div>
+          {/* Framework coverage — factual breadth of what the engine maps to. */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-2.5">
+            {["GDPR", "CCPA / CPRA", "PIPEDA", "LGPD", "ADA / WCAG", "HIPAA", "PCI-DSS", "SOC 2"].map((fw) => (
+              <span
+                key={fw}
+                className="inline-flex items-center rounded-full border border-gray-700 bg-gray-900/60 px-3 py-1 text-xs font-medium text-gray-200"
+              >
+                {fw}
+              </span>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -236,7 +267,7 @@ export default function LandingPage() {
               body="Manage every client from one dashboard. White-label every export."
             />
             <ValueColumn
-              title="Agency Liability Shield\u2122"
+              title="Agency Liability Shield™"
               body="Shift GDPR/ADA liability from your agency to the merchant automatically."
             />
             <ValueColumn
