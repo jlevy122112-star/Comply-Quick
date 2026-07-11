@@ -92,6 +92,18 @@ export const OBLIGATION_NODES: readonly ObligationNode[] = [
     provenance: { source: "EUR-Lex", url: EURLEX("32016R0679"), lastUpdated: "2024-01-01" },
   },
   {
+    id: "gdpr.art26.joint_controller",
+    framework: "gdpr",
+    reference: "Art. 26",
+    title: "Joint controller arrangement",
+    obligation:
+      "Where you jointly determine the purposes and means of processing with a partner (e.g. an advertising pixel that sets its own cookies), put a joint-controller arrangement in place and make its essence available to data subjects.",
+    evidence: ["Signed joint-controller addendum", "Essence of the arrangement disclosed in the privacy notice"],
+    jurisdictions: ["eu", "uk"],
+    severity: "critical",
+    provenance: { source: "EUR-Lex", url: EURLEX("32016R0679"), lastUpdated: "2024-01-01" },
+  },
+  {
     id: "gdpr.art46.transfers",
     framework: "gdpr",
     reference: "Art. 46 & SCCs",

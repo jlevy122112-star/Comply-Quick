@@ -6,7 +6,7 @@
 // provenance. This is pure and deterministic — the same inputs always yield the
 // same obligations in the same order — so results are reproducible and auditable.
 
-import { getObligation, type JurisdictionId, type ObligationNode, type Provenance, type DataCategory } from "./graph";
+import { getObligation, type JurisdictionId, type ObligationNode, type Provenance } from "./graph";
 import { getService, type ServiceCatalogEntry } from "./catalog";
 
 export interface ObligationResult {
@@ -22,8 +22,6 @@ export interface TraversalInput {
   /** Detected service ids (scanner fingerprint ids). */
   services: string[];
   jurisdictions: JurisdictionId[];
-  /** Optional extra data categories declared by the user (e.g. health, children). */
-  dataCategories?: DataCategory[];
 }
 
 const SEVERITY_ORDER: Record<ObligationNode["severity"], number> = { critical: 0, warning: 1, info: 2 };

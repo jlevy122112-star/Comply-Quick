@@ -37,6 +37,17 @@ const US_TRACKER_OBLIGATIONS = [
   "cpra.opt_out_sale_share",
 ];
 
+// A joint controller (e.g. Meta Pixel, per CJEU C-40/17 Fashion ID) requires an
+// Art. 26 joint-controller arrangement rather than an Art. 28 processor DPA.
+const US_JOINT_CONTROLLER_OBLIGATIONS = [
+  "gdpr.art13.privacy_notice",
+  "gdpr.art7.consent",
+  "gdpr.art26.joint_controller",
+  "gdpr.art46.transfers",
+  "ccpa.notice_at_collection",
+  "cpra.opt_out_sale_share",
+];
+
 export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
   {
     id: "google",
@@ -56,7 +67,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     vendorRegion: "us",
     dataCategories: ["identifiers", "online_activity", "device"],
     dpaUrl: "https://www.facebook.com/legal/terms/dataprocessing",
-    triggersObligations: US_TRACKER_OBLIGATIONS,
+    triggersObligations: US_JOINT_CONTROLLER_OBLIGATIONS,
   },
   {
     id: "tiktok",

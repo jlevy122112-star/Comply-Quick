@@ -173,12 +173,18 @@ export interface DetectedToolDetail extends DetectedTool {
  * Confidence grows with the number of distinct signals and is highest when the
  * tool is corroborated across both layers.
  */
-function scoreConfidence(htmlMatches: number, runtimeMatches: number): { confidence: number; layer: DetectionLayer } {
-  const total = htmlMatches + runtimeMatches;
+function scoreConfidence(
+  htmlMatches: number,
+  runtimeMatches: number,
+  distinctPatterns: number
+): { confidence: number; layer: DetectionLayer } {
   const layer: DetectionLayer =
     htmlMatches > 0 && runtimeMatches > 0 ? "both" : runtimeMatches > 0 ? "runtime" : "html";
   let confidence = runtimeMatches > 0 ? 0.7 : 0.5;
-  confidence += Math.min(0.2, (total - 1) * 0.1); // corroborating signals
+  // Reward *distinct* corroborating patterns (not the sum across layers, which
+  // would double-count a pattern that matched in both). Cross-layer agreement
+  // is credited separately below.
+  confidence += Math.min(0.2, (distinctPatterns - 1) * 0.1);
   if (layer === "both") confidence += 0.15; // cross-layer agreement
   confidence = Math.max(0, Math.min(1, confidence));
   return { confidence: Math.round(confidence * 100) / 100, layer };
@@ -204,7 +210,8 @@ export function detectToolsDetailed(html: string, requestUrls: string[] = []): D
       if (inHtml || inRuntime) signals.push(p.source);
     }
     if (htmlMatches + runtimeMatches === 0) continue;
-    const { confidence, layer } = scoreConfidence(htmlMatches, runtimeMatches);
+    // `signals` holds one entry per distinct pattern that matched in either layer.
+    const { confidence, layer } = scoreConfidence(htmlMatches, runtimeMatches, signals.length);
     found.push({ id: fp.id, name: fp.name, category: fp.category, confidence, layer, signals });
   }
   return found;
@@ -228,7 +235,12 @@ export function analyzeHtml(html: string, requestUrls: string[] = []): ScanAnaly
 
   const consentTools = detectedTools.filter((t) => t.category === "consent");
   const trackers = detectedTools.filter(
-    (t) => t.category === "advertising" || t.category === "analytics" || t.category === "session_replay"
+    (t) =>
+      t.category === "advertising" ||
+      t.category === "analytics" ||
+      t.category === "session_replay" ||
+      t.category === "cdp" ||
+      t.category === "monitoring"
   );
   const sessionReplay = detectedTools.filter((t) => t.category === "session_replay");
   const hasConsentBanner = consentTools.length > 0;

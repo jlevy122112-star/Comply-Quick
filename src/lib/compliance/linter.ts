@@ -31,6 +31,8 @@ export interface ComplianceState {
   hasConsentMechanism: boolean;
   /** Service ids for which a DPA is in place / covered. */
   dpaWith: string[];
+  /** Service ids for which a joint-controller arrangement (Art. 26) is in place. */
+  jointControllerArrangements?: string[];
   /** Whether Standard Contractual Clauses are addressed for international transfers. */
   mentionsSccs: boolean;
   /** Whether PCI-DSS scope (SAQ / data-flow) is addressed. */
@@ -51,8 +53,10 @@ export function lintCompliance(state: ComplianceState): LintFinding[] {
 
   const trackers = entries.filter((e) => e.dataCategories.includes("online_activity"));
   const processors = entries.filter((e) => e.role === "processor" || e.role === "sub_processor");
+  const jointControllers = entries.filter((e) => e.role === "joint_controller");
   const payments = entries.filter((e) => e.dataCategories.includes("financial"));
   const dpaSet = new Set(state.dpaWith);
+  const jcaSet = new Set(state.jointControllerArrangements ?? []);
 
   // Rule 1: any personal-data service but no privacy policy → error.
   if (entries.length > 0 && !state.hasPrivacyPolicy) {
@@ -74,6 +78,19 @@ export function lintCompliance(state: ComplianceState): LintFinding[] {
         message: `${p.name} acts as a data processor but no Data Processing Agreement is recorded for it.`,
         obligationId: "gdpr.art28.dpa",
         serviceIds: [p.id],
+      });
+    }
+  }
+
+  // Rule 2b: joint controller present but no Art. 26 arrangement → error (per controller).
+  for (const jc of jointControllers) {
+    if (!jcaSet.has(jc.id)) {
+      findings.push({
+        id: `missing_jca_${jc.id}`,
+        severity: "error",
+        message: `${jc.name} acts as a joint controller but no Art. 26 joint-controller arrangement is recorded for it.`,
+        obligationId: "gdpr.art26.joint_controller",
+        serviceIds: [jc.id],
       });
     }
   }

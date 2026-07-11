@@ -30,11 +30,7 @@ export interface ReportInput {
 export function buildObligationReport(input: ReportInput): ObligationReport {
   const detected = detectToolsDetailed(input.html, input.requestUrls ?? []);
   const services = detected.map((d) => d.id);
-  const obligations = deriveObligations({
-    services,
-    jurisdictions: input.jurisdictions,
-    dataCategories: input.dataCategories,
-  });
+  const obligations = deriveObligations({ services, jurisdictions: input.jurisdictions });
 
   const detectionConfidence =
     detected.length === 0

@@ -66,10 +66,16 @@ describe("deriveObligations — deterministic traversal", () => {
   });
 
   it("de-duplicates a shared obligation and credits every triggering service", () => {
-    const results = deriveObligations({ services: ["google", "meta"], jurisdictions: ["eu"] });
+    const results = deriveObligations({ services: ["google", "stripe"], jurisdictions: ["eu"] });
     const dpa = results.filter((r) => r.obligation.id === "gdpr.art28.dpa");
     expect(dpa).toHaveLength(1);
-    expect(dpa[0].triggeredBy).toEqual(expect.arrayContaining(["Google Analytics / Ads", "Meta Pixel"]));
+    expect(dpa[0].triggeredBy).toEqual(expect.arrayContaining(["Google Analytics / Ads", "Stripe"]));
+  });
+
+  it("maps a joint controller (Meta) to Art. 26, not the processor DPA", () => {
+    const results = deriveObligations({ services: ["meta"], jurisdictions: ["eu"] });
+    expect(results.some((r) => r.obligation.id === "gdpr.art26.joint_controller")).toBe(true);
+    expect(results.some((r) => r.obligation.id === "gdpr.art28.dpa")).toBe(false);
   });
 
   it("filters obligations by jurisdiction (no CCPA node for an EU-only site)", () => {
@@ -111,6 +117,14 @@ describe("lintCompliance — rule-based checker", () => {
   it("errors when a processor has no DPA", () => {
     const findings = lintCompliance({ ...base, dpaWith: ["google"] });
     expect(findings.some((f) => f.id === "missing_dpa_stripe" && f.severity === "error")).toBe(true);
+  });
+
+  it("errors when a joint controller (Meta) has no Art. 26 arrangement", () => {
+    const withMeta: ComplianceState = { ...base, services: [...base.services, "meta"] };
+    const findings = lintCompliance(withMeta);
+    expect(findings.some((f) => f.id === "missing_jca_meta" && f.severity === "error")).toBe(true);
+    const covered = lintCompliance({ ...withMeta, jointControllerArrangements: ["meta"] });
+    expect(covered.some((f) => f.id === "missing_jca_meta")).toBe(false);
   });
 
   it("errors on trackers without consent in the EU, warns elsewhere", () => {
