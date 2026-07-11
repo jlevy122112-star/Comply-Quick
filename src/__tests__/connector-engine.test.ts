@@ -359,6 +359,13 @@ describe("connector/shopify — admin client", () => {
     expect(Object.prototype.hasOwnProperty.call(page, "handle")).toBe(false);
   });
 
+  it("deleteScriptTag succeeds on an empty (204) response instead of crashing on JSON.parse", async () => {
+    const fakeFetch = (async () =>
+      new Response(null, { status: 200, headers: { "content-length": "0" } })) as unknown as typeof fetch;
+    const client = new ShopifyAdminClient({ shop: "acme.myshopify.com", accessToken: "shpat_x", fetchImpl: fakeFetch });
+    await expect(client.deleteScriptTag(123)).resolves.toBeUndefined();
+  });
+
   it("updatePage lets the path id win over an id in the partial payload", async () => {
     let captured: { url: string; init: RequestInit } | null = null;
     const fakeFetch = (async (url: string, init: RequestInit) => {

@@ -86,17 +86,24 @@ export class ShopifyAdminClient {
   }
 
   private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+    const headers: Record<string, string> = {
+      "X-Shopify-Access-Token": this.token,
+      Accept: "application/json",
+    };
+    // Content-Type only describes a request body; omit it on bodyless requests.
+    if (body !== undefined) headers["Content-Type"] = "application/json";
     const res = await this.fetchImpl(`${this.base}${path}`, {
       method,
-      headers: {
-        "X-Shopify-Access-Token": this.token,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
+      headers,
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     if (!res.ok) throw new Error(`Shopify API ${method} ${path} failed: ${res.status}`);
-    return (await res.json()) as T;
+    // Shopify returns an empty body for 204/DELETE; don't try to parse JSON then.
+    if (res.status === 204 || res.headers.get("content-length") === "0") {
+      return undefined as T;
+    }
+    const text = await res.text();
+    return (text ? JSON.parse(text) : undefined) as T;
   }
 
   async listScriptTags(): Promise<ScriptTag[]> {
