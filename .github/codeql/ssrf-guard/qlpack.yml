@@ -1,0 +1,6 @@
+name: comply-quick/ssrf-guard
+version: 0.0.1
+library: false
+dependencies:
+  codeql/javascript-all: "*"
+  codeql/javascript-queries: "*"

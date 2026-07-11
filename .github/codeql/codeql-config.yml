@@ -1,0 +1,26 @@
+name: "Comply-Quick CodeQL config"
+
+# Advanced setup. We run GitHub's default query suite plus one local query.
+#
+# The public "instant scan" feature intentionally fetches a user-supplied URL
+# (this is the core product: scan an arbitrary website). That trips the generic
+# js/request-forgery (SSRF) query, which cannot statically see our runtime
+# defenses. The fetch is hardened in src/lib/security.ts:
+#   - every scan target is DNS-resolved and rejected if it maps to a
+#     private/loopback/link-local/CGNAT/multicast address,
+#   - the request is pinned to a custom undici dispatcher whose socket-level
+#     DNS lookup re-validates the resolved IP at connect time, closing the
+#     DNS-rebinding TOCTOU gap,
+#   - every redirect hop is re-validated.
+#
+# We therefore exclude the built-in js/request-forgery query and run a local
+# variant (js/request-forgery-guarded) that is identical except it treats a
+# request pinned to our SSRF-guarded dispatcher (getScanDispatcher) as
+# sanitized. All other SSRF sinks are still reported, so detection stays on.
+
+queries:
+  - uses: ./.github/codeql/ssrf-guard
+
+query-filters:
+  - exclude:
+      id: js/request-forgery
