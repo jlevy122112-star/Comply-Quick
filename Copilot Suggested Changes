@@ -178,7 +178,6 @@ No alerting on critical failures — add to Stripe webhook:
 ts
 if (event.type === 'charge.failed') {
   logger.error({ customerId: event.data.object.customer }, 'Payment failed');
-  // Send to Slack: `#revenue-alerts`
 }
 D. Testing & Quality ✅ GOOD (but gaps)
 Current: Vitest + 125 tests passing (good!). But:

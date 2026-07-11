@@ -30,7 +30,6 @@ vi.mock("@/services", async (importOriginal) => {
     getStripe: () => ({ webhooks: { constructEvent } }),
     logger: { child: () => ({ error: vi.fn(), warn: vi.fn(), info: vi.fn() }) },
     analytics: { track: vi.fn() },
-    sendRevenueAlert: vi.fn(async () => ({ ok: true })),
   };
 });
 

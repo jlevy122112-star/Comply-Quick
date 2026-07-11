@@ -43,8 +43,8 @@ from the profitability list.
 ### [Orig P1] Foundation — + observability upgrade
 - ✅ Structured logging (Pino-style logger) — **already built** (`@/services/logger`).
 - 🆕 **[Up 9] Sentry integration** — error tracking (`sentry.server/client.config`).
-- 🆕 **[Up 9] Slack alerts** — payment failures, scan failures, worker crashes; Stripe webhook logging to `#revenue-alerts`.
-- Requirement: prevent silent failures; protect MRR. External deps: `SENTRY_DSN`, `SLACK_WEBHOOK_URL`.
+- 🆕 **[Up 9] Revenue-event logging** — payment failures, scan failures, worker crashes logged via the structured logger from the Stripe webhook.
+- Requirement: prevent silent failures; protect MRR. External deps: `SENTRY_DSN`.
 
 ### [Orig P2] Autopilot + [Orig P4] Intelligence — Regulation Autopilot upgrade
 - ✅ **[Up 6]** Regulation diff engine, auto-proposed updates, version history, change alerts, weekly re-scan — **already built** across PR #9 + #13.
@@ -130,7 +130,7 @@ payment/E2E integration tests. Shipped as a dedicated hardening PR (§4 step 13)
 5. ✅ **[Up 4]** Compliance score improvement path + public score pages + embeddable badges. — **PR #25 (merged)**
 6. ✅ **[Up 8]** Partner program — referrals, 30% recurring, dashboard. — **PR #26 (merged)**
 7. ✅ **[Up 7]** Calendar + alerts + one-way ICS calendar linking. — **PR #27 (merged)**
-8. ✅ **[Up 9]** Sentry + Slack alerts (live-verified: Sentry ingest + `#revenue-alerts`). — **PR #28 (merged), #29 (slugs)**
+8. ✅ **[Up 9]** Sentry error tracking (live-verified ingest). — **PR #28 (merged), #29 (slugs)**
 9. ✅ **[Up 10]** Legal safeguards — disclaimers, ToS liability cap, review-queue tooling. — **PR #30 (CI green; awaiting owner legal sign-off before merge)**
 10. ✅ **[Up 12]** SEO blog engine + 3 articles + content→freemium→paid funnel. — **PR #31 (CI green)**
 11. ✅ **[Up 11]** PMF tooling — NPS survey, churn exit survey, retention/channel dashboards. — **PR #32 (CI green)**
