@@ -38,7 +38,13 @@ function rowToIntegration(row: IntegrationRow): Integration {
 
 export async function listIntegrations(): Promise<Integration[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("integrations").select("*").order("created_at", { ascending: false });
+  // Filter to supported kinds so any legacy row (e.g. removed `slack`) that
+  // predates the cleanup migration never leaks a value outside IntegrationKind.
+  const { data, error } = await supabase
+    .from("integrations")
+    .select("*")
+    .eq("kind", "webhook")
+    .order("created_at", { ascending: false });
   if (error || !data) return [];
   return (data as IntegrationRow[]).map(rowToIntegration);
 }
