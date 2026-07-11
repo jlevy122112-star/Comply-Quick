@@ -13,7 +13,13 @@ export type ToolCategory =
   | "tag_manager"
   | "payments"
   | "cdp"
-  | "monitoring";
+  // Real-user / behavioral monitoring (Datadog RUM etc.) — session-level data,
+  // treated as a consent-gated tracker.
+  | "monitoring"
+  // Pure error/crash monitoring (Sentry etc.) — no behavioral session tracking,
+  // so NOT consent-gated by default. Kept a distinct category so the tracker
+  // classification below never sweeps it into the consent-warning path.
+  | "error_monitoring";
 
 export interface DetectedTool {
   id: string;
@@ -43,7 +49,15 @@ interface Fingerprint {
   id: string;
   name: string;
   category: ToolCategory;
+  /** Strong, vendor-specific signals (CDN/SDK hostnames, unique globals). */
   patterns: RegExp[];
+  /**
+   * Generic, easily-collided signals (e.g. an `analytics.track(` shape shared by
+   * many libraries). These still register a detection so nothing is missed, but
+   * on their own they can only produce a LOW-confidence hint — never a
+   * high-confidence detection — to keep false positives out of the strong set.
+   */
+  weakPatterns?: RegExp[];
 }
 
 // Fingerprints match well-known script hosts / global calls. Ordered roughly by
@@ -116,12 +130,16 @@ const FINGERPRINTS: Fingerprint[] = [
     id: "segment",
     name: "Segment",
     category: "cdp",
-    patterns: [/cdn\.segment\.com/i, /analytics\.(track|identify|page)\(/],
+    // Vendor-specific host/SDK signals are authoritative; the generic
+    // `analytics.track()`-style call shape is shared by many wrappers, so it is
+    // only a weak hint and can't alone yield a high-confidence Segment match.
+    patterns: [/cdn\.segment\.(com|io)/i, /analytics\.min\.js/i],
+    weakPatterns: [/analytics\.(track|identify|page)\(/],
   },
   {
     id: "sentry",
     name: "Sentry",
-    category: "monitoring",
+    category: "error_monitoring",
     patterns: [/browser\.sentry-cdn\.com/i, /@sentry\//i, /Sentry\.init/],
   },
   { id: "datadog", name: "Datadog RUM", category: "monitoring", patterns: [/datadoghq-browser-agent/i, /DD_RUM/] },
@@ -141,7 +159,11 @@ export function detectTools(html: string, requestUrls: string[] = []): DetectedT
   const haystack = requestUrls.length > 0 ? `${html}\n${requestUrls.join("\n")}` : html;
   const found: DetectedTool[] = [];
   for (const fp of FINGERPRINTS) {
-    if (fp.patterns.some((p) => p.test(haystack))) {
+    // Boolean view still reports a match on any signal (strong or weak) so a
+    // real install isn't missed; the confidence weighting lives in the detailed
+    // view. This keeps `detectTools` additive/backward-compatible.
+    const matched = fp.patterns.some((p) => p.test(haystack)) || (fp.weakPatterns ?? []).some((p) => p.test(haystack));
+    if (matched) {
       found.push({ id: fp.id, name: fp.name, category: fp.category });
     }
   }
@@ -165,28 +187,46 @@ export interface DetectedToolDetail extends DetectedTool {
   signals: string[];
 }
 
-/**
- * Deterministic confidence model.
- *
- * A runtime/network match (the tool actually loaded) is far stronger evidence
- * than a static-HTML string match (which could be a mention or a dead link).
- * Confidence grows with the number of distinct signals and is highest when the
- * tool is corroborated across both layers.
- */
+// Deterministic confidence model. A runtime/network match (the tool actually
+// loaded) is far stronger evidence than a static-HTML string match (which could
+// be a mention or a dead link). Confidence grows with the number of distinct
+// strong signals and is highest when corroborated across both layers. A match
+// backed only by generic/weak signals is capped to a low-confidence hint.
+
+/** Max confidence a detection backed ONLY by generic/weak signals may reach. */
+const WEAK_ONLY_CONFIDENCE_CAP = 0.3;
+
+function layerFor(htmlMatches: number, runtimeMatches: number): DetectionLayer {
+  return htmlMatches > 0 && runtimeMatches > 0 ? "both" : runtimeMatches > 0 ? "runtime" : "html";
+}
+
 function scoreConfidence(
   htmlMatches: number,
   runtimeMatches: number,
-  distinctPatterns: number
+  distinctStrongPatterns: number,
+  weakPresent: boolean
 ): { confidence: number; layer: DetectionLayer } {
-  const layer: DetectionLayer =
-    htmlMatches > 0 && runtimeMatches > 0 ? "both" : runtimeMatches > 0 ? "runtime" : "html";
+  const layer = layerFor(htmlMatches, runtimeMatches);
   let confidence = runtimeMatches > 0 ? 0.7 : 0.5;
-  // Reward *distinct* corroborating patterns (not the sum across layers, which
-  // would double-count a pattern that matched in both). Cross-layer agreement
-  // is credited separately below.
-  confidence += Math.min(0.2, (distinctPatterns - 1) * 0.1);
+  // Reward *distinct* corroborating strong patterns (not the sum across layers,
+  // which would double-count a pattern that matched in both). Cross-layer
+  // agreement is credited separately below.
+  confidence += Math.min(0.2, (distinctStrongPatterns - 1) * 0.1);
   if (layer === "both") confidence += 0.15; // cross-layer agreement
+  // A weak signal only nudges an already-strong detection; it never carries one.
+  if (weakPresent) confidence += 0.05;
   confidence = Math.max(0, Math.min(1, confidence));
+  return { confidence: Math.round(confidence * 100) / 100, layer };
+}
+
+/**
+ * Confidence for a detection with NO strong signal — only generic hints matched.
+ * Capped low so a shared API shape (e.g. `analytics.track(`) can never masquerade
+ * as a confident detection on its own.
+ */
+function scoreWeakOnly(htmlMatches: number, runtimeMatches: number): { confidence: number; layer: DetectionLayer } {
+  const layer = layerFor(htmlMatches, runtimeMatches);
+  const confidence = runtimeMatches > 0 ? WEAK_ONLY_CONFIDENCE_CAP : WEAK_ONLY_CONFIDENCE_CAP - 0.05;
   return { confidence: Math.round(confidence * 100) / 100, layer };
 }
 
@@ -199,19 +239,37 @@ export function detectToolsDetailed(html: string, requestUrls: string[] = []): D
   const runtime = requestUrls.join("\n");
   const found: DetectedToolDetail[] = [];
   for (const fp of FINGERPRINTS) {
-    const signals: string[] = [];
-    let htmlMatches = 0;
-    let runtimeMatches = 0;
+    const strongSignals: string[] = [];
+    let strongHtml = 0;
+    let strongRuntime = 0;
     for (const p of fp.patterns) {
       const inHtml = p.test(html);
       const inRuntime = runtime.length > 0 && p.test(runtime);
-      if (inHtml) htmlMatches += 1;
-      if (inRuntime) runtimeMatches += 1;
-      if (inHtml || inRuntime) signals.push(p.source);
+      if (inHtml) strongHtml += 1;
+      if (inRuntime) strongRuntime += 1;
+      if (inHtml || inRuntime) strongSignals.push(p.source);
     }
-    if (htmlMatches + runtimeMatches === 0) continue;
-    // `signals` holds one entry per distinct pattern that matched in either layer.
-    const { confidence, layer } = scoreConfidence(htmlMatches, runtimeMatches, signals.length);
+    const weakSignals: string[] = [];
+    let weakHtml = 0;
+    let weakRuntime = 0;
+    for (const p of fp.weakPatterns ?? []) {
+      const inHtml = p.test(html);
+      const inRuntime = runtime.length > 0 && p.test(runtime);
+      if (inHtml) weakHtml += 1;
+      if (inRuntime) weakRuntime += 1;
+      if (inHtml || inRuntime) weakSignals.push(p.source);
+    }
+    const strongMatches = strongHtml + strongRuntime;
+    const weakMatches = weakHtml + weakRuntime;
+    if (strongMatches + weakMatches === 0) continue;
+    // A strong signal drives the full model; a weak-only detection is a capped
+    // hint. `signals` lists every distinct pattern that matched (strong first)
+    // as evidence for the audit trail.
+    const signals = [...strongSignals, ...weakSignals];
+    const { confidence, layer } =
+      strongMatches > 0
+        ? scoreConfidence(strongHtml, strongRuntime, strongSignals.length, weakMatches > 0)
+        : scoreWeakOnly(weakHtml, weakRuntime);
     found.push({ id: fp.id, name: fp.name, category: fp.category, confidence, layer, signals });
   }
   return found;
@@ -234,6 +292,11 @@ export function analyzeHtml(html: string, requestUrls: string[] = []): ScanAnaly
   const findings: Finding[] = [];
 
   const consentTools = detectedTools.filter((t) => t.category === "consent");
+  // Consent-gated trackers: everything that observes/transmits user behavior.
+  // `monitoring` (real-user/behavioral, e.g. Datadog RUM) is included;
+  // `error_monitoring` (pure crash reporting, e.g. Sentry) is deliberately NOT,
+  // since it doesn't do behavioral session tracking and isn't consent-gated by
+  // default under GDPR/ePrivacy best practice.
   const trackers = detectedTools.filter(
     (t) =>
       t.category === "advertising" ||

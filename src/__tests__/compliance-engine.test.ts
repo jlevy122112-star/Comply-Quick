@@ -37,6 +37,24 @@ describe("detectToolsDetailed — confidence + layer", () => {
       expect(d.confidence).toBeLessThanOrEqual(1);
     }
   });
+
+  it("keeps a generic-only Segment match (analytics.track) as a low-confidence hint", () => {
+    // A shared `analytics.track()` shape is a weak signal — detected, but capped.
+    const weakOnly = detectToolsDetailed('<script>analytics.track("evt");</script>', []);
+    const seg = weakOnly.find((d) => d.id === "segment");
+    expect(seg).toBeDefined();
+    expect(seg!.confidence).toBeLessThanOrEqual(0.3);
+  });
+
+  it("scores a vendor-specific Segment match (cdn.segment.com) far higher than the generic hint", () => {
+    const strong = detectToolsDetailed(
+      '<script src="https://cdn.segment.com/analytics.js/v1/x/analytics.min.js"></script>',
+      []
+    );
+    const seg = strong.find((d) => d.id === "segment");
+    expect(seg).toBeDefined();
+    expect(seg!.confidence).toBeGreaterThan(0.3);
+  });
 });
 
 describe("graph + catalog integrity", () => {

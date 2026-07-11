@@ -78,6 +78,29 @@ describe("analyzeHtml", () => {
     expect(result.findings.some((f) => f.id === "trackers_without_consent")).toBe(false);
     expect(result.findings.some((f) => f.id === "consent_present")).toBe(true);
   });
+
+  it("does NOT treat pure error monitoring (Sentry) as a consent-gated tracker", () => {
+    const sentryOnly = `
+      <html><head>
+        <script src="https://browser.sentry-cdn.com/7.0.0/bundle.min.js"></script>
+        <script>Sentry.init({ dsn: "x" });</script>
+      </head><body><a href="/privacy">Privacy</a><a href="/terms">Terms</a></body></html>`;
+    const result = analyzeHtml(sentryOnly);
+    expect(result.detectedTools.some((t) => t.id === "sentry")).toBe(true);
+    // Error monitoring alone must not raise the trackers-without-consent finding.
+    expect(result.findings.some((f) => f.id === "trackers_without_consent")).toBe(false);
+  });
+
+  it("still treats Datadog RUM (behavioral monitoring) as a consent-gated tracker", () => {
+    const rumOnly = `
+      <html><head>
+        <script src="https://www.datadoghq-browser-agent.com/datadog-rum.js"></script>
+        <script>window.DD_RUM && DD_RUM.init({});</script>
+      </head><body><a href="/privacy">Privacy</a><a href="/terms">Terms</a></body></html>`;
+    const result = analyzeHtml(rumOnly);
+    expect(result.detectedTools.some((t) => t.id === "datadog")).toBe(true);
+    expect(result.findings.some((f) => f.id === "trackers_without_consent")).toBe(true);
+  });
 });
 
 describe("normalizeScanUrl", () => {
