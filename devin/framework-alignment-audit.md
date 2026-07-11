@@ -20,7 +20,7 @@ Audit of the current codebase against the target architecture doc. Legend: ✅ b
 | alerts / alert_impacts | 🟡 | `compliance_alerts`; no per-project impact rows. |
 | approvals / approval_events | 🟡 | autopilot proposals + `legal_review_items`; no unified approval log. |
 | evidence_records | ❌ | Audit&Evidence agent computes packs but nothing is persisted. |
-| integrations | 🟡 | Stripe, Slack webhook, calendar feed. |
+| integrations | 🟡 | Stripe, generic webhook, calendar feed. |
 | usage_events | ✅ | `api_usage_events`, `tool_usage_events`. |
 | billing_accounts | ✅ | `subscriptions`. |
 | audit_logs | ❌ | No immutable audit trail. |
@@ -38,7 +38,7 @@ Audit of the current codebase against the target architecture doc. Legend: ✅ b
 | 3.8 Regulatory Intelligence Engine | ✅ intelligence + new monitor/autopilot agents |
 | 3.9 Approval & Review Workflows | 🟡 legal-review + proposals; no unified queue/events |
 | 3.10 Agency / White-Label | ✅ agency + portal |
-| 3.11 API & Integrations | ✅ v1 API, keys, stripe, slack |
+| 3.11 API & Integrations | ✅ v1 API, keys, stripe, webhooks |
 | 3.12 AI Agent Layer | 🟡 6 of 7 concepts; missing Onboarding, Success/Upsell, QA |
 
 ## 3. AI agents (§3.12) — target 7

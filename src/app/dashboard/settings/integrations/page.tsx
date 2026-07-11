@@ -31,9 +31,7 @@ export default async function IntegrationsPage() {
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-white">Integrations</h1>
-          <p className="mt-1 text-sm text-gray-400">
-            Route Comply-Quick events to your own systems via webhooks or Slack.
-          </p>
+          <p className="mt-1 text-sm text-gray-400">Route Comply-Quick events to your own systems via webhooks.</p>
         </div>
         <IntegrationsManager integrations={integrations} />
       </main>

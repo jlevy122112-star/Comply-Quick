@@ -8,7 +8,6 @@ import { addIntegrationAction, setIntegrationActiveAction, deleteIntegrationActi
 
 const KIND_LABEL: Record<IntegrationKind, string> = {
   webhook: "Generic webhook",
-  slack: "Slack incoming webhook",
 };
 
 export function IntegrationsManager({ integrations }: { integrations: Integration[] }) {
@@ -82,7 +81,6 @@ export function IntegrationsManager({ integrations }: { integrations: Integratio
                 className="rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
               >
                 <option value="webhook">Generic webhook</option>
-                <option value="slack">Slack incoming webhook</option>
               </select>
             </label>
             <label className="text-sm">
@@ -91,7 +89,7 @@ export function IntegrationsManager({ integrations }: { integrations: Integratio
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 maxLength={80}
-                placeholder="e.g. Ops Slack"
+                placeholder="e.g. Ops webhook"
                 className="rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white placeholder:text-gray-600 focus:border-indigo-500 focus:outline-none"
               />
             </label>
@@ -116,7 +114,7 @@ export function IntegrationsManager({ integrations }: { integrations: Integratio
         <EmptyState
           icon="🔌"
           title="No integrations yet"
-          description="Add a webhook or Slack endpoint above to start receiving event notifications."
+          description="Add a webhook endpoint above to start receiving event notifications."
         />
       ) : (
         <div className="space-y-2">

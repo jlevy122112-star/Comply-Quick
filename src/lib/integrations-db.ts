@@ -1,11 +1,11 @@
 // Integrations — server data layer (framework §C12).
 //
-// User-owned outbound integrations (webhook / Slack incoming-webhook URLs) that
-// receive Comply-Quick event notifications. All rows are owner-scoped by RLS.
+// User-owned outbound webhook URLs that receive Comply-Quick event
+// notifications. All rows are owner-scoped by RLS.
 
 import { createClient } from "@/lib/supabase/server";
 
-export type IntegrationKind = "webhook" | "slack";
+export type IntegrationKind = "webhook";
 
 export interface Integration {
   id: string;
@@ -52,7 +52,7 @@ export async function addIntegration(input: {
   const targetUrl = input.targetUrl.trim();
   if (name.length < 1) return { ok: false, error: "Give the integration a name." };
   if (!/^https:\/\/.+/.test(targetUrl)) return { ok: false, error: "Target URL must be an https:// endpoint." };
-  if (input.kind !== "webhook" && input.kind !== "slack") return { ok: false, error: "Unsupported integration type." };
+  if (input.kind !== "webhook") return { ok: false, error: "Unsupported integration type." };
 
   const supabase = await createClient();
   const {
