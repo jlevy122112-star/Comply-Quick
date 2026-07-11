@@ -144,7 +144,7 @@ export function seatLimit(tier: Tier): number {
   return TIER_CONFIG[tier].seats;
 }
 
-/** Included monthly scans for a tier (`Infinity` for Enterprise). */
+/** Included monthly scans for a tier (`Infinity` for Agency and Enterprise). */
 export function scanLimit(tier: Tier): number {
   return TIER_CONFIG[tier].scanLimit;
 }
