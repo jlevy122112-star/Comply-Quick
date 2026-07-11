@@ -108,7 +108,7 @@ export class ShopifyAdminClient {
 
   async listScriptTags(): Promise<ScriptTag[]> {
     const json = await this.request<{ script_tags: ScriptTagWire[] }>("GET", "/script_tags.json");
-    return json.script_tags.map(fromScriptTagWire);
+    return (json?.script_tags ?? []).map(fromScriptTagWire);
   }
 
   async createScriptTag(tag: ScriptTag): Promise<ScriptTag> {
