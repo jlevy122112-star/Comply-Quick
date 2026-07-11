@@ -46,6 +46,15 @@ describe("detectToolsDetailed — confidence + layer", () => {
     expect(seg!.confidence).toBeLessThanOrEqual(0.3);
   });
 
+  it("does not confidently flag Segment for a self-hosted /analytics.min.js bundle", () => {
+    // Generic bundle filename on a non-Segment host must stay a low-confidence
+    // hint so it can't alone trip a trackers-without-consent finding.
+    const selfHosted = detectToolsDetailed('<script src="https://acme.example.com/js/analytics.min.js"></script>', []);
+    const seg = selfHosted.find((d) => d.id === "segment");
+    expect(seg).toBeDefined();
+    expect(seg!.confidence).toBeLessThanOrEqual(0.3);
+  });
+
   it("scores a vendor-specific Segment match (cdn.segment.com) far higher than the generic hint", () => {
     const strong = detectToolsDetailed(
       '<script src="https://cdn.segment.com/analytics.js/v1/x/analytics.min.js"></script>',

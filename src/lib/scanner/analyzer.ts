@@ -130,11 +130,12 @@ const FINGERPRINTS: Fingerprint[] = [
     id: "segment",
     name: "Segment",
     category: "cdp",
-    // Vendor-specific host/SDK signals are authoritative; the generic
-    // `analytics.track()`-style call shape is shared by many wrappers, so it is
-    // only a weak hint and can't alone yield a high-confidence Segment match.
-    patterns: [/cdn\.segment\.(com|io)/i, /analytics\.min\.js/i],
-    weakPatterns: [/analytics\.(track|identify|page)\(/],
+    // Only Segment's CDN host is authoritative. The bundle filename
+    // (`analytics.min.js`) and the `analytics.track()`-style call shape are both
+    // generic — shared by many self-hosted analytics wrappers — so they are weak
+    // hints and can't alone yield a high-confidence Segment match.
+    patterns: [/cdn\.segment\.(com|io)/i],
+    weakPatterns: [/analytics\.min\.js/i, /analytics\.(track|identify|page)\(/],
   },
   {
     id: "sentry",
