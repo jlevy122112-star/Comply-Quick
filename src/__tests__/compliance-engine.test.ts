@@ -102,6 +102,12 @@ describe("deriveObligations — deterministic traversal", () => {
     expect(usOnly.some((r) => r.obligation.id === "gdpr.art46.transfers")).toBe(false);
   });
 
+  it("requires a privacy notice for a payment-only site but not consent (contractual necessity)", () => {
+    const results = deriveObligations({ services: ["stripe"], jurisdictions: ["eu"] });
+    expect(results.some((r) => r.obligation.id === "gdpr.art13.privacy_notice")).toBe(true);
+    expect(results.some((r) => r.obligation.id === "gdpr.art7.consent")).toBe(false);
+  });
+
   it("sorts critical obligations before info", () => {
     const results = deriveObligations({ services: ["google"], jurisdictions: ["eu", "us_ca"] });
     const severities = results.map((r) => r.obligation.severity);

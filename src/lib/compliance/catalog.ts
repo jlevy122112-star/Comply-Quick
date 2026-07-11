@@ -195,7 +195,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     vendorRegion: "us",
     dataCategories: ["identifiers", "financial"],
     dpaUrl: "https://stripe.com/legal/dpa",
-    triggersObligations: ["gdpr.art28.dpa", "pci_dss.saq_scope"],
+    triggersObligations: ["gdpr.art13.privacy_notice", "gdpr.art28.dpa", "pci_dss.saq_scope"],
   },
   {
     id: "paypal",
@@ -205,7 +205,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     vendorRegion: "us",
     dataCategories: ["identifiers", "financial"],
     dpaUrl: "https://www.paypal.com/us/legalhub/paypal/data-protection-agreement-full",
-    triggersObligations: ["gdpr.art28.dpa", "pci_dss.saq_scope"],
+    triggersObligations: ["gdpr.art13.privacy_notice", "gdpr.art28.dpa", "pci_dss.saq_scope"],
   },
   {
     id: "square",
@@ -214,7 +214,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     role: "processor",
     vendorRegion: "us",
     dataCategories: ["identifiers", "financial"],
-    triggersObligations: ["gdpr.art28.dpa", "pci_dss.saq_scope"],
+    triggersObligations: ["gdpr.art13.privacy_notice", "gdpr.art28.dpa", "pci_dss.saq_scope"],
   },
 ];
 
