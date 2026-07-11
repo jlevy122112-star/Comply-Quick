@@ -73,7 +73,11 @@ export function deriveObligations(input: TraversalInput): ObligationResult[] {
       .map((id) => getService(id))
       .filter((e): e is ServiceCatalogEntry => e !== undefined && e.vendorRegion !== "eu");
     if (nonEuVendors.length > 0) {
-      const unique = Array.from(new Map(nonEuVendors.map((s) => [s.id, s])).values());
+      // Merge (don't overwrite) so we never drop credits if a future catalog
+      // entry also lists this obligation directly.
+      const existing = hits.get(transferNode.id);
+      const merged = existing ? [...existing.services, ...nonEuVendors] : nonEuVendors;
+      const unique = Array.from(new Map(merged.map((s) => [s.id, s])).values());
       hits.set(transferNode.id, { node: transferNode, services: unique });
     }
   }
