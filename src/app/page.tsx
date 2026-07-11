@@ -605,13 +605,13 @@ export default function LandingPage() {
             <PlgCard
               title="Comply-Quick Vs Termly"
               body="How scan-first detection and regulation autopilot compare to template-based generation."
-              cta="See the comparison"
+              cta="See The Comparison"
               href="/compare/termly"
             />
             <PlgCard
               title="Comply-Quick Vs Iubenda"
               body="Documents driven by your live stack, plus a developer liability shield and agency white-label."
-              cta="See the comparison"
+              cta="See The Comparison"
               href="/compare/iubenda"
             />
           </div>
@@ -732,7 +732,7 @@ export default function LandingPage() {
                 Comparisons
               </Link>
               <Link href="/login" className="hover:text-gray-200 transition-colors">
-                Log in
+                Log In
               </Link>
               <Link href="/legal/terms" className="hover:text-gray-200 transition-colors">
                 Terms Of Service

@@ -6,26 +6,32 @@ import { TIER_CONFIG } from "@/lib/pricing";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://comply-quick.com";
 
+// Mirrors the on-page FAQ (questions + answers) 1:1 so the rich-result markup
+// matches the visible content, per Google's FAQPage guidelines.
 const FAQ: { q: string; a: string }[] = [
   {
-    q: "Is Comply-Quick a substitute for a lawyer?",
-    a: "No. Comply-Quick is compliance software, not a law firm, and its output does not constitute legal advice. It maps your tech stack to the right clauses, waivers, and checklist so that if you involve counsel, you hand them a finished draft instead of a blank page.",
+    q: "Is This A Substitute For A Lawyer?",
+    a: "No. Comply-Quick is compliance software, not a law firm, and its output does not constitute legal advice. It does the heavy lifting — mapping your stack to the right clauses, waivers, and checklist — so that if you do involve counsel, you hand them a finished draft instead of a blank page.",
   },
   {
-    q: "What do I get with Comply-Quick?",
-    a: "A complete compliance package: an inward liability waiver (developer to merchant), a website privacy policy with per-pixel disclosures, a jurisdiction-aware compliance checklist, and a shareable, embeddable compliance score badge. Everything is downloadable as markdown.",
+    q: "What Do I Actually Get?",
+    a: "A complete package: an inward liability waiver (developer → merchant), a store privacy policy with per-pixel disclosures, a jurisdiction-aware compliance checklist, and a compliance score you can share or embed as a badge. You can download everything as markdown.",
   },
   {
-    q: "How is the free preview different from paid plans?",
-    a: "The free preview shows your compliance score and a look at your contract shield. Paid plans unlock the full downloadable package, more monthly scans, automated regulatory updates, and (on Enterprise) HIPAA, PCI-DSS, SOC 2, and ADA modules plus API access.",
+    q: "How Does The Automated Regulation Monitoring Work?",
+    a: "Comply-Quick monitors 26+ official federal and state regulatory sources directly. When a rule changes, the AI Compliance Agent alerts you and automatically re-drafts the affected documents plus an implementation strategy, ready for you to review and publish. Comply-Quick prepares the updates — you decide what goes live on the site.",
   },
   {
-    q: "Can I cancel anytime?",
-    a: "Yes. Plans are month-to-month and you can cancel from your dashboard in one click. Every plan is backed by a 30-day money-back guarantee.",
+    q: "How Is The Free Preview Different From Paid?",
+    a: "The free preview shows your compliance score and a look at your contract shield so you can judge the value first. Paid plans unlock the full downloadable package, more monthly scans, automated regulatory updates, and (on Enterprise) HIPAA/PCI-DSS/SOC 2/ADA modules and a dedicated AI Compliance Agent.",
   },
   {
-    q: "Which platforms and regions does Comply-Quick support?",
-    a: "9 platforms (Shopify, WooCommerce, BigCommerce, WordPress, Next.js, Webflow, Wix, Squarespace, GoDaddy), 6 tracking pixels, and 6 jurisdictions (US, CCPA, GDPR, PIPEDA, LGPD, Australia), with enterprise modules for HIPAA, PCI-DSS, ADA/WCAG, and SOC 2.",
+    q: "Can I Cancel Anytime?",
+    a: "Yes — plans are month-to-month and you can cancel from your dashboard in one click. Every plan is also backed by a 30-day money-back guarantee, no questions asked.",
+  },
+  {
+    q: "Which Platforms And Regions Are Supported?",
+    a: "9 platforms (Shopify, WooCommerce, BigCommerce, WordPress, Next.js, Webflow, Wix, Squarespace, GoDaddy), 6 tracking pixels, and 6 jurisdictions (US, CCPA, GDPR, PIPEDA, LGPD, Australia) — with enterprise modules for HIPAA, PCI-DSS, ADA/WCAG and SOC 2.",
   },
 ];
 
