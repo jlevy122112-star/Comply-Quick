@@ -609,7 +609,7 @@ export default function LandingPage() {
               href="/compare/termly"
             />
             <PlgCard
-              title="Comply-Quick vs Iubenda"
+              title="Comply-Quick vs iubenda"
               body="Documents driven by your live stack, plus a developer liability shield and agency white-label."
               cta="See the Comparison"
               href="/compare/iubenda"
