@@ -10,6 +10,13 @@ const KIND_LABEL: Record<IntegrationKind, string> = {
   webhook: "Generic webhook",
 };
 
+// Tolerate rows whose stored kind predates the current type (e.g. legacy `slack`
+// rows still present until the cleanup migration runs) so the UI never renders
+// `undefined` for them.
+function kindLabel(kind: string): string {
+  return KIND_LABEL[kind as IntegrationKind] ?? kind;
+}
+
 export function IntegrationsManager({ integrations }: { integrations: Integration[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -129,7 +136,7 @@ export function IntegrationsManager({ integrations }: { integrations: Integratio
                   <Badge tone={i.active ? "emerald" : "gray"}>{i.active ? "active" : "paused"}</Badge>
                 </div>
                 <p className="mt-0.5 truncate text-xs text-gray-500">
-                  {KIND_LABEL[i.kind]} · {i.targetUrl}
+                  {kindLabel(i.kind)} · {i.targetUrl}
                 </p>
               </div>
               <div className="flex shrink-0 gap-2">
