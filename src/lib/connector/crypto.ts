@@ -16,7 +16,21 @@ const IV_BYTES = 12;
 export function resolveTokenKey(env: NodeJS.ProcessEnv = process.env): Buffer {
   const raw = env.CONNECTOR_TOKEN_KEY;
   if (!raw) throw new Error("CONNECTOR_TOKEN_KEY is not set");
-  const key = /^[0-9a-fA-F]{64}$/.test(raw) ? Buffer.from(raw, "hex") : Buffer.from(raw, "base64");
+  let key: Buffer;
+  if (/^[0-9a-fA-F]{64}$/.test(raw)) {
+    key = Buffer.from(raw, "hex");
+  } else {
+    // Reject silent-truncation: Node's base64 decoder drops invalid characters,
+    // so a garbled string could decode to 32 bytes and be accepted. Require a
+    // strict base64 shape and verify the round-trip matches the input.
+    if (!/^[A-Za-z0-9+/]+={0,2}$/.test(raw)) {
+      throw new Error("CONNECTOR_TOKEN_KEY must be 64 hex chars or valid base64");
+    }
+    key = Buffer.from(raw, "base64");
+    if (key.toString("base64").replace(/=+$/, "") !== raw.replace(/=+$/, "")) {
+      throw new Error("CONNECTOR_TOKEN_KEY is not valid base64");
+    }
+  }
   if (key.length !== 32) throw new Error("CONNECTOR_TOKEN_KEY must decode to 32 bytes");
   return key;
 }

@@ -22,8 +22,10 @@ export type ConnectionMode = "propose_only" | "auto";
  * Connection lifecycle status.
  * - `pending`: OAuth started, not yet authorized.
  * - `active`: authorized and monitoring.
- * - `degraded`: token expired/revoked or repeated write failures — monitoring paused.
- * - `frozen`: circuit breaker tripped; forced back to propose_only, awaiting user.
+ * - `degraded`: token near-expiry or repeated write failures — monitoring
+ *   continues (to detect recovery) but auto-writes are suspended until healthy.
+ * - `frozen`: circuit breaker tripped; monitoring continues but forced back to
+ *   propose_only, awaiting user review.
  * - `revoked`: user disconnected; monitoring stopped.
  */
 export type ConnectionStatus = "pending" | "active" | "degraded" | "frozen" | "revoked";

@@ -38,6 +38,16 @@ describe("connector/crypto — token encryption at rest", () => {
     const hex = "a".repeat(64);
     expect(resolveTokenKey({ CONNECTOR_TOKEN_KEY: hex } as unknown as NodeJS.ProcessEnv).length).toBe(32);
   });
+
+  it("resolveTokenKey accepts valid base64 and rejects garbled base64 (no silent truncation)", () => {
+    const b64 = Buffer.alloc(32, 9).toString("base64");
+    expect(resolveTokenKey({ CONNECTOR_TOKEN_KEY: b64 } as unknown as NodeJS.ProcessEnv).length).toBe(32);
+    // Contains characters outside the base64 alphabet → must throw, not silently
+    // drop them and decode to some other length.
+    expect(() =>
+      resolveTokenKey({ CONNECTOR_TOKEN_KEY: "not*valid*base64*key!!" } as unknown as NodeJS.ProcessEnv)
+    ).toThrow();
+  });
 });
 
 describe("connector/state-machine", () => {
@@ -57,6 +67,7 @@ describe("connector/state-machine", () => {
 
   it("monitors in active/degraded/frozen but not pending/revoked", () => {
     expect(isMonitoring("active")).toBe(true);
+    expect(isMonitoring("degraded")).toBe(true);
     expect(isMonitoring("frozen")).toBe(true);
     expect(isMonitoring("pending")).toBe(false);
     expect(isMonitoring("revoked")).toBe(false);
@@ -258,5 +269,42 @@ describe("connector/shopify — admin client", () => {
     expect(tag.id).toBe(9);
     expect(captured!.url).toContain("/admin/api/2024-10/script_tags.json");
     expect((captured!.init.headers as Record<string, string>)["X-Shopify-Access-Token"]).toBe("shpat_x");
+  });
+
+  it("serializes camelCase to Shopify snake_case (display_scope) and never drops the caller's scope", async () => {
+    let captured: { url: string; init: RequestInit } | null = null;
+    const fakeFetch = (async (url: string, init: RequestInit) => {
+      captured = { url, init };
+      return new Response(
+        JSON.stringify({ script_tag: { id: 9, src: "https://cdn/consent.js", display_scope: "online_store" } }),
+        { status: 200 }
+      );
+    }) as unknown as typeof fetch;
+    const client = new ShopifyAdminClient({ shop: "acme.myshopify.com", accessToken: "shpat_x", fetchImpl: fakeFetch });
+    const tag = await client.createScriptTag({ src: "https://cdn/consent.js", displayScope: "online_store" });
+    const sent = JSON.parse(captured!.init.body as string);
+    expect(sent.script_tag.display_scope).toBe("online_store");
+    expect(sent.script_tag).not.toHaveProperty("displayScope");
+    expect(tag.displayScope).toBe("online_store");
+  });
+
+  it("sends page body as body_html (not the ignored camelCase bodyHtml) and reads it back", async () => {
+    let captured: { url: string; init: RequestInit } | null = null;
+    const fakeFetch = (async (url: string, init: RequestInit) => {
+      captured = { url, init };
+      return new Response(
+        JSON.stringify({
+          page: { id: 42, title: "Privacy Policy", handle: "privacy-policy", body_html: "<p>Policy</p>" },
+        }),
+        { status: 200 }
+      );
+    }) as unknown as typeof fetch;
+    const client = new ShopifyAdminClient({ shop: "acme.myshopify.com", accessToken: "shpat_x", fetchImpl: fakeFetch });
+    const page = await client.createPage({ title: "Privacy Policy", bodyHtml: "<p>Policy</p>" });
+    const sent = JSON.parse(captured!.init.body as string);
+    expect(sent.page.body_html).toBe("<p>Policy</p>");
+    expect(sent.page).not.toHaveProperty("bodyHtml");
+    expect(page.bodyHtml).toBe("<p>Policy</p>");
+    expect(page.id).toBe(42);
   });
 });
