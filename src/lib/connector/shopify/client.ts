@@ -63,7 +63,9 @@ function toPageWire(page: Partial<ShopifyPage>): ShopifyPageWire {
 
 function fromPageWire(wire: ShopifyPageWire): ShopifyPage {
   const { body_html, ...rest } = wire;
-  return { title: rest.title ?? "", ...rest, bodyHtml: body_html ?? "" };
+  // Defaults MUST come after the spread so a null/absent value from the API is
+  // coalesced to "" rather than the spread reintroducing null over the default.
+  return { ...rest, title: rest.title ?? "", bodyHtml: body_html ?? "" };
 }
 
 export class ShopifyAdminClient {

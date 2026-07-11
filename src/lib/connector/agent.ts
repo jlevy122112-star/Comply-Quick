@@ -12,6 +12,7 @@ import { deriveObligations, type ObligationResult } from "@/lib/compliance/trave
 import { lintCompliance, type ComplianceState, type LintFinding } from "@/lib/compliance/linter";
 import type { JurisdictionId } from "@/lib/compliance/graph";
 import { planRemediations, type PlannedRemediation } from "./remediation";
+import { canTransition } from "./state-machine";
 import {
   evaluateBreaker,
   type BreakerSignal,
@@ -63,8 +64,12 @@ export function evaluateConnectionCycle(input: CycleInput): CycleResult {
 
   const breaker = evaluateBreaker(input.breakerSignals, input.now, input.breakerConfig ?? DEFAULT_BREAKER);
 
-  const nextStatus: ConnectionStatus = breaker.tripped ? "frozen" : input.connection.status;
-  const nextMode: ConnectionMode = breaker.tripped ? "propose_only" : input.connection.mode;
+  // Freeze only when the breaker trips AND the state machine permits it (a
+  // pending/revoked connection can't be frozen). If freezing is illegal we keep
+  // the current status and never force propose_only off an invalid transition.
+  const freeze = breaker.tripped && canTransition(input.connection.status, "frozen");
+  const nextStatus: ConnectionStatus = freeze ? "frozen" : input.connection.status;
+  const nextMode: ConnectionMode = freeze ? "propose_only" : input.connection.mode;
 
   const plan = planRemediations(findings, { mode: nextMode, status: nextStatus });
 

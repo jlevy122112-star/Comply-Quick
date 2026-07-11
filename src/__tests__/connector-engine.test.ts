@@ -199,6 +199,25 @@ describe("connector/agent — continuous cycle", () => {
     expect(r.nextMode).toBe("propose_only");
     expect(r.plan.every((p) => p.disposition === "propose")).toBe(true);
   });
+
+  it("does not force an illegal freeze transition when the breaker trips on a pending connection", () => {
+    const now = Date.now();
+    const r = evaluateConnectionCycle({
+      connection: { mode: "propose_only", status: "pending" },
+      detectedServices: ["google"],
+      jurisdictions: ["eu"],
+      coverage,
+      breakerSignals: [
+        { kind: "human_undo", at: now - 1 },
+        { kind: "human_undo", at: now - 2 },
+        { kind: "human_undo", at: now - 3 },
+      ],
+      now,
+    });
+    expect(r.breaker.tripped).toBe(true);
+    // pending → frozen is illegal, so the status must stay pending.
+    expect(r.nextStatus).toBe("pending");
+  });
 });
 
 describe("connector/shopify — oauth", () => {
@@ -306,5 +325,16 @@ describe("connector/shopify — admin client", () => {
     expect(sent.page).not.toHaveProperty("bodyHtml");
     expect(page.bodyHtml).toBe("<p>Policy</p>");
     expect(page.id).toBe(42);
+  });
+
+  it("coerces a null title/body from the API to empty strings (never null)", async () => {
+    const fakeFetch = (async () =>
+      new Response(JSON.stringify({ page: { id: 7, title: null, body_html: null } }), {
+        status: 200,
+      })) as unknown as typeof fetch;
+    const client = new ShopifyAdminClient({ shop: "acme.myshopify.com", accessToken: "shpat_x", fetchImpl: fakeFetch });
+    const page = await client.createPage({ title: "X", bodyHtml: "<p>x</p>" });
+    expect(page.title).toBe("");
+    expect(page.bodyHtml).toBe("");
   });
 });
