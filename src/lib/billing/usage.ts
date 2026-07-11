@@ -95,8 +95,8 @@ export async function hasSeatAvailable(): Promise<boolean> {
 /**
  * Scan usage for the caller in the current calendar month, including any accrued
  * overage. Overage only applies to metered tiers with a finite scanLimit
- * (Agency); Free/Pro caps are enforced separately by the scanner quota, and
- * Enterprise is unlimited.
+ * (Solo); Free caps are enforced separately by the scanner quota, and Agency +
+ * Enterprise are unlimited.
  */
 export async function getScanUsage(now: Date = new Date()): Promise<ScanUsage> {
   const entitlement = await getEntitlement();

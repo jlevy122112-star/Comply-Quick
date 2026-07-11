@@ -6,9 +6,13 @@
 // never drift between the checkout, the webhook, the paywall, and the UI.
 //
 // Pricing decisions (owner-approved 2026-07-06 — value-based repricing):
-//   • Solo: $29/mo, 20 scans — freelancers / solo devs.
-//   • Agency: $99/mo, 5 seats, 100 scans — the primary ICP (monitoring +
-//     Autopilot + white-label).
+//   • Solo: $29/mo, 20 scans — freelancers / solo devs. Includes Regulation
+//     monitoring + Autopilot (gated on isPremium, i.e. any active paid tier).
+//   • Agency: $99/mo, 5 seats, UNLIMITED scans — the primary ICP. Adds team
+//     seats + white-label on top of the monitoring + Autopilot every paid tier
+//     gets. (Owner decision 2026-07-08: scans made unlimited to make Agency the
+//     hero plan; Enterprise still differentiates on unlimited seats, SSO, and
+//     the HIPAA/PCI-DSS/SOC 2/ADA modules.)
 //   • Enterprise: $299/mo, unlimited seats + scans — regulated industries.
 //   • Free tier stays capped at 1 scan / month (freemium funnel hook).
 //   • Machine keys are free/solo/agency/enterprise. `solo` replaces the earlier
@@ -21,7 +25,8 @@
 //     on their old Stripe prices.
 //
 // Unlimited values are represented by `Infinity` (never a magic -1 at call
-// sites): `seats: Infinity` / `scanLimit: Infinity` for Enterprise.
+// sites): `scanLimit: Infinity` for Agency + Enterprise; `seats: Infinity` for
+// Enterprise.
 
 export type PaidTier = "solo" | "agency" | "enterprise";
 export type Tier = "free" | PaidTier;
@@ -76,7 +81,7 @@ export const TIER_CONFIG: Record<Tier, TierConfig> = {
     monthly: 99,
     annual: 990,
     seats: 5,
-    scanLimit: 100,
+    scanLimit: Infinity,
     mode: "subscription",
     priceEnv: { monthly: "STRIPE_PRICE_AGENCY", annual: "STRIPE_PRICE_AGENCY_ANNUAL" },
   },
@@ -139,7 +144,7 @@ export function seatLimit(tier: Tier): number {
   return TIER_CONFIG[tier].seats;
 }
 
-/** Included monthly scans for a tier (`Infinity` for Enterprise). */
+/** Included monthly scans for a tier (`Infinity` for Agency and Enterprise). */
 export function scanLimit(tier: Tier): number {
   return TIER_CONFIG[tier].scanLimit;
 }

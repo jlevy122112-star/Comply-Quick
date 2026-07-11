@@ -38,7 +38,11 @@ describe("TIER_CONFIG", () => {
   it("gives Enterprise unlimited seats and scans", () => {
     expect(isUnlimited(TIER_CONFIG.enterprise.seats)).toBe(true);
     expect(isUnlimited(TIER_CONFIG.enterprise.scanLimit)).toBe(true);
-    expect(isUnlimited(TIER_CONFIG.agency.scanLimit)).toBe(false);
+  });
+
+  it("gives Agency unlimited scans but a finite seat count", () => {
+    expect(isUnlimited(TIER_CONFIG.agency.scanLimit)).toBe(true);
+    expect(isUnlimited(TIER_CONFIG.agency.seats)).toBe(false);
   });
 
   it("does not reference the retired single/pro tiers", () => {
@@ -83,7 +87,7 @@ describe("tier guards & helpers", () => {
   it("exposes seat and scan limits per tier", () => {
     expect(seatLimit("agency")).toBe(5);
     expect(scanLimit("solo")).toBe(20);
-    expect(scanLimit("agency")).toBe(100);
+    expect(scanLimit("agency")).toBe(Infinity);
     expect(seatLimit("enterprise")).toBe(Infinity);
   });
 });

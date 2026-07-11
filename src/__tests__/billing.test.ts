@@ -30,9 +30,9 @@ describe("computeOverage", () => {
 });
 
 describe("agency tier limits", () => {
-  it("Agency includes 5 seats and 100 scans", () => {
+  it("Agency includes 5 seats and unlimited scans", () => {
     expect(TIER_CONFIG.agency.seats).toBe(5);
-    expect(TIER_CONFIG.agency.scanLimit).toBe(100);
+    expect(TIER_CONFIG.agency.scanLimit).toBe(Infinity);
   });
 
   it("Enterprise seats and scans are unlimited", () => {
