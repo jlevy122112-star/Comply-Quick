@@ -4,7 +4,16 @@
 // third-party tools present, derive compliance findings, and compute a score.
 // No network/DB/AI here so it is fully unit-testable and safe to run anywhere.
 
-export type ToolCategory = "analytics" | "advertising" | "session_replay" | "chat" | "consent" | "tag_manager";
+export type ToolCategory =
+  | "analytics"
+  | "advertising"
+  | "session_replay"
+  | "chat"
+  | "consent"
+  | "tag_manager"
+  | "payments"
+  | "cdp"
+  | "monitoring";
 
 export interface DetectedTool {
   id: string;
@@ -95,6 +104,27 @@ const FINGERPRINTS: Fingerprint[] = [
   { id: "onetrust", name: "OneTrust", category: "consent", patterns: [/cdn\.cookielaw\.org/i, /onetrust/i] },
   { id: "termly", name: "Termly", category: "consent", patterns: [/app\.termly\.io/i] },
   { id: "osano", name: "Osano", category: "consent", patterns: [/cmp\.osano\.com/i] },
+  {
+    id: "stripe",
+    name: "Stripe",
+    category: "payments",
+    patterns: [/js\.stripe\.com/i, /\bStripe\(/, /checkout\.stripe\.com/i],
+  },
+  { id: "paypal", name: "PayPal", category: "payments", patterns: [/paypal\.com\/sdk/i, /paypalobjects\.com/i] },
+  { id: "square", name: "Square", category: "payments", patterns: [/squarecdn\.com/i, /js\.squareup\.com/i] },
+  {
+    id: "segment",
+    name: "Segment",
+    category: "cdp",
+    patterns: [/cdn\.segment\.com/i, /analytics\.(track|identify|page)\(/],
+  },
+  {
+    id: "sentry",
+    name: "Sentry",
+    category: "monitoring",
+    patterns: [/browser\.sentry-cdn\.com/i, /@sentry\//i, /Sentry\.init/],
+  },
+  { id: "datadog", name: "Datadog RUM", category: "monitoring", patterns: [/datadoghq-browser-agent/i, /DD_RUM/] },
 ];
 
 export const SEVERITY_PENALTY: Record<Severity, number> = { info: 3, warning: 12, critical: 25 };
@@ -114,6 +144,68 @@ export function detectTools(html: string, requestUrls: string[] = []): DetectedT
     if (fp.patterns.some((p) => p.test(haystack))) {
       found.push({ id: fp.id, name: fp.name, category: fp.category });
     }
+  }
+  return found;
+}
+
+/** Which signal layer a fingerprint matched in. */
+export type DetectionLayer = "html" | "runtime" | "both";
+
+/**
+ * A detected tool enriched with deterministic confidence and provenance so the
+ * accuracy engine never has to "guess": we record exactly which regex signals
+ * fired and in which layer, then derive a confidence score from that evidence.
+ */
+export interface DetectedToolDetail extends DetectedTool {
+  /** Detection confidence in [0, 1], rounded to 2dp. */
+  confidence: number;
+  /** Layer(s) the tool's signals were observed in. */
+  layer: DetectionLayer;
+  /** The raw regex sources that matched (evidence for the audit trail). */
+  signals: string[];
+}
+
+/**
+ * Deterministic confidence model.
+ *
+ * A runtime/network match (the tool actually loaded) is far stronger evidence
+ * than a static-HTML string match (which could be a mention or a dead link).
+ * Confidence grows with the number of distinct signals and is highest when the
+ * tool is corroborated across both layers.
+ */
+function scoreConfidence(htmlMatches: number, runtimeMatches: number): { confidence: number; layer: DetectionLayer } {
+  const total = htmlMatches + runtimeMatches;
+  const layer: DetectionLayer =
+    htmlMatches > 0 && runtimeMatches > 0 ? "both" : runtimeMatches > 0 ? "runtime" : "html";
+  let confidence = runtimeMatches > 0 ? 0.7 : 0.5;
+  confidence += Math.min(0.2, (total - 1) * 0.1); // corroborating signals
+  if (layer === "both") confidence += 0.15; // cross-layer agreement
+  confidence = Math.max(0, Math.min(1, confidence));
+  return { confidence: Math.round(confidence * 100) / 100, layer };
+}
+
+/**
+ * Like {@link detectTools} but returns per-tool confidence, detection layer, and
+ * the matched signals. This is the deterministic, multi-layered detection the
+ * accuracy engine consumes; `detectTools` remains the simple boolean view.
+ */
+export function detectToolsDetailed(html: string, requestUrls: string[] = []): DetectedToolDetail[] {
+  const runtime = requestUrls.join("\n");
+  const found: DetectedToolDetail[] = [];
+  for (const fp of FINGERPRINTS) {
+    const signals: string[] = [];
+    let htmlMatches = 0;
+    let runtimeMatches = 0;
+    for (const p of fp.patterns) {
+      const inHtml = p.test(html);
+      const inRuntime = runtime.length > 0 && p.test(runtime);
+      if (inHtml) htmlMatches += 1;
+      if (inRuntime) runtimeMatches += 1;
+      if (inHtml || inRuntime) signals.push(p.source);
+    }
+    if (htmlMatches + runtimeMatches === 0) continue;
+    const { confidence, layer } = scoreConfidence(htmlMatches, runtimeMatches);
+    found.push({ id: fp.id, name: fp.name, category: fp.category, confidence, layer, signals });
   }
   return found;
 }
