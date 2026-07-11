@@ -14,29 +14,39 @@ interface Plan {
   variant: "default" | "popular" | "enterprise";
 }
 
+/** Human-facing scan allotment for a tier (handles the unlimited sentinel). */
+function scanCopy(limit: number): string {
+  return limit === Infinity ? "Unlimited compliance scans" : `${limit} compliance scans / month`;
+}
+
 const PLANS: Plan[] = [
   {
     key: "solo",
     blurb: "For freelancers & solo devs. Cancel anytime.",
     features: [
-      "Unlimited project generations",
-      `${TIER_CONFIG.solo.scanLimit} compliance scans / month`,
-      "Regulation Autopilot + federal/state monitoring",
-      "Full contract shield + privacy addendum + checklist",
-      "Compliance score breakdown + embeddable badge",
+      scanCopy(TIER_CONFIG.solo.scanLimit),
+      "Regulation Autopilot + federal/state monitoring — included",
+      "Full document package: contract shield, privacy policy & checklist",
+      "Compliance score + embeddable trust badge",
+      "Marketplace templates + REST API access",
     ],
-    cta: "Get Started",
+    cta: "Start Free",
     variant: "default",
   },
   {
     key: "agency",
-    blurb: "For agencies managing multiple client sites.",
+    blurb: "For agencies — resell compliance as recurring revenue.",
     features: [
       "Everything in Solo, plus:",
-      `${TIER_CONFIG.agency.scanLimit} compliance scans / month`,
-      `${TIER_CONFIG.agency.seats} team seats included`,
-      "White-label exports & priority support",
-      "All 9 platforms, 6 pixels, and 6 regions",
+      scanCopy(TIER_CONFIG.agency.scanLimit),
+      "Unlimited client sites in one dashboard",
+      "Agency Liability Shield\u2122 — shift GDPR/ADA liability to the merchant",
+      "AI Compliance Agents that scan, draft, monitor & remediate for you",
+      "Evidence packs + append-only audit trail",
+      `${TIER_CONFIG.agency.seats} team seats with role-based access`,
+      "White-label exports + custom client portal domain",
+      "Recurring partner commissions",
+      "Priority Agency Support",
     ],
     cta: "Start Free Trial",
     variant: "popular",
@@ -46,13 +56,11 @@ const PLANS: Plan[] = [
     blurb: "Full compliance stack for regulated industries.",
     features: [
       "Everything in Agency, plus:",
-      "Unlimited seats & scans",
-      "HIPAA compliance shield",
-      "PCI-DSS payment security module",
-      "ADA / WCAG accessibility compliance",
-      "SOC 2 security controls shield",
-      "REST API access for automation",
-      "Dedicated onboarding support",
+      "A dedicated AI compliance agent assigned to your account",
+      "Unlimited team seats & scans",
+      "SSO (SAML/OIDC) + org & workspace multi-tenancy",
+      "HIPAA, PCI-DSS, ADA/WCAG & SOC 2 modules",
+      "Dedicated onboarding + priority SLA",
     ],
     cta: "Contact Sales",
     variant: "enterprise",
