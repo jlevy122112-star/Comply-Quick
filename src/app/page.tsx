@@ -126,7 +126,7 @@ export default function LandingPage() {
               </span>
             </div>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight tracking-tight">
-              Agencies Ship Fully Compliant Client Sites In Under A Minute &mdash; White-Labeled, Automated, And
+              Agencies Ship Fully Compliant Client Sites in Under a Minute &mdash; White-Labeled, Automated, and
               Billable.
             </h1>
             <p className="mt-5 text-lg text-gray-200 leading-relaxed">
@@ -145,7 +145,7 @@ export default function LandingPage() {
                 href={SCAN_HREF}
                 className="px-7 py-3.5 rounded-xl bg-indigo-600 text-white font-semibold text-center hover:bg-indigo-500 transition-colors"
               >
-                Run A Free Compliance Scan
+                Run a Free Compliance Scan
               </a>
               <Link
                 href={START_HREF}
@@ -188,7 +188,7 @@ export default function LandingPage() {
               <span className="hidden sm:inline text-gray-600">&bull;</span>
               <span className="inline-flex items-center gap-1.5 rounded-md border border-gray-700 px-2 py-1">
                 <span className="text-[#da552f] font-bold">P</span>
-                Featured On Product Hunt
+                Featured on Product Hunt
               </span>
             </div>
           </div>
@@ -258,7 +258,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12 sm:mb-16">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white leading-tight">
-              Turn Compliance Into Recurring Revenue &mdash; Without Doing The Work.
+              Turn Compliance Into Recurring Revenue &mdash; Without Doing the Work.
             </h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
@@ -295,7 +295,7 @@ export default function LandingPage() {
               Agency &amp; Enterprise &middot; AI Compliance Agent
             </span>
             <h2 className="mt-4 text-2xl sm:text-3xl md:text-4xl font-bold text-white leading-tight">
-              A Dedicated AI Compliance Agent &mdash; And Autopilot That Keeps Your Documents Current.
+              A Dedicated AI Compliance Agent &mdash; and Autopilot That Keeps Your Documents Current.
             </h2>
             <p className="mt-4 text-gray-200 leading-relaxed">
               Agency and Enterprise plans include a dedicated AI Compliance Agent that continuously watches{" "}
@@ -317,7 +317,7 @@ export default function LandingPage() {
               body="When regulations move, your generated policies, cookie disclosures, and waivers are re-drafted automatically so they never go stale."
             />
             <AiCard
-              title="You Review And Publish"
+              title="You Review and Publish"
               body="Every update arrives with a clear implementation strategy. You review it and publish to the site — Comply-Quick never changes a live site on its own."
             />
           </div>
@@ -331,9 +331,9 @@ export default function LandingPage() {
             <h3 className="text-lg font-semibold text-white">Before Comply-Quick</h3>
             <ul className="mt-6 space-y-4">
               {[
-                "3\u20135 Days To Produce Compliance Docs",
+                "3\u20135 Days to Produce Compliance Docs",
                 "Manual Updates Every Time Laws Change",
-                "Liability Sits On The Agency",
+                "Liability Sits on the Agency",
                 "No Recurring Revenue",
                 "No White-Label Deliverables",
               ].map((item) => (
@@ -347,11 +347,11 @@ export default function LandingPage() {
             <h3 className="text-lg font-semibold text-white">After Comply-Quick</h3>
             <ul className="mt-6 space-y-4">
               {[
-                "Full Package In <60 Seconds",
+                "Full Package in <60 Seconds",
                 "Automated Updates Forever",
-                "Liability Shifted To The Merchant",
+                "Liability Shifted to the Merchant",
                 "Recurring Revenue From Compliance Autopilot",
-                "White-Label Exports For Every Client",
+                "White-Label Exports for Every Client",
               ].map((item) => (
                 <BeforeAfterItem key={item}>{item}</BeforeAfterItem>
               ))}
@@ -370,12 +370,12 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
             <Step
               number="1"
-              title="Scan The Client Site"
+              title="Scan the Client Site"
               body="One click detects platform, pixels, frameworks, and jurisdictions automatically."
             />
             <Step
               number="2"
-              title="Auto-Generate The Full Package"
+              title="Auto-Generate the Full Package"
               body="Privacy policy, cookie disclosures, liability waivers, pre-launch checklist."
             />
             <Step
@@ -389,7 +389,7 @@ export default function LandingPage() {
               href={SCAN_HREF}
               className="inline-block px-7 py-3.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition-colors"
             >
-              Run A Free Scan
+              Run a Free Scan
             </a>
           </div>
         </div>
@@ -400,7 +400,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12 sm:mb-16">
             <h2 className="text-2xl sm:text-3xl font-bold text-white">
-              One Dashboard For Every Client. Unlimited Sites. Team Roles. White-Label Everything.
+              One Dashboard for Every Client. Unlimited Sites. Team Roles. White-Label Everything.
             </h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:gap-8">
@@ -417,7 +417,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12 sm:mb-16">
             <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight max-w-3xl mx-auto">
-              Built Differently &mdash; Because We Start From Your Live Site, Not A Form.
+              Built Differently &mdash; Because We Start From Your Live Site, Not a Form.
             </h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
@@ -437,7 +437,7 @@ export default function LandingPage() {
               href="/compare/termly"
               className="inline-block px-7 py-3.5 rounded-xl border border-gray-700 text-gray-200 font-medium hover:border-gray-500 hover:text-white transition-colors"
             >
-              See The Difference
+              See the Difference
             </Link>
           </div>
         </div>
@@ -458,7 +458,7 @@ export default function LandingPage() {
       <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white">Agencies And Freelancers, In Their Words.</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white">Agencies and Freelancers, in Their Words.</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
             <Testimonial
@@ -476,7 +476,7 @@ export default function LandingPage() {
             <Testimonial
               quote="Regulation autopilot flags changes before our counsel even emails us, and the audit trail made our last SOC 2 review painless. It's become core to how we operate."
               name="Priya Natarajan"
-              role="Head Of Compliance, Vaultpay"
+              role="Head of Compliance, Vaultpay"
               initials="PN"
             />
           </div>
@@ -485,7 +485,7 @@ export default function LandingPage() {
               href={SCAN_HREF}
               className="inline-block px-7 py-3.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition-colors"
             >
-              Run A Free Scan
+              Run a Free Scan
             </a>
           </div>
         </div>
@@ -518,7 +518,7 @@ export default function LandingPage() {
           <div className="text-center mb-12 sm:mb-16">
             <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">Partner program</span>
             <h2 className="mt-3 text-2xl sm:text-3xl font-bold text-white">
-              Earn Recurring Revenue On Every Client You Bring.
+              Earn Recurring Revenue on Every Client You Bring.
             </h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
@@ -531,7 +531,7 @@ export default function LandingPage() {
               href={START_HREF}
               className="inline-block px-7 py-3.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition-colors"
             >
-              Become A Partner
+              Become a Partner
             </Link>
           </div>
         </div>
@@ -541,10 +541,10 @@ export default function LandingPage() {
       <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50">
         <div className="max-w-4xl mx-auto rounded-3xl border border-gray-800 bg-gray-900/60 p-8 sm:p-12">
           <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight">
-            For Freelancers &amp; Solo Devs &mdash; Deliver Professional Compliance On Every Build.
+            For Freelancers &amp; Solo Devs &mdash; Deliver Professional Compliance on Every Build.
           </h2>
           <ul className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {["Full Package Per Project", "Contract Shield Included", "Cancel Anytime"].map((point) => (
+            {["Full Package per Project", "Contract Shield Included", "Cancel Anytime"].map((point) => (
               <li key={point} className="flex items-start gap-3 rounded-2xl border border-gray-800 bg-gray-900/60 p-4">
                 <span className="shrink-0 mt-0.5 text-indigo-400">&#x2713;</span>
                 <span className="text-sm text-gray-200">{point}</span>
@@ -556,7 +556,7 @@ export default function LandingPage() {
               href={SCAN_HREF}
               className="inline-block px-7 py-3.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition-colors"
             >
-              Run A Free Scan
+              Run a Free Scan
             </a>
           </div>
         </div>
@@ -599,19 +599,19 @@ export default function LandingPage() {
             <PlgCard
               title="Compliance Guides"
               body="Plain-English answers to GDPR, CCPA, cookie-consent, and ADA questions for real websites."
-              cta="Read The Guides"
+              cta="Read the Guides"
               href="/blog"
             />
             <PlgCard
-              title="Comply-Quick Vs Termly"
+              title="Comply-Quick vs Termly"
               body="How scan-first detection and regulation autopilot compare to template-based generation."
-              cta="See The Comparison"
+              cta="See the Comparison"
               href="/compare/termly"
             />
             <PlgCard
-              title="Comply-Quick Vs Iubenda"
+              title="Comply-Quick vs Iubenda"
               body="Documents driven by your live stack, plus a developer liability shield and agency white-label."
-              cta="See The Comparison"
+              cta="See the Comparison"
               href="/compare/iubenda"
             />
           </div>
@@ -625,7 +625,7 @@ export default function LandingPage() {
             <h2 className="text-2xl sm:text-3xl font-bold text-white">Questions, Answered.</h2>
           </div>
           <div className="space-y-4">
-            <FaqItem question="Is This A Substitute For A Lawyer?">
+            <FaqItem question="Is This a Substitute for a Lawyer?">
               No. Comply-Quick is compliance software, not a law firm, and its output does not constitute legal advice.
               It does the heavy lifting — mapping your stack to the right clauses, waivers, and checklist — so that if
               you do involve counsel, you hand them a finished draft instead of a blank page.
@@ -635,13 +635,13 @@ export default function LandingPage() {
               per-pixel disclosures, a jurisdiction-aware compliance checklist, and a compliance score you can share or
               embed as a badge. You can download everything as markdown.
             </FaqItem>
-            <FaqItem question="How Does The Automated Regulation Monitoring Work?">
+            <FaqItem question="How Does the Automated Regulation Monitoring Work?">
               Comply-Quick monitors 26+ official federal and state regulatory sources directly. When a rule changes, the
               AI Compliance Agent alerts you and automatically re-drafts the affected documents plus an implementation
               strategy, ready for you to review and publish. Comply-Quick prepares the updates — you decide what goes
               live on the site.
             </FaqItem>
-            <FaqItem question="How Is The Free Preview Different From Paid?">
+            <FaqItem question="How Is the Free Preview Different From Paid?">
               The free preview shows your compliance score and a look at your contract shield so you can judge the value
               first. Paid plans unlock the full downloadable package, more monthly scans, automated regulatory updates,
               and (on Enterprise) HIPAA/PCI-DSS/SOC 2/ADA modules and a dedicated AI Compliance Agent.
@@ -650,7 +650,7 @@ export default function LandingPage() {
               Yes — plans are month-to-month and you can cancel from your dashboard in one click. Every plan is also
               backed by a 30-day money-back guarantee, no questions asked.
             </FaqItem>
-            <FaqItem question="Which Platforms And Regions Are Supported?">
+            <FaqItem question="Which Platforms and Regions Are Supported?">
               9 platforms (Shopify, WooCommerce, BigCommerce, WordPress, Next.js, Webflow, Wix, Squarespace, GoDaddy), 6
               tracking pixels, and 6 jurisdictions (US, CCPA, GDPR, PIPEDA, LGPD, Australia) — with enterprise modules
               for HIPAA, PCI-DSS, ADA/WCAG and SOC 2.
@@ -663,7 +663,7 @@ export default function LandingPage() {
       <section className="px-4 sm:px-6 lg:px-8 py-16 sm:py-24 border-t border-gray-800/50">
         <div className="max-w-4xl mx-auto text-center bg-gradient-to-b from-indigo-600/10 to-transparent border border-indigo-500/20 rounded-3xl px-6 py-12 sm:py-16">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white leading-tight">
-            Know Exactly Where Your Site Stands &mdash; In 60 Seconds.
+            Know Exactly Where Your Site Stands &mdash; in 60 Seconds.
           </h2>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
@@ -735,7 +735,7 @@ export default function LandingPage() {
                 Log In
               </Link>
               <Link href="/legal/terms" className="hover:text-gray-200 transition-colors">
-                Terms Of Service
+                Terms of Service
               </Link>
             </nav>
           </div>
