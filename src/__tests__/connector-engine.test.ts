@@ -217,6 +217,29 @@ describe("connector/agent — continuous cycle", () => {
     expect(r.breaker.tripped).toBe(true);
     // pending → frozen is illegal, so the status must stay pending.
     expect(r.nextStatus).toBe("pending");
+    // ...but the mode is still forced to propose_only regardless of freeze legality.
+    expect(r.nextMode).toBe("propose_only");
+  });
+
+  it("forces propose_only when the breaker trips on a pending connection stuck in auto", () => {
+    const now = Date.now();
+    const r = evaluateConnectionCycle({
+      connection: { mode: "auto", status: "pending" },
+      detectedServices: ["google"],
+      jurisdictions: ["eu"],
+      coverage,
+      breakerSignals: [
+        { kind: "human_undo", at: now - 1 },
+        { kind: "human_undo", at: now - 2 },
+        { kind: "human_undo", at: now - 3 },
+      ],
+      now,
+    });
+    expect(r.breaker.tripped).toBe(true);
+    // Freeze is illegal from pending, so status stays pending, but a tripped
+    // breaker must never leave a connection in auto — the safety invariant.
+    expect(r.nextStatus).toBe("pending");
+    expect(r.nextMode).toBe("propose_only");
   });
 
   it("re-forces propose_only when the breaker trips on an already-frozen connection", () => {

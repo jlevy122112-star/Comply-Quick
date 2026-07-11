@@ -160,10 +160,14 @@ export function detectTools(html: string, requestUrls: string[] = []): DetectedT
   const haystack = requestUrls.length > 0 ? `${html}\n${requestUrls.join("\n")}` : html;
   const found: DetectedTool[] = [];
   for (const fp of FINGERPRINTS) {
-    // Boolean view still reports a match on any signal (strong or weak) so a
-    // real install isn't missed; the confidence weighting lives in the detailed
-    // view. This keeps `detectTools` additive/backward-compatible.
-    const matched = fp.patterns.some((p) => p.test(haystack)) || (fp.weakPatterns ?? []).some((p) => p.test(haystack));
+    // Boolean view reports a match ONLY on a strong, vendor-specific signal.
+    // Weak patterns are generic (shared by many self-hosted bundles), so they
+    // are low-confidence hints for `detectToolsDetailed` and must never, on
+    // their own, produce a definite detection here — otherwise a generic
+    // `analytics.min.js` would falsely feed the consent-gated tracker findings
+    // in `analyzeHtml`. Every fingerprint has strong patterns, so real installs
+    // are unaffected.
+    const matched = fp.patterns.some((p) => p.test(haystack));
     if (matched) {
       found.push({ id: fp.id, name: fp.name, category: fp.category });
     }

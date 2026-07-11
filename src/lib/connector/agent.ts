@@ -69,10 +69,12 @@ export function evaluateConnectionCycle(input: CycleInput): CycleResult {
   // the current status and never force propose_only off an invalid transition.
   const freeze = breaker.tripped && canTransition(input.connection.status, "frozen");
   const nextStatus: ConnectionStatus = freeze ? "frozen" : input.connection.status;
-  // Force propose_only whenever the breaker trips and the connection is (or is
-  // becoming) frozen — including an already-frozen connection, so a stray `auto`
-  // mode can never be reported for a tripped breaker.
-  const forcePropose = freeze || (breaker.tripped && input.connection.status === "frozen");
+  // A tripped breaker ALWAYS forces propose_only, independent of whether the
+  // status transition to `frozen` is legal. This is the safety invariant: the
+  // agent must stop pushing automatic writes the moment the breaker trips, even
+  // for a status (e.g. `pending`) that can't be frozen — so a stray `auto` mode
+  // can never survive a tripped breaker.
+  const forcePropose = breaker.tripped;
   const nextMode: ConnectionMode = forcePropose ? "propose_only" : input.connection.mode;
 
   const plan = planRemediations(findings, { mode: nextMode, status: nextStatus });

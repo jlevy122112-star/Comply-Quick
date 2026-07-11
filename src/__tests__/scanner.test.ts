@@ -101,6 +101,29 @@ describe("analyzeHtml", () => {
     expect(result.detectedTools.some((t) => t.id === "datadog")).toBe(true);
     expect(result.findings.some((f) => f.id === "trackers_without_consent")).toBe(true);
   });
+
+  it("does NOT flag a self-hosted analytics.min.js bundle as a consent-gated tracker", () => {
+    // A generic self-hosted analytics bundle only matches Segment's WEAK
+    // pattern, which must never produce a definite detection (or the
+    // consent-gated tracker finding) via the boolean path.
+    const selfHosted = `
+      <html><head>
+        <script src="https://acme.example.com/js/analytics.min.js"></script>
+      </head><body>No policy links here.</body></html>`;
+    expect(detectTools(selfHosted).some((t) => t.id === "segment")).toBe(false);
+    const result = analyzeHtml(selfHosted);
+    expect(result.findings.some((f) => f.id === "trackers_without_consent")).toBe(false);
+  });
+
+  it("still detects Segment from its real CDN host (strong signal)", () => {
+    const segment = `
+      <html><head>
+        <script src="https://cdn.segment.com/analytics.js/v1/abc/analytics.min.js"></script>
+      </head><body>No policy links here.</body></html>`;
+    expect(detectTools(segment).some((t) => t.id === "segment")).toBe(true);
+    const result = analyzeHtml(segment);
+    expect(result.findings.some((f) => f.id === "trackers_without_consent")).toBe(true);
+  });
 });
 
 describe("normalizeScanUrl", () => {
