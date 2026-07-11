@@ -215,9 +215,11 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     vendorRegion: "us",
     dataCategories: ["online_activity", "device"],
     dpaUrl: "https://www.datadoghq.com/legal/data-processing-addendum/",
-    // consentGated ⇒ must also trigger the Art. 7 consent obligation node so the
-    // traversal engine derives the same consent requirement the linter enforces.
-    triggersObligations: ["gdpr.art13.privacy_notice", "gdpr.art7.consent", "gdpr.art28.dpa"],
+    // A US-based, consent-gated behavioral tracker: use the shared tracker
+    // obligation set (privacy notice + Art. 7 consent + DPA + CCPA/CPRA notices)
+    // so it matches every other US behavioral tracker and the traversal engine
+    // derives the same consent requirement the linter enforces.
+    triggersObligations: US_TRACKER_OBLIGATIONS,
   },
   {
     id: "stripe",
