@@ -28,7 +28,10 @@ export interface ServiceCatalogEntry {
    * behavioral session tracking, so it is NOT consent-gated. Behavioral
    * trackers (analytics, ad pixels, session replay, RUM, CDPs) are. This
    * mirrors the scanner's category-based exclusion of `error_monitoring`
-   * (see scanner/analyzer.ts) so the linter and scanner never disagree.
+   * (see scanner/analyzer.ts). NOTE: `chat` widgets (Intercom, Drift) are a
+   * deliberate policy call here — the scanner does not put `chat` in its
+   * tracker set, so those entries may intentionally diverge; keep them in sync
+   * with the scanner when that policy is settled.
    */
   consentGated: boolean;
   /** Canonical DPA URL for the vendor, when one is published. */
@@ -212,7 +215,9 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     vendorRegion: "us",
     dataCategories: ["online_activity", "device"],
     dpaUrl: "https://www.datadoghq.com/legal/data-processing-addendum/",
-    triggersObligations: ["gdpr.art13.privacy_notice", "gdpr.art28.dpa"],
+    // consentGated ⇒ must also trigger the Art. 7 consent obligation node so the
+    // traversal engine derives the same consent requirement the linter enforces.
+    triggersObligations: ["gdpr.art13.privacy_notice", "gdpr.art7.consent", "gdpr.art28.dpa"],
   },
   {
     id: "stripe",
