@@ -218,6 +218,25 @@ describe("connector/agent — continuous cycle", () => {
     // pending → frozen is illegal, so the status must stay pending.
     expect(r.nextStatus).toBe("pending");
   });
+
+  it("re-forces propose_only when the breaker trips on an already-frozen connection", () => {
+    const now = Date.now();
+    const r = evaluateConnectionCycle({
+      connection: { mode: "auto", status: "frozen" },
+      detectedServices: ["google"],
+      jurisdictions: ["eu"],
+      coverage,
+      breakerSignals: [
+        { kind: "human_undo", at: now - 1 },
+        { kind: "human_undo", at: now - 2 },
+        { kind: "human_undo", at: now - 3 },
+      ],
+      now,
+    });
+    expect(r.breaker.tripped).toBe(true);
+    expect(r.nextStatus).toBe("frozen");
+    expect(r.nextMode).toBe("propose_only");
+  });
 });
 
 describe("connector/shopify — oauth", () => {
@@ -327,14 +346,29 @@ describe("connector/shopify — admin client", () => {
     expect(page.id).toBe(42);
   });
 
-  it("coerces a null title/body from the API to empty strings (never null)", async () => {
+  it("coerces a null title/body/handle from the API to safe values (never null)", async () => {
     const fakeFetch = (async () =>
-      new Response(JSON.stringify({ page: { id: 7, title: null, body_html: null } }), {
+      new Response(JSON.stringify({ page: { id: 7, title: null, handle: null, body_html: null } }), {
         status: 200,
       })) as unknown as typeof fetch;
     const client = new ShopifyAdminClient({ shop: "acme.myshopify.com", accessToken: "shpat_x", fetchImpl: fakeFetch });
     const page = await client.createPage({ title: "X", bodyHtml: "<p>x</p>" });
     expect(page.title).toBe("");
     expect(page.bodyHtml).toBe("");
+    expect(page.handle ?? null).toBeNull();
+    expect(Object.prototype.hasOwnProperty.call(page, "handle")).toBe(false);
+  });
+
+  it("updatePage lets the path id win over an id in the partial payload", async () => {
+    let captured: { url: string; init: RequestInit } | null = null;
+    const fakeFetch = (async (url: string, init: RequestInit) => {
+      captured = { url, init };
+      return new Response(JSON.stringify({ page: { id: 5, title: "T", body_html: "<p>b</p>" } }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const client = new ShopifyAdminClient({ shop: "acme.myshopify.com", accessToken: "shpat_x", fetchImpl: fakeFetch });
+    await client.updatePage(5, { id: 99, bodyHtml: "<p>b</p>" } as Partial<{ id: number; bodyHtml: string }>);
+    const sent = JSON.parse(captured!.init.body as string);
+    expect(captured!.url).toContain("/pages/5.json");
+    expect(sent.page.id).toBe(5);
   });
 });

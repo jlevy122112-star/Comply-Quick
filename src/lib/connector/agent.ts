@@ -69,7 +69,11 @@ export function evaluateConnectionCycle(input: CycleInput): CycleResult {
   // the current status and never force propose_only off an invalid transition.
   const freeze = breaker.tripped && canTransition(input.connection.status, "frozen");
   const nextStatus: ConnectionStatus = freeze ? "frozen" : input.connection.status;
-  const nextMode: ConnectionMode = freeze ? "propose_only" : input.connection.mode;
+  // Force propose_only whenever the breaker trips and the connection is (or is
+  // becoming) frozen — including an already-frozen connection, so a stray `auto`
+  // mode can never be reported for a tripped breaker.
+  const forcePropose = freeze || (breaker.tripped && input.connection.status === "frozen");
+  const nextMode: ConnectionMode = forcePropose ? "propose_only" : input.connection.mode;
 
   const plan = planRemediations(findings, { mode: nextMode, status: nextStatus });
 

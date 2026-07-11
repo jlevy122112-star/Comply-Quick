@@ -62,10 +62,15 @@ function toPageWire(page: Partial<ShopifyPage>): ShopifyPageWire {
 }
 
 function fromPageWire(wire: ShopifyPageWire): ShopifyPage {
-  const { body_html, ...rest } = wire;
-  // Defaults MUST come after the spread so a null/absent value from the API is
-  // coalesced to "" rather than the spread reintroducing null over the default.
-  return { ...rest, title: rest.title ?? "", bodyHtml: body_html ?? "" };
+  // Build explicitly so a null from the API (title/body_html on drafts, handle
+  // on unpublished pages) can never leak through as null and violate the types.
+  const { id, title, handle, body_html } = wire;
+  return {
+    ...(id !== undefined ? { id } : {}),
+    ...(handle != null ? { handle } : {}),
+    title: title ?? "",
+    bodyHtml: body_html ?? "",
+  };
 }
 
 export class ShopifyAdminClient {
@@ -119,7 +124,8 @@ export class ShopifyAdminClient {
 
   async updatePage(id: number, page: Partial<ShopifyPage>): Promise<ShopifyPage> {
     const json = await this.request<{ page: ShopifyPageWire }>("PUT", `/pages/${id}.json`, {
-      page: { id, ...toPageWire(page) },
+      // `id` last so the path id always wins over any id in the partial payload.
+      page: { ...toPageWire(page), id },
     });
     return fromPageWire(json.page);
   }
