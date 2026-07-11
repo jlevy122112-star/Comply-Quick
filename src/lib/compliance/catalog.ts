@@ -26,13 +26,15 @@ export interface ServiceCatalogEntry {
   triggersObligations: string[];
 }
 
-// A US-based analytics/advertising processor triggers the same core set:
-// privacy notice, prior consent, a DPA, and (for EU data) transfer safeguards.
+// A US-based analytics/advertising processor triggers this core set: privacy
+// notice, prior consent, a DPA, and the US privacy-law notices. Cross-border
+// transfer safeguards (Art. 46) are NOT listed here — they are derived in the
+// traversal engine from each vendor's region, so the obligation only appears
+// when EU/UK data actually leaves the EEA.
 const US_TRACKER_OBLIGATIONS = [
   "gdpr.art13.privacy_notice",
   "gdpr.art7.consent",
   "gdpr.art28.dpa",
-  "gdpr.art46.transfers",
   "ccpa.notice_at_collection",
   "cpra.opt_out_sale_share",
 ];
@@ -43,7 +45,6 @@ const US_JOINT_CONTROLLER_OBLIGATIONS = [
   "gdpr.art13.privacy_notice",
   "gdpr.art7.consent",
   "gdpr.art26.joint_controller",
-  "gdpr.art46.transfers",
   "ccpa.notice_at_collection",
   "cpra.opt_out_sale_share",
 ];
@@ -145,7 +146,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     vendorRegion: "us",
     dataCategories: ["identifiers", "online_activity"],
     dpaUrl: "https://www.intercom.com/legal/data-processing-agreement",
-    triggersObligations: ["gdpr.art13.privacy_notice", "gdpr.art28.dpa", "gdpr.art46.transfers"],
+    triggersObligations: ["gdpr.art13.privacy_notice", "gdpr.art28.dpa"],
   },
   {
     id: "drift",
@@ -154,7 +155,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     role: "processor",
     vendorRegion: "us",
     dataCategories: ["identifiers", "online_activity"],
-    triggersObligations: ["gdpr.art13.privacy_notice", "gdpr.art28.dpa", "gdpr.art46.transfers"],
+    triggersObligations: ["gdpr.art13.privacy_notice", "gdpr.art28.dpa"],
   },
   {
     id: "segment",
@@ -174,7 +175,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     vendorRegion: "us",
     dataCategories: ["online_activity", "device", "identifiers"],
     dpaUrl: "https://sentry.io/legal/dpa/",
-    triggersObligations: ["gdpr.art13.privacy_notice", "gdpr.art28.dpa", "gdpr.art46.transfers"],
+    triggersObligations: ["gdpr.art13.privacy_notice", "gdpr.art28.dpa"],
   },
   {
     id: "datadog",
@@ -184,7 +185,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     vendorRegion: "us",
     dataCategories: ["online_activity", "device"],
     dpaUrl: "https://www.datadoghq.com/legal/data-processing-addendum/",
-    triggersObligations: ["gdpr.art13.privacy_notice", "gdpr.art28.dpa", "gdpr.art46.transfers"],
+    triggersObligations: ["gdpr.art13.privacy_notice", "gdpr.art28.dpa"],
   },
   {
     id: "stripe",
@@ -194,7 +195,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     vendorRegion: "us",
     dataCategories: ["identifiers", "financial"],
     dpaUrl: "https://stripe.com/legal/dpa",
-    triggersObligations: ["gdpr.art28.dpa", "gdpr.art46.transfers", "pci_dss.saq_scope"],
+    triggersObligations: ["gdpr.art28.dpa", "pci_dss.saq_scope"],
   },
   {
     id: "paypal",
@@ -204,7 +205,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     vendorRegion: "us",
     dataCategories: ["identifiers", "financial"],
     dpaUrl: "https://www.paypal.com/us/legalhub/paypal/data-protection-agreement-full",
-    triggersObligations: ["gdpr.art28.dpa", "gdpr.art46.transfers", "pci_dss.saq_scope"],
+    triggersObligations: ["gdpr.art28.dpa", "pci_dss.saq_scope"],
   },
   {
     id: "square",
@@ -213,7 +214,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     role: "processor",
     vendorRegion: "us",
     dataCategories: ["identifiers", "financial"],
-    triggersObligations: ["gdpr.art28.dpa", "gdpr.art46.transfers", "pci_dss.saq_scope"],
+    triggersObligations: ["gdpr.art28.dpa", "pci_dss.saq_scope"],
   },
 ];
 

@@ -69,9 +69,14 @@ export function lintCompliance(state: ComplianceState): LintFinding[] {
     });
   }
 
+  // Rules 2 & 2b are GDPR Art. 28/26 obligations, which apply in the EU/UK only —
+  // gate them on jurisdiction so the linter agrees with the traversal engine
+  // (which scopes these obligations to EU/UK) instead of flagging a US-only site.
+  const gdprApplies = isEu(state.jurisdictions);
+
   // Rule 2: processor present but no DPA covering it → error (per processor).
   for (const p of processors) {
-    if (!dpaSet.has(p.id)) {
+    if (gdprApplies && !dpaSet.has(p.id)) {
       findings.push({
         id: `missing_dpa_${p.id}`,
         severity: "error",
@@ -84,7 +89,7 @@ export function lintCompliance(state: ComplianceState): LintFinding[] {
 
   // Rule 2b: joint controller present but no Art. 26 arrangement → error (per controller).
   for (const jc of jointControllers) {
-    if (!jcaSet.has(jc.id)) {
+    if (gdprApplies && !jcaSet.has(jc.id)) {
       findings.push({
         id: `missing_jca_${jc.id}`,
         severity: "error",

@@ -85,9 +85,21 @@ describe("deriveObligations — deterministic traversal", () => {
     expect(caOnly.some((r) => r.obligation.framework === "ccpa")).toBe(true);
   });
 
-  it("drops transfer safeguards when every processor is EU-based", () => {
-    const results = deriveObligations({ services: ["hotjar"], jurisdictions: ["eu"] });
-    expect(results.some((r) => r.obligation.id === "gdpr.art46.transfers")).toBe(false);
+  it("derives transfer safeguards only when a non-EU vendor is present (not for an all-EU stack)", () => {
+    // Hotjar is EU-based → no cross-border transfer obligation.
+    const euOnly = deriveObligations({ services: ["hotjar"], jurisdictions: ["eu"] });
+    expect(euOnly.some((r) => r.obligation.id === "gdpr.art46.transfers")).toBe(false);
+    // Add a US vendor → the transfer obligation is now derived, triggered by it.
+    const withUs = deriveObligations({ services: ["hotjar", "google"], jurisdictions: ["eu"] });
+    const transfer = withUs.find((r) => r.obligation.id === "gdpr.art46.transfers");
+    expect(transfer).toBeDefined();
+    expect(transfer!.triggeredBy).toContain("Google Analytics / Ads");
+    expect(transfer!.triggeredBy).not.toContain("Hotjar");
+  });
+
+  it("does not derive transfer safeguards outside the EU/UK even with a US vendor", () => {
+    const usOnly = deriveObligations({ services: ["google"], jurisdictions: ["us_ca"] });
+    expect(usOnly.some((r) => r.obligation.id === "gdpr.art46.transfers")).toBe(false);
   });
 
   it("sorts critical obligations before info", () => {

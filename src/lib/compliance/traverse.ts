@@ -63,11 +63,19 @@ export function deriveObligations(input: TraversalInput): ObligationResult[] {
     }
   }
 
-  // Cross-border transfer safeguards only apply when a triggering vendor is
-  // actually outside the EEA — drop the obligation if every processor is EU.
-  const transfer = hits.get("gdpr.art46.transfers");
-  if (transfer && !transfer.services.some((s) => s.vendorRegion !== "eu")) {
-    hits.delete("gdpr.art46.transfers");
+  // Cross-border transfer safeguards (Art. 46 / SCCs) are derived, not hard-coded
+  // per service: they apply only when EU/UK data actually leaves the EEA — i.e.
+  // when at least one detected vendor is outside the EU. This keeps the catalog
+  // region-agnostic and makes the geography the single source of truth.
+  const transferNode = getObligation("gdpr.art46.transfers");
+  if (transferNode && appliesInJurisdiction(transferNode, active)) {
+    const nonEuVendors = input.services
+      .map((id) => getService(id))
+      .filter((e): e is ServiceCatalogEntry => e !== undefined && e.vendorRegion !== "eu");
+    if (nonEuVendors.length > 0) {
+      const unique = Array.from(new Map(nonEuVendors.map((s) => [s.id, s])).values());
+      hits.set(transferNode.id, { node: transferNode, services: unique });
+    }
   }
 
   const results: ObligationResult[] = [];
