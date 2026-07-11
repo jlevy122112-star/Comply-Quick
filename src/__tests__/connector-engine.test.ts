@@ -149,7 +149,7 @@ describe("connector/remediation — disposition gating", () => {
     expect(plan.find((p) => p.change.id === "inject_consent_banner")!.disposition).toBe("propose");
   });
 
-  it("auto-applies a low-risk non-document config change in auto mode", () => {
+  it("gates even a low-risk change to propose when it targets a document (page:)", () => {
     const plan = planRemediations([pciFinding], { mode: "auto", status: "active" });
     // pci notice targets page:privacy#payments → still a document → propose
     expect(plan.find((p) => p.change.id === "add_pci_notice")!.disposition).toBe("propose");
