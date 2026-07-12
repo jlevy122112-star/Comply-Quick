@@ -86,7 +86,7 @@ export function useCalendarController({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data?.error ?? "Could not create the task.");
+        throw new Error(data?.message ?? "Could not create the task.");
       }
       setTitle("");
       setShowForm(false);
@@ -112,7 +112,7 @@ export function useCalendarController({
             });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data?.error ?? "Could not update the task.");
+        throw new Error(data?.message ?? "Could not update the task.");
       }
       router.refresh();
     } catch (err) {

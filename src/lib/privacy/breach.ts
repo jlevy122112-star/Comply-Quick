@@ -16,7 +16,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { REGION_RULES, type TargetRegion } from "@/lib/tools/data";
 
-export type BreachSeverity = "low" | "medium" | "critical" | "high";
+export type BreachSeverity = "low" | "medium" | "high" | "critical";
 export type BreachStatus = "open" | "contained" | "notifying" | "resolved" | "closed";
 
 export const BREACH_SEVERITIES: readonly BreachSeverity[] = ["low", "medium", "high", "critical"];
