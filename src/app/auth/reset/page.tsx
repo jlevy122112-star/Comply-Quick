@@ -19,10 +19,13 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      setHasSession(Boolean(data.user));
-      setChecking(false);
-    });
+    supabase.auth
+      .getUser()
+      .then(({ data }) => {
+        setHasSession(Boolean(data.user));
+      })
+      .catch(() => setHasSession(false))
+      .finally(() => setChecking(false));
   }, []);
 
   const strong = useMemo(() => password.length >= 8, [password]);
