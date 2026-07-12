@@ -64,7 +64,7 @@ export function BreachPanel({ views, regionOptions, dataCategoryOptions }: Props
         body: JSON.stringify({
           title,
           severity,
-          discoveredAt: new Date(`${discoveredAt}:00Z`).toISOString(),
+          discoveredAt: new Date(`${discoveredAt.length === 16 ? `${discoveredAt}:00` : discoveredAt}Z`).toISOString(),
           affectedIndividuals: Number(affected) || 0,
           highRisk,
           regions,
