@@ -379,7 +379,13 @@ function ClientsTab({
                     {s.lowestScore === null ? "—" : `${s.lowestScore}`}
                   </span>
                 </div>
-                <div className="mt-3 text-right">
+                <div className="mt-3 flex items-center justify-between">
+                  <Link
+                    href={`/dashboard/agency/clients/${c.id}/intake`}
+                    className="text-xs font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
+                  >
+                    Onboarding intake →
+                  </Link>
                   <button
                     type="button"
                     onClick={() => removeClient(c.id)}
