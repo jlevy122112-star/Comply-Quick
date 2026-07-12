@@ -290,10 +290,10 @@ export default function CommandCenterView({
               Privacy
             </Link>
             <Link
-              href="/dashboard/settings/consent"
+              href="/dashboard/settings/breaches"
               className="hidden sm:inline-block px-3 py-2 rounded-lg border border-gray-600/50 text-gray-300 text-sm font-medium hover:border-gray-400 hover:text-gray-100 transition-colors"
             >
-              Consent
+              Breaches
             </Link>
             <Link
               href="/dashboard"
