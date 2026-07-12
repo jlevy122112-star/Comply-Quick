@@ -91,6 +91,9 @@ export function SecurityPanel({ initialFactors }: Props) {
         setError(error.message);
         return;
       }
+      // The factor is now verified — clear the ref synchronously so a concurrent
+      // unmount cleanup can't unenroll it before the state update is processed.
+      enrollRef.current = null;
       setEnroll(null);
       setFriendlyName("");
       setCode("");
