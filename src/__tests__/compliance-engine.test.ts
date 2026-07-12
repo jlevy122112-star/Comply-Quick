@@ -285,4 +285,12 @@ describe("consent-gating consistency (scanner categories <-> catalog)", () => {
     }
     expect(mismatches).toEqual([]);
   });
+
+  it("every consent-gated-category fingerprint has a catalog entry (reverse direction)", () => {
+    const catalogIds = new Set(SERVICE_CATALOG.map((e) => e.id));
+    const missing = Object.entries(FINGERPRINT_CATEGORIES)
+      .filter(([id, category]) => CONSENT_GATED_TRACKER_CATEGORIES.includes(category) && !catalogIds.has(id))
+      .map(([id, category]) => `${id} (${category})`);
+    expect(missing).toEqual([]);
+  });
 });
