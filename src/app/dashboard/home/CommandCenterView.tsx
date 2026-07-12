@@ -66,6 +66,13 @@ const QUICK_TOOLS: QuickTool[] = [
     available: true,
   },
   {
+    label: "Cookie Policy",
+    description: "Jurisdiction-aware cookie disclosures",
+    icon: "📃",
+    href: "/dashboard/tools/cookie-policy",
+    available: true,
+  },
+  {
     label: "DPA Template Builder",
     description: "Data processing agreements",
     icon: "📄",
