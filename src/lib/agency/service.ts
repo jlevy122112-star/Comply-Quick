@@ -220,6 +220,19 @@ export async function listClients(): Promise<AgencyClient[]> {
   return data.map(mapClient);
 }
 
+/** Fetches one client owned by the caller's agency, or null if not found. */
+export async function getClient(id: string): Promise<AgencyClient | null> {
+  const agency = await getOrCreateAgency();
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("agency_clients")
+    .select(CLIENT_COLS)
+    .eq("id", id)
+    .eq("agency_id", agency.id)
+    .maybeSingle();
+  return data ? mapClient(data) : null;
+}
+
 interface ClientInput {
   name: string;
   contactEmail?: string | null;
