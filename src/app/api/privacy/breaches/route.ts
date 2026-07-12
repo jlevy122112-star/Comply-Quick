@@ -25,8 +25,9 @@ async function requireUser() {
 export async function GET() {
   try {
     await requireUser();
-    const incidents = await listBreachIncidents();
-    return NextResponse.json({ incidents });
+    const result = await listBreachIncidents();
+    if (!result.ok) throw new Error(result.error);
+    return NextResponse.json({ incidents: result.incidents });
   } catch (err) {
     return errorResponse(err);
   }

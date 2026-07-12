@@ -25,11 +25,14 @@ export default async function BreachesPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?redirect=/dashboard/settings/breaches");
 
-  const incidents = await listBreachIncidents();
-  const views: IncidentView[] = incidents.map((incident) => ({
-    incident,
-    obligations: computeObligations(incident),
-  }));
+  const result = await listBreachIncidents();
+  const views: IncidentView[] = result.ok
+    ? result.incidents.map((incident) => ({
+        incident,
+        obligations: computeObligations(incident),
+      }))
+    : [];
+  const loadError = result.ok ? null : result.error;
 
   const regionOptions = Object.entries(REGION_RULES).map(([id, meta]) => ({ id, name: meta.name }));
 
@@ -54,7 +57,12 @@ export default async function BreachesPage() {
             US state laws, HIPAA and more). Deadlines are engineering aids, not legal advice.
           </p>
         </div>
-        <BreachPanel views={views} regionOptions={regionOptions} dataCategoryOptions={[...BREACH_DATA_CATEGORIES]} />
+        <BreachPanel
+          views={views}
+          loadError={loadError}
+          regionOptions={regionOptions}
+          dataCategoryOptions={[...BREACH_DATA_CATEGORIES]}
+        />
       </main>
     </div>
   );

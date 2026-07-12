@@ -411,16 +411,23 @@ export async function createBreachIncident(input: BreachIncidentInput): Promise<
   return { ok: true, id: data.id as string };
 }
 
-/** Lists the caller's breach incidents (RLS-scoped, newest first). */
-export async function listBreachIncidents(limit = 100): Promise<BreachIncident[]> {
+export type ListBreachResult = { ok: true; incidents: BreachIncident[] } | { ok: false; error: string };
+
+/**
+ * Lists the caller's breach incidents (RLS-scoped, newest first). Returns an
+ * explicit error result rather than an empty list on failure, so callers can
+ * distinguish "no incidents" from "failed to load" — silently reporting an
+ * empty register on a DB error would be dangerous for an audit-critical page.
+ */
+export async function listBreachIncidents(limit = 100): Promise<ListBreachResult> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("breach_incidents")
     .select("*")
     .order("discovered_at", { ascending: false })
     .limit(limit);
-  if (error || !data) return [];
-  return (data as BreachRow[]).map(rowToIncident);
+  if (error) return { ok: false, error: "Could not load the breach register." };
+  return { ok: true, incidents: ((data as BreachRow[] | null) ?? []).map(rowToIncident) };
 }
 
 export interface BreachUpdate {

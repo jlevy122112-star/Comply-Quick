@@ -8,11 +8,12 @@ import { IncidentCard } from "./IncidentCard";
 
 interface Props {
   views: IncidentView[];
+  loadError?: string | null;
   regionOptions: { id: string; name: string }[];
   dataCategoryOptions: string[];
 }
 
-export function BreachPanel({ views, regionOptions, dataCategoryOptions }: Props) {
+export function BreachPanel({ views, loadError, regionOptions, dataCategoryOptions }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +66,12 @@ export function BreachPanel({ views, regionOptions, dataCategoryOptions }: Props
 
   return (
     <div className="space-y-8">
+      {loadError && (
+        <p className="rounded-md border border-red-800/50 bg-red-950/40 px-3 py-2 text-sm text-red-300">
+          {loadError} Existing incidents could not be shown — retry shortly rather than assuming the register is empty.
+        </p>
+      )}
+
       {error && (
         <p className="rounded-md border border-red-800/50 bg-red-950/40 px-3 py-2 text-sm text-red-300">{error}</p>
       )}
@@ -87,7 +94,9 @@ export function BreachPanel({ views, regionOptions, dataCategoryOptions }: Props
         />
       )}
 
-      {views.length === 0 && !showForm && <p className="text-sm text-gray-500">No breach incidents recorded.</p>}
+      {views.length === 0 && !showForm && !loadError && (
+        <p className="text-sm text-gray-500">No breach incidents recorded.</p>
+      )}
 
       <div className="space-y-6">
         {views.map((view) => (

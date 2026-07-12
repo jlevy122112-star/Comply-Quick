@@ -55,7 +55,13 @@ export function BreachForm({ regionOptions, dataCategoryOptions, busy, onSubmit 
   }
 
   return (
-    <section className="rounded-lg border border-gray-800/60 bg-gray-900/40 p-5">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        void handleSubmit();
+      }}
+      className="rounded-lg border border-gray-800/60 bg-gray-900/40 p-5"
+    >
       <h2 className="text-lg font-semibold text-white">Report a Breach</h2>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm sm:col-span-2">
@@ -153,12 +159,12 @@ export function BreachForm({ regionOptions, dataCategoryOptions, busy, onSubmit 
         </label>
       </div>
       <button
-        onClick={handleSubmit}
+        type="submit"
         disabled={busy || !title.trim() || !discoveredAt}
         className="mt-4 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
       >
         {busy ? "Saving…" : "Record Incident"}
       </button>
-    </section>
+    </form>
   );
 }
