@@ -364,16 +364,18 @@ function AuthPage() {
                       : "Sign in"}
                 </button>
 
-                <div className="flex items-center justify-center">
-                  <button
-                    type="button"
-                    onClick={handleMagicLink}
-                    disabled={busy || !email}
-                    className="text-xs text-gray-400 hover:text-gray-200 disabled:opacity-40"
-                  >
-                    Email me a magic link instead
-                  </button>
-                </div>
+                {mode === "signin" && (
+                  <div className="flex items-center justify-center">
+                    <button
+                      type="button"
+                      onClick={handleMagicLink}
+                      disabled={busy || !email}
+                      className="text-xs text-gray-400 hover:text-gray-200 disabled:opacity-40"
+                    >
+                      Email me a magic link instead
+                    </button>
+                  </div>
+                )}
               </form>
             </>
           )}

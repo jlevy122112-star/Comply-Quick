@@ -6,6 +6,18 @@ import { analytics } from "@/services";
 const SIGNUP_WINDOW_MS = 5 * 60 * 1000;
 
 /**
+ * Only allow same-origin relative destinations. A leading single "/" (but not
+ * "//" or "/\", which browsers treat as protocol-relative absolute URLs) keeps
+ * the redirect on our own origin and closes the open-redirect vector, since the
+ * `redirect` query param is attacker-controllable in a crafted callback link.
+ */
+function safeRelativePath(raw: string | null): string {
+  const fallback = "/dashboard/home";
+  if (!raw || raw[0] !== "/" || raw[1] === "/" || raw[1] === "\\") return fallback;
+  return raw;
+}
+
+/**
  * Handles the magic-link redirect. Supabase appends a `code` that we exchange
  * for a session cookie, then redirect the user to their intended destination.
  */
@@ -13,7 +25,7 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const channel = searchParams.get("channel") ?? undefined;
-  const redirectPath = searchParams.get("redirect") ?? "/dashboard/home";
+  const redirectPath = safeRelativePath(searchParams.get("redirect"));
 
   if (code) {
     const supabase = await createClient();
