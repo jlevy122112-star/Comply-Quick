@@ -20,8 +20,7 @@ create table if not exists public.data_subject_requests (
   requested_at timestamptz not null default now(),
   completed_at timestamptz,
   -- Free-form summary of what was exported/erased (e.g. row counts), for audit.
-  detail jsonb,
-  unique (id)
+  detail jsonb
 );
 
 create index if not exists data_subject_requests_user_idx

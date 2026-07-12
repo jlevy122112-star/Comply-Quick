@@ -62,8 +62,19 @@ const USER_EXPORT_TABLES: readonly ExportTable[] = [
   { table: "churn_surveys", columns: "*" },
 ];
 
-/** Resolves the currently authenticated user, or null. */
-async function currentUser(): Promise<{ id: string; email: string | null } | null> {
+/** The minimal authenticated identity the DSAR operations need. */
+export interface AuthedUser {
+  id: string;
+  email: string | null;
+}
+
+/**
+ * Resolves the caller's identity. Prefers an identity already verified by the
+ * route (avoids a redundant getUser round-trip); falls back to verifying via the
+ * server client when none is supplied (e.g. direct callers/tests).
+ */
+async function resolveUser(provided?: AuthedUser): Promise<AuthedUser | null> {
+  if (provided) return provided;
   const supabase = await createClient();
   const {
     data: { user },
@@ -81,18 +92,21 @@ async function currentUser(): Promise<{ id: string; email: string | null } | nul
  */
 export async function assembleUserExport(userId: string, email: string | null = null): Promise<UserDataExport> {
   const admin = createAdminClient();
-  const data: Record<string, unknown[]> = {};
 
-  for (const { table, columns } of USER_EXPORT_TABLES) {
-    try {
-      const { data: rows, error } = await admin.from(table).select(columns).eq("user_id", userId);
-      data[table] = error || !rows ? [] : (rows as unknown[]);
-    } catch {
-      data[table] = [];
-    }
-  }
+  // Query every table concurrently; each is independently error-isolated so one
+  // failing table degrades to [] without aborting the others or the export.
+  const entries = await Promise.all(
+    USER_EXPORT_TABLES.map(async ({ table, columns }): Promise<[string, unknown[]]> => {
+      try {
+        const { data: rows, error } = await admin.from(table).select(columns).eq("user_id", userId);
+        return [table, error || !rows ? [] : (rows as unknown[])];
+      } catch {
+        return [table, []];
+      }
+    })
+  );
 
-  return { exportedAt: new Date().toISOString(), userId, email, data };
+  return { exportedAt: new Date().toISOString(), userId, email, data: Object.fromEntries(entries) };
 }
 
 /** Writes a request row to the ledger. Returns the row id, or null on failure. */
@@ -155,8 +169,8 @@ export type ExportResult = { ok: true; export: UserDataExport } | { ok: false; e
  * Runs a self-service data export for the current user and logs it. Returns the
  * assembled data for immediate download.
  */
-export async function requestDataExport(): Promise<ExportResult> {
-  const user = await currentUser();
+export async function requestDataExport(authedUser?: AuthedUser): Promise<ExportResult> {
+  const user = await resolveUser(authedUser);
   if (!user) return { ok: false, error: "Not signed in." };
 
   const payload = await assembleUserExport(user.id, user.email);
@@ -173,8 +187,11 @@ export type DeletionResult = { ok: true } | { ok: false; error: string };
  * tables), then finalizes the ledger. Requires the caller to confirm by passing
  * their exact email address.
  */
-export async function requestAccountDeletion(confirmationEmail: string): Promise<DeletionResult> {
-  const user = await currentUser();
+export async function requestAccountDeletion(
+  confirmationEmail: string,
+  authedUser?: AuthedUser
+): Promise<DeletionResult> {
+  const user = await resolveUser(authedUser);
   if (!user) return { ok: false, error: "Not signed in." };
   if (!user.email || confirmationEmail.trim().toLowerCase() !== user.email.toLowerCase()) {
     return { ok: false, error: "Type your account email exactly to confirm deletion." };

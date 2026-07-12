@@ -66,7 +66,7 @@ export function PrivacyPanel({ accountEmail, retention }: Props) {
     }
   }
 
-  const canDelete = confirmEmail.trim().toLowerCase() === accountEmail.toLowerCase();
+  const canDelete = accountEmail.length > 0 && confirmEmail.trim().toLowerCase() === accountEmail.toLowerCase();
 
   return (
     <div className="space-y-8">

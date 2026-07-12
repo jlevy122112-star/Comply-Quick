@@ -41,7 +41,8 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const rateHeaders = enforceRateLimit(await limiter.check(getClientKey(request.headers)));
-    await requireUser();
+    const user = await requireUser();
+    const authed = { id: user.id, email: user.email ?? null };
 
     let body: Record<string, unknown>;
     try {
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.type === "export") {
-      const result = await requestDataExport();
+      const result = await requestDataExport(authed);
       if (!result.ok) throw new ValidationError(result.error);
       return NextResponse.json(result.export, {
         status: 200,
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
       if (typeof body.confirmationEmail !== "string") {
         throw new ValidationError("A confirmationEmail is required to delete the account.");
       }
-      const result = await requestAccountDeletion(body.confirmationEmail);
+      const result = await requestAccountDeletion(body.confirmationEmail, authed);
       if (!result.ok) throw new ValidationError(result.error);
       return NextResponse.json({ ok: true, deleted: true }, { status: 200, headers: rateHeaders });
     }
