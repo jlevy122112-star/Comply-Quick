@@ -536,14 +536,12 @@ function LogoUploadField({
 function StrengthMeter({ strength }: { strength: { score: number; label: string } }) {
   // 4 bars ↔ 4 non-zero scores; index by score-1 so the weakest visible state is red.
   const colors = ["bg-red-500", "bg-orange-500", "bg-lime-500", "bg-emerald-500"];
+  const activeColor = strength.score > 0 ? colors[strength.score - 1] : "bg-gray-800";
   return (
     <div className="mt-2">
       <div className="flex gap-1">
         {[0, 1, 2, 3].map((i) => (
-          <span
-            key={i}
-            className={`h-1 flex-1 rounded-full ${i < strength.score ? colors[strength.score - 1] : "bg-gray-800"}`}
-          />
+          <span key={i} className={`h-1 flex-1 rounded-full ${i < strength.score ? activeColor : "bg-gray-800"}`} />
         ))}
       </div>
       <p className="mt-1 text-xs text-gray-500">Password strength: {strength.label}</p>
