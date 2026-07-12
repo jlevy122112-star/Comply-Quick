@@ -31,8 +31,20 @@ function captureReferral(request: NextRequest, response: NextResponse) {
   });
 }
 
-export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+export async function updateSession(request: NextRequest, csp?: { nonce: string; policy: string }) {
+  // Builds the init for NextResponse.next, re-reading `request.headers` each time
+  // so any cookies Supabase just refreshed (via request.cookies.set in setAll)
+  // are forwarded to the render — while re-stamping the per-request CSP nonce the
+  // proxy asked us to propagate so Next.js can nonce its own scripts.
+  const nextInit = () => {
+    if (!csp) return { request };
+    const headers = new Headers(request.headers);
+    headers.set("x-nonce", csp.nonce);
+    headers.set("content-security-policy", csp.policy);
+    return { request: { headers } };
+  };
+
+  let supabaseResponse = NextResponse.next(nextInit());
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -62,7 +74,7 @@ export async function updateSession(request: NextRequest) {
       },
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        supabaseResponse = NextResponse.next({ request });
+        supabaseResponse = NextResponse.next(nextInit());
         cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options));
       },
     },

@@ -8,7 +8,7 @@ vi.mock("@/lib/supabase/middleware", () => ({
   updateSession: (...args: unknown[]) => updateSessionMock(...args),
 }));
 
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { proxy } from "@/proxy";
 
 function requestForHost(host: string): NextRequest {
@@ -18,7 +18,8 @@ function requestForHost(host: string): NextRequest {
 describe("proxy primary-host routing", () => {
   beforeEach(() => {
     updateSessionMock.mockReset();
-    updateSessionMock.mockReturnValue("SESSION");
+    // Return a real response so the proxy can decorate it with the CSP header.
+    updateSessionMock.mockImplementation(() => NextResponse.next());
   });
 
   it("treats the product domain (apex + www) as primary even when NEXT_PUBLIC_APP_HOST is unset", async () => {
@@ -28,7 +29,8 @@ describe("proxy primary-host routing", () => {
       updateSessionMock.mockClear();
       const res = await proxy(requestForHost(host));
       expect(updateSessionMock).toHaveBeenCalledTimes(1);
-      expect(res).toBe("SESSION");
+      // Primary host falls through to the session refresh, not the portal rewrite.
+      expect(res.headers.get("x-middleware-rewrite")).toBeNull();
     }
   });
 
@@ -37,7 +39,7 @@ describe("proxy primary-host routing", () => {
       updateSessionMock.mockClear();
       const res = await proxy(requestForHost(host));
       expect(updateSessionMock).toHaveBeenCalledTimes(1);
-      expect(res).toBe("SESSION");
+      expect(res.headers.get("x-middleware-rewrite")).toBeNull();
     }
   });
 
@@ -45,5 +47,15 @@ describe("proxy primary-host routing", () => {
     const res = await proxy(requestForHost("clientsite.example"));
     expect(updateSessionMock).not.toHaveBeenCalled();
     expect(res.headers.get("x-middleware-rewrite") ?? "").toContain("/portal/domain/clientsite.example");
+  });
+
+  it("stamps a Content-Security-Policy (report-only by default) with a nonce on every response", async () => {
+    const res = await proxy(requestForHost("comply-quick.com"));
+    const csp = res.headers.get("Content-Security-Policy-Report-Only");
+    expect(csp).toContain("script-src 'nonce-");
+    expect(csp).toContain("'strict-dynamic'");
+    // The portal-rewrite branch is covered too.
+    const rewrite = await proxy(requestForHost("clientsite.example"));
+    expect(rewrite.headers.get("Content-Security-Policy-Report-Only")).toContain("script-src 'nonce-");
   });
 });

@@ -1,12 +1,11 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
-// Security response headers applied to every route. HSTS enforces HTTPS/TLS at
-// the browser (only sent over HTTPS in production, so local HTTP is unaffected).
-// A conservative set is used to avoid breaking third-party embeds (Stripe,
-// Sentry tunnel); a full Content-Security-Policy is intentionally omitted here
-// because the app relies on inline/third-party scripts that would require a
-// nonce pipeline to lock down safely.
+// Static security response headers applied to every route. HSTS enforces
+// HTTPS/TLS at the browser (only sent over HTTPS in production, so local HTTP is
+// unaffected). The Content-Security-Policy is NOT set here — it carries a
+// per-request nonce and is emitted by the proxy (src/proxy.ts via
+// src/lib/security/csp.ts) so Next.js can nonce its own inline scripts.
 const SECURITY_HEADERS = [
   {
     key: "Strict-Transport-Security",
