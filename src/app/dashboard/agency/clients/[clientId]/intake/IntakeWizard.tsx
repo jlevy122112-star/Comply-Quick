@@ -139,6 +139,10 @@ export function IntakeWizard({
 
   const dirty = useRef(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Blocks a late draft save from downgrading an intake the user is submitting.
+  const submittingRef = useRef(false);
+  // Tracks the in-flight draft save so submit can wait for it to land first.
+  const inFlightSave = useRef<Promise<void> | null>(null);
 
   const step = STEPS[stepIdx];
 
@@ -146,15 +150,22 @@ export function IntakeWizard({
   useEffect(() => {
     if (!dirty.current || done) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    setSaveState("saving");
-    saveTimer.current = setTimeout(async () => {
-      const res = await saveIntakeAction(clientId, answers, false);
-      if (res.ok) {
-        setSaveState("saved");
-        setSavedAt(res.updatedAt);
-      } else {
-        setSaveState("error");
-      }
+    saveTimer.current = setTimeout(() => {
+      if (submittingRef.current) return;
+      setSaveState("saving");
+      const p = (async () => {
+        const res = await saveIntakeAction(clientId, answers, false);
+        if (res.ok) {
+          setSaveState("saved");
+          setSavedAt(res.updatedAt);
+        } else {
+          setSaveState("error");
+        }
+      })();
+      inFlightSave.current = p;
+      void p.finally(() => {
+        if (inFlightSave.current === p) inFlightSave.current = null;
+      });
     }, 900);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -172,6 +183,17 @@ export function IntakeWizard({
   const goPrev = useCallback(() => setStepIdx((i) => Math.max(i - 1, 0)), []);
 
   const handleSubmit = useCallback(async () => {
+    // Stop autosave and let any in-flight draft write land before submitting,
+    // so a late draft save can't downgrade the just-submitted record.
+    submittingRef.current = true;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    if (inFlightSave.current) {
+      try {
+        await inFlightSave.current;
+      } catch {
+        /* draft save failure is surfaced separately; submit still proceeds */
+      }
+    }
     setSubmitting(true);
     setSubmitError(null);
     const res = await saveIntakeAction(clientId, answers, true);
@@ -181,11 +203,21 @@ export function IntakeWizard({
       setDone(true);
     } else {
       setSubmitError(res.error);
+      submittingRef.current = false;
     }
   }, [answers, clientId]);
 
   if (done) {
-    return <IntakeDone clientName={clientName} clientWebsite={clientWebsite} onReopen={() => setDone(false)} />;
+    return (
+      <IntakeDone
+        clientName={clientName}
+        clientWebsite={clientWebsite}
+        onReopen={() => {
+          submittingRef.current = false;
+          setDone(false);
+        }}
+      />
+    );
   }
 
   return (
