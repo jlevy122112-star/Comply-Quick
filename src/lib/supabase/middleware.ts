@@ -62,7 +62,7 @@ export async function updateSession(request: NextRequest, csp?: { nonce: string;
     if (PROTECTED_PREFIXES.some((p) => path.startsWith(p))) {
       const url = request.nextUrl.clone();
       url.pathname = "/login";
-      url.searchParams.set("redirect", path);
+      url.searchParams.set("redirect", `${path}${request.nextUrl.search}`);
       const redirectResponse = NextResponse.redirect(url);
       captureReferral(request, redirectResponse);
       return redirectResponse;
@@ -93,7 +93,7 @@ export async function updateSession(request: NextRequest, csp?: { nonce: string;
   if (isProtected && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("redirect", path);
+    url.searchParams.set("redirect", `${path}${request.nextUrl.search}`);
     const redirectResponse = NextResponse.redirect(url);
     captureReferral(request, redirectResponse);
     return redirectResponse;
@@ -102,18 +102,17 @@ export async function updateSession(request: NextRequest, csp?: { nonce: string;
   // Second-factor gate: an authenticated session that has a verified TOTP factor
   // but hasn't cleared it (aal1 → aal2) is sent to the challenge page before it
   // can reach any protected route — regardless of how it signed in (password,
-  // magic link, OAuth). The `aal` claim is read locally from the session to
-  // avoid an extra network round-trip on every request.
-  if (isProtected && user) {
+  // magic link, OAuth). Only sessions that actually have a verified factor read
+  // the `aal` claim (locally, no network round-trip); everyone else skips it.
+  if (isProtected && user && (user.factors ?? []).some((f) => f.status === "verified")) {
     const {
       data: { session },
     } = await supabase.auth.getSession();
-    const hasVerifiedFactor = (user.factors ?? []).some((f) => f.status === "verified");
-    const gate = mfaGate(decodeJwtAal(session?.access_token), hasVerifiedFactor ? "aal2" : "aal1");
-    if (gate === "challenge") {
+    if (mfaGate(decodeJwtAal(session?.access_token), "aal2") === "challenge") {
       const url = request.nextUrl.clone();
       url.pathname = MFA_CHALLENGE_PATH;
-      url.searchParams.set("redirect", path);
+      // Preserve the full original target (path + query) so deep links survive.
+      url.searchParams.set("redirect", `${path}${request.nextUrl.search}`);
       const redirectResponse = NextResponse.redirect(url);
       captureReferral(request, redirectResponse);
       return redirectResponse;
