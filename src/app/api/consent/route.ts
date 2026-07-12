@@ -29,6 +29,11 @@ export async function POST(request: NextRequest) {
   try {
     rateHeaders = enforceRateLimit(await limiter.check(getClientKey(request.headers)));
 
+    // The banner beacons a `text/plain` body (a CORS "simple" content type) to
+    // avoid a preflight round-trip. `Request.json()` parses the body as JSON
+    // regardless of Content-Type, so this handles both text/plain and
+    // application/json — do not swap in a Content-Type-gated parser here or the
+    // banner's beacon would silently stop being recorded.
     let body: unknown;
     try {
       body = await request.json();
@@ -39,9 +44,13 @@ export async function POST(request: NextRequest) {
     const normalized = normalizeConsent(body);
     if (!normalized.ok) throw new ValidationError(normalized.error);
 
+    // Fall back to the request header when the client omits userAgent, but bound
+    // it to the same 512-char cap normalizeConsent enforces so a hostile client
+    // cannot bloat the ledger with an oversized header.
+    const headerUa = (request.headers.get("user-agent") ?? "").slice(0, 512) || null;
     const result = await recordConsent({
       ...normalized.value,
-      userAgent: normalized.value.userAgent ?? request.headers.get("user-agent"),
+      userAgent: normalized.value.userAgent ?? headerUa,
     });
     if (!result.ok) throw new ValidationError(result.error);
 

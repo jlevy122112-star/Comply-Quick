@@ -193,10 +193,22 @@ describe("recordConsent (service)", () => {
     fromCalls.length = 0;
   });
 
+  function normalized(overrides: Record<string, unknown> = {}) {
+    const result = normalizeConsent({
+      projectId: VALID_UUID,
+      subjectRef: "v",
+      action: "accept_all",
+      categories: ["analytics"],
+      ...overrides,
+    });
+    if (!result.ok) throw new Error(`test fixture failed to normalize: ${result.error}`);
+    return result.value;
+  }
+
   it("rejects when the project does not exist", async () => {
     projectMaybeSingle.mockResolvedValue({ data: null, error: null });
     const { recordConsent } = await loadRecords();
-    const result = await recordConsent({ projectId: VALID_UUID, subjectRef: "v", action: "accept_all" });
+    const result = await recordConsent(normalized());
     expect(result.ok).toBe(false);
     expect(insertSingle).not.toHaveBeenCalled();
   });
@@ -205,12 +217,7 @@ describe("recordConsent (service)", () => {
     projectMaybeSingle.mockResolvedValue({ data: { id: VALID_UUID }, error: null });
     insertSingle.mockResolvedValue({ data: { id: "rec_1" }, error: null });
     const { recordConsent } = await loadRecords();
-    const result = await recordConsent({
-      projectId: VALID_UUID,
-      subjectRef: "v",
-      action: "accept_all",
-      categories: ["analytics"],
-    });
+    const result = await recordConsent(normalized());
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.id).toBe("rec_1");
     expect(fromCalls).toContain("projects");

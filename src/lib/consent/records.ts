@@ -30,17 +30,6 @@ export const CONSENT_MODELS: readonly ConsentModel[] = ["opt-in", "opt-out", "no
  */
 export const CONSENT_CATEGORIES: readonly string[] = ["essential", "analytics", "advertising", "functional"];
 
-export interface ConsentRecordInput {
-  projectId: string;
-  subjectRef: string;
-  action: ConsentAction;
-  categories?: string[];
-  consentModel?: ConsentModel;
-  policyVersion?: string | null;
-  region?: string | null;
-  userAgent?: string | null;
-}
-
 export interface ConsentRecord {
   id: string;
   projectId: string;
@@ -153,8 +142,12 @@ export type RecordConsentResult = { ok: true; id: string } | { ok: false; error:
  * Persists a validated consent decision to the append-only ledger. The project
  * must exist (guards the public endpoint against writes for unknown ids). Uses
  * the service-role client because the caller is an unauthenticated site visitor.
+ *
+ * Accepts only a `NormalizedConsent` (the output of `normalizeConsent`) so the
+ * validated-input requirement is type-enforced — callers cannot pass raw,
+ * unbounded values into the ledger.
  */
-export async function recordConsent(input: ConsentRecordInput): Promise<RecordConsentResult> {
+export async function recordConsent(input: NormalizedConsent): Promise<RecordConsentResult> {
   const admin = createAdminClient();
 
   const { data: project, error: projectError } = await admin
@@ -171,11 +164,11 @@ export async function recordConsent(input: ConsentRecordInput): Promise<RecordCo
       project_id: input.projectId,
       subject_ref: input.subjectRef,
       action: input.action,
-      categories: input.categories ?? [],
-      consent_model: input.consentModel ?? "opt-in",
-      policy_version: input.policyVersion ?? null,
-      region: input.region ?? null,
-      user_agent: input.userAgent ?? null,
+      categories: input.categories,
+      consent_model: input.consentModel,
+      policy_version: input.policyVersion,
+      region: input.region,
+      user_agent: input.userAgent,
     })
     .select("id")
     .single();
@@ -228,35 +221,52 @@ export async function listConsentRecords(projectId: string, limit = 200): Promis
   return (data as ConsentRow[]).map(rowToRecord);
 }
 
-/**
- * Returns the true total number of consent records for a project (independent of
- * any display page size). Uses a head + exact-count query so the dashboard can
- * show an accurate total without fetching every row. RLS-scoped.
- */
-export async function countConsentRecords(projectId: string): Promise<number> {
-  const supabase = await createClient();
-  const { count, error } = await supabase
-    .from("consent_records")
-    .select("id", { count: "exact", head: true })
-    .eq("project_id", projectId);
-  if (error || count === null) return 0;
-  return count;
-}
-
 export interface ConsentSummary {
   total: number;
   byAction: Record<ConsentAction, number>;
 }
 
-/** Aggregates a set of records into per-action counts for a dashboard summary. */
-export function summarizeConsent(records: ConsentRecord[]): ConsentSummary {
-  const byAction = {
+function emptyByAction(): Record<ConsentAction, number> {
+  return {
     accept_all: 0,
     reject_non_essential: 0,
     custom: 0,
     withdraw: 0,
     do_not_sell: 0,
   } satisfies Record<ConsentAction, number>;
+}
+
+/**
+ * Returns an accurate per-action summary over the project's *entire* ledger
+ * (not just a display page). Runs one exact head-count query per action plus a
+ * total, so the dashboard badges reflect all history — e.g. an older withdrawal
+ * is never hidden behind the recent-N window. RLS-scoped.
+ */
+export async function getConsentSummary(projectId: string): Promise<ConsentSummary> {
+  const supabase = await createClient();
+  const byAction = emptyByAction();
+
+  const [{ count: total }, ...perAction] = await Promise.all([
+    supabase.from("consent_records").select("id", { count: "exact", head: true }).eq("project_id", projectId),
+    ...CONSENT_ACTIONS.map((action) =>
+      supabase
+        .from("consent_records")
+        .select("id", { count: "exact", head: true })
+        .eq("project_id", projectId)
+        .eq("action", action)
+    ),
+  ]);
+
+  CONSENT_ACTIONS.forEach((action, i) => {
+    byAction[action] = perAction[i].count ?? 0;
+  });
+
+  return { total: total ?? 0, byAction };
+}
+
+/** Aggregates a set of records into per-action counts for a dashboard summary. */
+export function summarizeConsent(records: ConsentRecord[]): ConsentSummary {
+  const byAction = emptyByAction();
   for (const r of records) {
     // Guard against an action added to the DB CHECK constraint before the
     // TypeScript union — count only known actions rather than producing NaN.

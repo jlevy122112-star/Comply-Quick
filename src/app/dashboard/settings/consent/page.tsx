@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { listProjects } from "@/lib/projects-db";
-import { listConsentRecords, countConsentRecords, summarizeConsent, type ConsentAction } from "@/lib/consent/records";
+import { listConsentRecords, getConsentSummary, type ConsentAction } from "@/lib/consent/records";
 
 const RECENT_LIMIT = 25;
 
@@ -34,8 +34,8 @@ export default async function ConsentLogPage() {
   const projects = await listProjects();
   const perProject = await Promise.all(
     projects.map(async (p) => {
-      const [records, total] = await Promise.all([listConsentRecords(p.id, RECENT_LIMIT), countConsentRecords(p.id)]);
-      return { project: p, records, total, summary: summarizeConsent(records) };
+      const [records, summary] = await Promise.all([listConsentRecords(p.id, RECENT_LIMIT), getConsentSummary(p.id)]);
+      return { project: p, records, total: summary.total, summary };
     })
   );
 
@@ -89,7 +89,7 @@ export default async function ConsentLogPage() {
 
               {total > records.length && (
                 <p className="mt-2 text-xs text-gray-500">
-                  Breakdown and table below reflect the {records.length} most recent of {total} records.
+                  Badges above count all {total} records; the table below shows the {records.length} most recent.
                 </p>
               )}
 
