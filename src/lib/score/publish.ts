@@ -33,7 +33,7 @@ export interface PublicScore {
   label: string | null;
   score: number;
   createdAt: string;
-  /** Agency branding when the score was published by an agency owner. */
+  /** Agency branding when the publisher owns or is a member of an agency. */
   brand: PublicScoreBrand | null;
 }
 
@@ -167,6 +167,8 @@ async function resolveAgencyBrand(
       .from("agency_members")
       .select("agencies ( name, logo_url, primary_color )")
       .eq("user_id", userId)
+      // Deterministic when a user belongs to more than one agency: oldest first.
+      .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
     const joined = membership?.agencies;
