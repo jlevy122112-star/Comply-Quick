@@ -2,9 +2,9 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
   schedule:
     - cron: "27 4 * * 1"
 
@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ "javascript-typescript" ]
+        language: ["javascript-typescript"]
         # Supported CodeQL languages:
         # 'c-cpp', 'csharp', 'go', 'java-kotlin', 'javascript-typescript',
         # 'python', 'ruby', 'swift'
