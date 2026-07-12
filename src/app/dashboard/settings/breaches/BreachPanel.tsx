@@ -17,7 +17,7 @@ export function BreachPanel({ views, loadError, regionOptions, dataCategoryOptio
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(views.length === 0);
+  const [showForm, setShowForm] = useState(views.length === 0 && !loadError);
 
   async function submit(payload: Record<string, unknown>): Promise<boolean> {
     setBusy(true);
