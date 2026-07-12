@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import { uploadBrandLogo, validateLogoFile } from "@/lib/storage/brand";
 import type { Tier } from "@/lib/entitlements";
 import type { Agency, AgencyClient, AgencyDomain, ClientStats, AgencyMember } from "@/lib/agency/service";
 import type { BillingSummary } from "@/lib/billing/usage";
@@ -413,6 +415,36 @@ function BrandingTab({
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const uploadLogo = useCallback(async (file: File | null) => {
+    setLogoUploadError(null);
+    if (!file) return;
+    const invalid = validateLogoFile(file);
+    if (invalid) {
+      setLogoUploadError(invalid);
+      return;
+    }
+    setUploading(true);
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setLogoUploadError("Please sign in again to upload.");
+      setUploading(false);
+      return;
+    }
+    const res = await uploadBrandLogo(user.id, file);
+    if (res.ok) {
+      setLogoUrl(res.url);
+    } else {
+      setLogoUploadError(res.error);
+    }
+    setUploading(false);
+  }, []);
 
   const save = useCallback(async () => {
     setBusy(true);
@@ -446,13 +478,32 @@ function BrandingTab({
             className="w-full px-3 py-2 rounded-lg bg-gray-950 border border-gray-700 text-sm text-white focus:border-indigo-500 focus:outline-none"
           />
         </Field>
-        <Field label="Logo URL">
-          <input
-            value={logoUrl}
-            onChange={(e) => setLogoUrl(e.target.value)}
-            placeholder="https://…/logo.png"
-            className="w-full px-3 py-2 rounded-lg bg-gray-950 border border-gray-700 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none"
-          />
+        <Field label="Logo">
+          <div className="flex gap-2">
+            <input
+              value={logoUrl}
+              onChange={(e) => setLogoUrl(e.target.value)}
+              placeholder="https://…/logo.png"
+              className="flex-1 px-3 py-2 rounded-lg bg-gray-950 border border-gray-700 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="shrink-0 px-3 py-2 rounded-lg border border-gray-700 text-sm text-gray-200 hover:bg-gray-800 disabled:opacity-40"
+            >
+              {uploading ? "Uploading…" : "Upload"}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/svg+xml,image/webp"
+              className="hidden"
+              onChange={(e) => uploadLogo(e.target.files?.[0] ?? null)}
+            />
+          </div>
+          <p className="mt-1 text-xs text-gray-500">Paste a URL or upload a PNG, JPG, SVG or WebP (up to 2 MB).</p>
+          {logoUploadError && <p className="mt-1 text-xs text-red-400">{logoUploadError}</p>}
         </Field>
         <Field label="Primary color">
           <div className="flex items-center gap-3">
