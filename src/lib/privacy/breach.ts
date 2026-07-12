@@ -441,38 +441,34 @@ export type UpdateBreachResult = { ok: true } | { ok: false; error: string; notF
 export async function updateBreachIncident(id: string, update: BreachUpdate): Promise<UpdateBreachResult> {
   const supabase = await createClient();
 
-  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
-  if (update.status !== undefined) {
-    if (!BREACH_STATUSES.includes(update.status)) return { ok: false, error: "Invalid status." };
-    patch.status = update.status;
+  // Validate the mutable fields up front (enums, bounds, known obligations).
+  if (update.status !== undefined && !BREACH_STATUSES.includes(update.status)) {
+    return { ok: false, error: "Invalid status." };
   }
-  if (update.containedAt !== undefined) patch.contained_at = update.containedAt;
-  if (update.notes !== undefined) patch.notes = update.notes === null ? null : String(update.notes).slice(0, TEXT_MAX);
+  if (update.notify !== undefined && !NOTIFICATION_RULES.some((r) => r.id === update.notify!.ruleId)) {
+    return { ok: false, error: "Unknown obligation." };
+  }
+  const notes = typeof update.notes === "string" ? update.notes.slice(0, TEXT_MAX) : null;
 
-  if (update.notify !== undefined) {
-    const { ruleId, at } = update.notify;
-    if (!NOTIFICATION_RULES.some((r) => r.id === ruleId)) return { ok: false, error: "Unknown obligation." };
-    // Merge the single obligation key atomically in the database (JSONB `||`/`-`)
-    // so concurrent updates to different obligations can't clobber each other.
-    // RLS scopes the update to the caller's own row.
-    const { data, error } = await supabase.rpc("apply_breach_notification", {
-      p_incident_id: id,
-      p_rule_id: ruleId,
-      p_at: at,
-    });
-    if (error) return { ok: false, error: "Could not update the breach incident." };
-    if (!data) return { ok: false, error: "Incident not found.", notFound: true };
-  }
-
-  // Apply the scalar-field updates (status/containment/notes). Skip when the
-  // only change was a notification merge, which was already applied above.
-  const hasScalarUpdate = Object.keys(patch).length > 1;
-  if (hasScalarUpdate || update.notify === undefined) {
-    const { data, error } = await supabase.from("breach_incidents").update(patch).eq("id", id).select("id");
-    if (error) return { ok: false, error: "Could not update the breach incident." };
-    // RLS scopes the update to the owner; zero rows means the id is unknown or
-    // not the caller's, so surface a not-found rather than a false success.
-    if (!data || data.length === 0) return { ok: false, error: "Incident not found.", notFound: true };
-  }
+  // A single atomic UPDATE (see 0036 migration): merges the per-obligation
+  // notification key with JSONB operators (no read-modify-write race) and
+  // applies any scalar-field changes in the same statement (no partial write).
+  // RLS scopes it to the caller's own row.
+  const { data, error } = await supabase.rpc("update_breach_incident", {
+    p_incident_id: id,
+    p_apply_status: update.status !== undefined,
+    p_status: update.status ?? null,
+    p_apply_contained: update.containedAt !== undefined,
+    p_contained_at: update.containedAt ?? null,
+    p_apply_notes: update.notes !== undefined,
+    p_notes: notes,
+    p_apply_notify: update.notify !== undefined,
+    p_rule_id: update.notify?.ruleId ?? null,
+    p_at: update.notify?.at ?? null,
+  });
+  if (error) return { ok: false, error: "Could not update the breach incident." };
+  // The function returns the updated id, or null when no row matched (unknown
+  // id or not the caller's) — surface a not-found rather than a false success.
+  if (!data) return { ok: false, error: "Incident not found.", notFound: true };
   return { ok: true };
 }
