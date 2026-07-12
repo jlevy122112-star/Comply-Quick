@@ -2,8 +2,8 @@
 
 import { Suspense, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { Logo } from "@/components/brand/Logo";
 
 export default function LoginPageWrapper() {
   return (
@@ -93,11 +93,9 @@ function LoginPage() {
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Link href="/" className="text-2xl font-bold text-white tracking-tight">
-            Comply-Quick
-          </Link>
-          <p className="mt-2 text-sm text-gray-400">Sign in to your Command Center</p>
+        <div className="flex flex-col items-center text-center mb-8">
+          <Logo href="/" tone="dark" size="lg" tagline />
+          <p className="mt-4 text-sm text-gray-400">Sign in to your Command Center</p>
         </div>
 
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-8">

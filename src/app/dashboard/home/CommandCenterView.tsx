@@ -7,6 +7,7 @@ import type { ComplianceScore } from "@/components/ClauseEngine";
 import type { Tier } from "@/lib/entitlements";
 import { getTierConfig } from "@/lib/pricing";
 import { deleteProjectAction, signOutAction } from "@/app/dashboard/actions";
+import { Logo } from "@/components/brand/Logo";
 import CommandCenterInsights from "./CommandCenterInsights";
 import AutopilotPanel from "./AutopilotPanel";
 import ScannerPanel from "./ScannerPanel";
@@ -164,9 +165,7 @@ export default function CommandCenterView({
       <header className="border-b border-gray-800/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/" className="text-lg font-bold text-white tracking-tight">
-              Comply-Quick
-            </Link>
+            <Logo href="/" tone="dark" size="md" />
             <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-xs font-medium text-indigo-300">
               Command Center
             </span>
