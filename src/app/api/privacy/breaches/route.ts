@@ -8,6 +8,7 @@ import {
   errorResponse,
   UnauthorizedError,
   ValidationError,
+  ServiceUnavailableError,
 } from "@/services";
 
 const limiter = createRateLimiter({ limit: 30, windowMs: 60_000 });
@@ -26,7 +27,7 @@ export async function GET() {
   try {
     await requireUser();
     const result = await listBreachIncidents();
-    if (!result.ok) throw new Error(result.error);
+    if (!result.ok) throw new ServiceUnavailableError(result.error);
     return NextResponse.json({ incidents: result.incidents });
   } catch (err) {
     return errorResponse(err);
