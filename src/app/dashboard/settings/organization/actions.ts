@@ -11,6 +11,7 @@ import {
 } from "@/lib/organizations-db";
 import { createWorkspace, renameWorkspace, deleteWorkspace } from "@/lib/workspaces-db";
 import { createSsoConnection, setSsoEnabled, deleteSsoConnection, type SsoProtocol } from "@/lib/sso-db";
+import { createScimToken, revokeScimToken } from "@/lib/scim/tokens";
 
 const PATH = "/dashboard/settings/organization";
 
@@ -121,4 +122,28 @@ export async function deleteSsoAction(orgId: string, id: string): Promise<{ ok: 
   const ok = await deleteSsoConnection(id);
   revalidatePath(PATH);
   return ok ? { ok: true } : { ok: false, error: "Could not delete the connection." };
+}
+
+/** Issues a SCIM bearer token. Returns the plaintext token (shown once). */
+export async function createScimTokenAction(
+  orgId: string,
+  name: string
+): Promise<{ ok: true; token: string } | Denied> {
+  const gate = await authorize(orgId, "scim:manage");
+  if (!gate.ok) return gate;
+  try {
+    const { token } = await createScimToken(orgId, name);
+    revalidatePath(PATH);
+    return { ok: true, token };
+  } catch {
+    return { ok: false, error: "Could not create the SCIM token." };
+  }
+}
+
+export async function revokeScimTokenAction(orgId: string, id: string): Promise<{ ok: true } | Denied> {
+  const gate = await authorize(orgId, "scim:manage");
+  if (!gate.ok) return gate;
+  const ok = await revokeScimToken(orgId, id);
+  revalidatePath(PATH);
+  return ok ? { ok: true } : { ok: false, error: "Could not revoke the token." };
 }

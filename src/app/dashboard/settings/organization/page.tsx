@@ -1,19 +1,23 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Badge, TabNav, type TabItem } from "@/components/ui";
 import { ROLE_LABELS, can } from "@/lib/rbac";
 import { getOrCreateOrganization, getMyOrgRole, listOrgMembers, countOrgMembers } from "@/lib/organizations-db";
 import { listWorkspaces, countWorkspaces } from "@/lib/workspaces-db";
 import { listSsoConnections, ssoEnabled } from "@/lib/sso-db";
+import { listScimTokens, scimEnabled } from "@/lib/scim/tokens";
+import { listScimUsers } from "@/lib/scim/provisioning";
 import { OrgProfilePanel } from "./OrgProfilePanel";
 import { MembersPanel } from "./MembersPanel";
 import { WorkspacesPanel } from "./WorkspacesPanel";
 import { SsoPanel } from "./SsoPanel";
+import { ScimPanel } from "./ScimPanel";
 
 export const dynamic = "force-dynamic";
 
 const BASE = "/dashboard/settings/organization";
-type Tab = "profile" | "members" | "workspaces" | "sso";
+type Tab = "profile" | "members" | "workspaces" | "sso" | "scim";
 
 export default async function OrganizationSettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const org = await getOrCreateOrganization();
@@ -21,7 +25,7 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
 
   const role = (await getMyOrgRole(org.id)) ?? "viewer";
   const { tab: tabParam } = await searchParams;
-  const tab: Tab = (["profile", "members", "workspaces", "sso"] as const).includes(tabParam as Tab)
+  const tab: Tab = (["profile", "members", "workspaces", "sso", "scim"] as const).includes(tabParam as Tab)
     ? (tabParam as Tab)
     : "profile";
 
@@ -32,13 +36,24 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
   const members = tab === "members" ? await listOrgMembers(org.id) : [];
   const workspaces = tab === "workspaces" ? await listWorkspaces(org.id) : [];
   const sso = tab === "sso" ? await listSsoConnections(org.id) : [];
+  const scimTokens = tab === "scim" ? await listScimTokens(org.id) : [];
+  const scimUsers = tab === "scim" ? (await listScimUsers(org.id, { limit: 200 })).users : [];
 
   const tabs: TabItem[] = [
     { key: "profile", label: "Profile" },
     { key: "members", label: "Members", count: memberCount },
     { key: "workspaces", label: "Workspaces", count: workspaceCount },
     { key: "sso", label: "SSO" },
+    { key: "scim", label: "SCIM" },
   ];
+
+  let scimBaseUrl = "/api/scim/v2";
+  if (tab === "scim") {
+    const h = await headers();
+    const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
+    const proto = h.get("x-forwarded-proto") ?? "https";
+    if (host) scimBaseUrl = `${proto}://${host}/api/scim/v2`;
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
@@ -68,6 +83,16 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
         {tab === "members" && <MembersPanel orgId={org.id} role={role} members={members} />}
         {tab === "workspaces" && <WorkspacesPanel orgId={org.id} role={role} workspaces={workspaces} />}
         {tab === "sso" && <SsoPanel orgId={org.id} role={role} connections={sso} live={ssoEnabled()} />}
+        {tab === "scim" && (
+          <ScimPanel
+            orgId={org.id}
+            role={role}
+            tokens={scimTokens}
+            users={scimUsers}
+            baseUrl={scimBaseUrl}
+            live={scimEnabled()}
+          />
+        )}
       </main>
     </div>
   );

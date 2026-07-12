@@ -16,6 +16,7 @@ export const PERMISSIONS = [
   "member:role", // change a member's role
   "member:remove", // remove a member
   "sso:manage", // configure SSO connections
+  "scim:manage", // configure SCIM provisioning tokens
   // Workspace administration.
   "workspace:create",
   "workspace:update",
@@ -39,6 +40,7 @@ const ADMIN: Permission[] = [
   "member:role",
   "member:remove",
   "sso:manage",
+  "scim:manage",
   "workspace:create",
   "workspace:update",
   "workspace:delete",
