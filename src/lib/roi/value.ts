@@ -10,7 +10,7 @@
 // number is defensible rather than inflated.
 
 export type ArtifactKind =
-  "compliance_package" | "privacy_policy" | "dpa" | "cookie_banner" | "subprocessor_map" | "scan";
+  "compliance_package" | "privacy_policy" | "dpa" | "cookie_banner" | "cookie_policy" | "subprocessor_map" | "scan";
 
 export interface ArtifactValue {
   label: string;
@@ -52,6 +52,12 @@ export const ARTIFACT_VALUES: Record<ArtifactKind, ArtifactValue> = {
     range: [400, 1500],
     basis: "Jurisdiction-aware consent UX + implementation guidance.",
   },
+  cookie_policy: {
+    label: "Cookie policy",
+    attorneyCost: 500,
+    range: [500, 1800],
+    basis: "Jurisdiction-aware cookie disclosures with a per-vendor technology table.",
+  },
   subprocessor_map: {
     label: "Subprocessor register",
     attorneyCost: 500,
@@ -71,6 +77,7 @@ export interface UsageCounts {
   privacy_policy?: number;
   dpa?: number;
   cookie_banner?: number;
+  cookie_policy?: number;
   subprocessor_map?: number;
   scan?: number;
 }

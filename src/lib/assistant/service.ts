@@ -62,6 +62,7 @@ export function buildSystemPrompt(context?: AssistantContext): string {
     "What Comply-Quick can generate for the user (always point them to the relevant tool):",
     `- Compliance packages (liability waiver + privacy policy + pre-launch checklist) via the generator wizard at /dashboard.`,
     `- Cookie consent banners at /dashboard/tools/cookie-banner.`,
+    `- Cookie policies (jurisdiction-aware disclosures with a per-vendor technology table) at /dashboard/tools/cookie-policy.`,
     `- Data Processing Agreements (DPAs) at /dashboard/tools/dpa.`,
     `- Subprocessor registers at /dashboard/tools/subprocessors.`,
     `- URL compliance scans from the Command Center scanner.`,
@@ -101,7 +102,7 @@ function groundedFallback(messages: AssistantMessage[]): string {
   const mentions = (words: string[]) => words.some((w) => last.includes(w));
 
   if (mentions(["cookie", "consent", "banner"])) {
-    return "For cookie consent, use the Cookie Consent Banner tool (/dashboard/tools/cookie-banner). It picks the correct model automatically: opt-in for GDPR/LGPD, opt-out (Do Not Sell) for CCPA, and notice-only for US-general — based on the jurisdictions you select. This is general information, not legal advice.";
+    return "For cookie consent, use the Cookie Consent Banner tool (/dashboard/tools/cookie-banner). It picks the correct model automatically: opt-in for GDPR/LGPD, opt-out (Do Not Sell) for CCPA, and notice-only for US-general — based on the jurisdictions you select. Pair it with the Cookie Policy generator (/dashboard/tools/cookie-policy) to disclose exactly which technologies you run. This is general information, not legal advice.";
   }
   if (mentions(["dpa", "processing agreement", "processor"])) {
     return "A Data Processing Agreement governs how a processor handles personal data for a controller. Generate one at /dashboard/tools/dpa — it fills in governing-law clauses per jurisdiction and a subprocessor annex from your tracking pixels. Not legal advice.";
