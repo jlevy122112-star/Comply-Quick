@@ -99,10 +99,8 @@ function AuthPage() {
       return;
     }
     setLogoFile(file);
-    setLogoPreview((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return URL.createObjectURL(file);
-    });
+    // The effect keyed on logoPreview revokes the prior URL when this changes.
+    setLogoPreview(URL.createObjectURL(file));
   }, []);
 
   const handleSignin = useCallback(async () => {
