@@ -307,6 +307,10 @@ export function analyzeHtml(html: string, requestUrls: string[] = []): ScanAnaly
   const consentTools = detectedTools.filter((t) => t.category === "consent");
   // Consent-gated trackers: everything that observes/transmits user behavior.
   // `monitoring` (real-user/behavioral, e.g. Datadog RUM) is included;
+  // `chat` (e.g. Intercom, Drift) is included because these widgets load on
+  // page-load and set persistent identifying cookies (e.g. intercom-id, ~9mo)
+  // before any interaction — beyond "strictly necessary" under ePrivacy
+  // Art. 5(3), so prior consent is required.
   // `error_monitoring` (pure crash reporting, e.g. Sentry) is deliberately NOT,
   // since it doesn't do behavioral session tracking and isn't consent-gated by
   // default under GDPR/ePrivacy best practice.
@@ -314,6 +318,7 @@ export function analyzeHtml(html: string, requestUrls: string[] = []): ScanAnaly
     (t) =>
       t.category === "advertising" ||
       t.category === "analytics" ||
+      t.category === "chat" ||
       t.category === "session_replay" ||
       t.category === "cdp" ||
       t.category === "monitoring"

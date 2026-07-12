@@ -28,10 +28,10 @@ export interface ServiceCatalogEntry {
    * behavioral session tracking, so it is NOT consent-gated. Behavioral
    * trackers (analytics, ad pixels, session replay, RUM, CDPs) are. This
    * mirrors the scanner's category-based exclusion of `error_monitoring`
-   * (see scanner/analyzer.ts). NOTE: `chat` widgets (Intercom, Drift) are a
-   * deliberate policy call here — the scanner does not put `chat` in its
-   * tracker set, so those entries may intentionally diverge; keep them in sync
-   * with the scanner when that policy is settled.
+   * (see scanner/analyzer.ts). `chat` widgets (Intercom, Drift) ARE
+   * consent-gated: they load on page-load and set persistent identifying
+   * cookies before any interaction, beyond "strictly necessary" under ePrivacy
+   * Art. 5(3) — the scanner includes `chat` in its tracker set to match.
    */
   consentGated: boolean;
   /** Canonical DPA URL for the vendor, when one is published. */
@@ -170,7 +170,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     vendorRegion: "us",
     dataCategories: ["identifiers", "online_activity"],
     dpaUrl: "https://www.intercom.com/legal/data-processing-agreement",
-    triggersObligations: ["gdpr.art13.privacy_notice", "gdpr.art28.dpa"],
+    triggersObligations: US_TRACKER_OBLIGATIONS,
   },
   {
     id: "drift",
@@ -180,7 +180,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     role: "processor",
     vendorRegion: "us",
     dataCategories: ["identifiers", "online_activity"],
-    triggersObligations: ["gdpr.art13.privacy_notice", "gdpr.art28.dpa"],
+    triggersObligations: US_TRACKER_OBLIGATIONS,
   },
   {
     id: "segment",
