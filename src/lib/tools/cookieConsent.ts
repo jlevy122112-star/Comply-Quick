@@ -31,6 +31,15 @@ export interface CookieConsentInput {
   pixels: TrackingPixel[];
   /** Accent color for the accept button (defaults to the product indigo). */
   accentColor?: string;
+  /**
+   * When both are provided, the banner also records each decision to the
+   * Comply-Quick consent audit trail (server-side proof of consent). Omitting
+   * them keeps the banner fully client-side and self-contained.
+   */
+  recordEndpoint?: string;
+  projectId?: string;
+  /** Version of the policy the visitor consents against (stored with the record). */
+  policyVersion?: string;
 }
 
 export interface CookieConsentResult {
@@ -64,6 +73,24 @@ function escapeHtml(value: string): string {
 function safeAccent(color: string | undefined): string {
   if (color && /^#[0-9a-fA-F]{6}$/.test(color)) return color;
   return DEFAULT_ACCENT;
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Only enables server-side recording when the endpoint is a trusted absolute
+ * https(s) URL and the project id is a UUID. The endpoint is inlined into a
+ * script embedded on merchant sites, so a bad scheme (e.g. `javascript:`) must
+ * never reach it.
+ */
+function safeRecordConfig(
+  endpoint: string | undefined,
+  projectId: string | undefined
+): { endpoint: string; projectId: string } | null {
+  if (!endpoint || !projectId) return null;
+  if (!/^https?:\/\//i.test(endpoint.trim())) return null;
+  if (!UUID_RE.test(projectId.trim())) return null;
+  return { endpoint: endpoint.trim(), projectId: projectId.trim() };
 }
 
 /**
@@ -108,6 +135,7 @@ export function generateConsentBanner(input: CookieConsentInput): CookieConsentR
   const model = governingConsentModel(input.regions);
   const doNotSell = requiresDoNotSell(input.regions);
   const accent = safeAccent(input.accentColor);
+  const record = safeRecordConfig(input.recordEndpoint, input.projectId);
   const company = input.companyName.trim() || "This website";
   const privacyUrl = safePolicyUrl(input.privacyPolicyUrl);
 
@@ -169,11 +197,23 @@ export function generateConsentBanner(input: CookieConsentInput): CookieConsentR
     ` */`,
     `(function(){`,
     `  var KEY="cq_consent_v1";`,
+    `  var SUBJ_KEY="cq_subject_v1";`,
     `  var MODEL=${JSON.stringify(model)};`,
     `  var CATEGORIES=${JSON.stringify(categories)};`,
+    `  var RECORD=${record ? JSON.stringify({ endpoint: record.endpoint, projectId: record.projectId }) : "null"};`,
+    `  var POLICY=${input.policyVersion ? JSON.stringify(input.policyVersion) : "null"};`,
     `  function read(){try{return JSON.parse(localStorage.getItem(KEY))||null;}catch(e){return null;}}`,
     `  function write(state){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}`,
+    `  function subject(){try{var s=localStorage.getItem(SUBJ_KEY);if(!s){s=(Date.now().toString(36)+Math.random().toString(36).slice(2,10));localStorage.setItem(SUBJ_KEY,s);}return s;}catch(e){return "anon";}}`,
     `  function emit(state){try{window.dispatchEvent(new CustomEvent("cq:consent",{detail:state}));}catch(e){}}`,
+    `  function report(action,cats){`,
+    `    if(!RECORD)return;`,
+    `    try{`,
+    `      var payload=JSON.stringify({projectId:RECORD.projectId,subjectRef:subject(),action:action,categories:cats,consentModel:MODEL,policyVersion:POLICY});`,
+    `      if(navigator.sendBeacon){navigator.sendBeacon(RECORD.endpoint,new Blob([payload],{type:"application/json"}));}`,
+    `      else{fetch(RECORD.endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:payload,keepalive:true,mode:"cors"}).catch(function(){});}`,
+    `    }catch(e){}`,
+    `  }`,
     `  var el=document.getElementById("cq-consent");`,
     `  function apply(state){`,
     `    window.complyQuickConsent={state:state,allows:function(cat){`,
@@ -184,9 +224,10 @@ export function generateConsentBanner(input: CookieConsentInput): CookieConsentR
     `    }};`,
     `    emit(state);`,
     `  }`,
-    `  function decide(accepted){`,
-    `    var state={decided:true,at:new Date().toISOString(),categories:accepted?CATEGORIES.slice():[]};`,
-    `    write(state);apply(state);if(el)el.hidden=true;`,
+    `  function decide(accepted,action){`,
+    `    var cats=accepted?CATEGORIES.slice():[];`,
+    `    var state={decided:true,at:new Date().toISOString(),categories:cats};`,
+    `    write(state);apply(state);report(action||(accepted?"accept_all":"reject_non_essential"),cats);if(el)el.hidden=true;`,
     `  }`,
     `  var existing=read();`,
     `  apply(existing);`,
@@ -194,9 +235,9 @@ export function generateConsentBanner(input: CookieConsentInput): CookieConsentR
     `  if(el){`,
     `    el.addEventListener("click",function(e){`,
     `      var a=e.target&&e.target.getAttribute&&e.target.getAttribute("data-cq");`,
-    `      if(a==="accept")decide(true);`,
-    `      else if(a==="reject")decide(false);`,
-    `      else if(a==="dns"){decide(false);}`,
+    `      if(a==="accept")decide(true,"accept_all");`,
+    `      else if(a==="reject")decide(false,"reject_non_essential");`,
+    `      else if(a==="dns"){decide(false,"do_not_sell");}`,
     `    });`,
     `  }`,
     `})();`,
