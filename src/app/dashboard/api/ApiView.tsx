@@ -55,7 +55,8 @@ export default function ApiView({ tier, canUseApi, initialKeys, usage }: ApiView
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Could not create key.");
+        const msg = data.message ?? data.error;
+        setError(typeof msg === "string" ? msg : "Could not create key.");
         return;
       }
       setNewKey(data.key as string);
