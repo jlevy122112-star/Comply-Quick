@@ -78,6 +78,22 @@ function safeAccent(color: string | undefined): string {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
+ * Serializes a value for safe inlining inside a generated `<script>` block. Plain
+ * `JSON.stringify` does not escape `<`, so a value containing `</script>` could
+ * break out of the tag and inject script on a merchant's production site. This
+ * escapes the HTML-significant and line-terminator characters that matter inside
+ * a script context.
+ */
+function jsLiteral(value: unknown): string {
+  return JSON.stringify(value ?? null)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+}
+
+/**
  * Only enables server-side recording when the endpoint is a trusted absolute
  * HTTPS URL and the project id is a UUID. The endpoint is inlined into a script
  * embedded on merchant sites and carries consent audit data, so a bad scheme
@@ -202,21 +218,22 @@ export function generateConsentBanner(input: CookieConsentInput): CookieConsentR
     `(function(){`,
     `  var KEY="cq_consent_v1";`,
     `  var SUBJ_KEY="cq_subject_v1";`,
-    `  var MODEL=${JSON.stringify(model)};`,
-    `  var CATEGORIES=${JSON.stringify(categories)};`,
-    `  var RECORD=${record ? JSON.stringify({ endpoint: record.endpoint, projectId: record.projectId }) : "null"};`,
-    `  var POLICY=${input.policyVersion ? JSON.stringify(input.policyVersion) : "null"};`,
-    `  var REGION=${regionId ? JSON.stringify(regionId) : "null"};`,
+    `  var MODEL=${jsLiteral(model)};`,
+    `  var CATEGORIES=${jsLiteral(categories)};`,
+    `  var RECORD=${record ? jsLiteral({ endpoint: record.endpoint, projectId: record.projectId }) : "null"};`,
+    `  var POLICY=${input.policyVersion ? jsLiteral(input.policyVersion) : "null"};`,
+    `  var REGION=${regionId ? jsLiteral(regionId) : "null"};`,
     `  function read(){try{return JSON.parse(localStorage.getItem(KEY))||null;}catch(e){return null;}}`,
     `  function write(state){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}`,
-    `  function subject(){try{var s=localStorage.getItem(SUBJ_KEY);if(!s){s=(Date.now().toString(36)+Math.random().toString(36).slice(2,10));localStorage.setItem(SUBJ_KEY,s);}return s;}catch(e){return "anon";}}`,
+    `  function rid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,10);}`,
+    `  function subject(){try{var s=localStorage.getItem(SUBJ_KEY);if(!s){s=rid();localStorage.setItem(SUBJ_KEY,s);}return s;}catch(e){return rid();}}`,
     `  function emit(state){try{window.dispatchEvent(new CustomEvent("cq:consent",{detail:state}));}catch(e){}}`,
     `  function report(action,cats){`,
     `    if(!RECORD)return;`,
     `    try{`,
     `      var payload=JSON.stringify({projectId:RECORD.projectId,subjectRef:subject(),action:action,categories:cats,consentModel:MODEL,policyVersion:POLICY,region:REGION});`,
-    `      if(navigator.sendBeacon){navigator.sendBeacon(RECORD.endpoint,new Blob([payload],{type:"application/json"}));}`,
-    `      else{fetch(RECORD.endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:payload,keepalive:true,mode:"cors"}).catch(function(){});}`,
+    `      if(navigator.sendBeacon){navigator.sendBeacon(RECORD.endpoint,new Blob([payload],{type:"text/plain;charset=UTF-8"}));}`,
+    `      else{fetch(RECORD.endpoint,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:payload,keepalive:true,mode:"cors"}).catch(function(){});}`,
     `    }catch(e){}`,
     `  }`,
     `  var el=document.getElementById("cq-consent");`,

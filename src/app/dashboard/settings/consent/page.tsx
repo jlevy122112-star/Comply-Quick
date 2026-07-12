@@ -2,7 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { listProjects } from "@/lib/projects-db";
-import { listConsentRecords, summarizeConsent, type ConsentAction } from "@/lib/consent/records";
+import { listConsentRecords, countConsentRecords, summarizeConsent, type ConsentAction } from "@/lib/consent/records";
+
+const RECENT_LIMIT = 25;
 
 export const dynamic = "force-dynamic";
 
@@ -32,8 +34,8 @@ export default async function ConsentLogPage() {
   const projects = await listProjects();
   const perProject = await Promise.all(
     projects.map(async (p) => {
-      const records = await listConsentRecords(p.id, 25);
-      return { project: p, records, summary: summarizeConsent(records) };
+      const [records, total] = await Promise.all([listConsentRecords(p.id, RECENT_LIMIT), countConsentRecords(p.id)]);
+      return { project: p, records, total, summary: summarizeConsent(records) };
     })
   );
 
@@ -68,11 +70,11 @@ export default async function ConsentLogPage() {
         )}
 
         <div className="space-y-6">
-          {perProject.map(({ project, records, summary }) => (
+          {perProject.map(({ project, records, total, summary }) => (
             <section key={project.id} className="rounded-xl border border-gray-800 bg-gray-900/40 p-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-lg font-semibold text-white">{project.name}</h2>
-                <span className="text-xs text-gray-500">{summary.total} recorded</span>
+                <span className="text-xs text-gray-500">{total} recorded</span>
               </div>
 
               <div className="mt-3 flex flex-wrap gap-2 text-xs">
@@ -84,6 +86,12 @@ export default async function ConsentLogPage() {
                   ) : null
                 )}
               </div>
+
+              {total > records.length && (
+                <p className="mt-2 text-xs text-gray-500">
+                  Breakdown and table below reflect the {records.length} most recent of {total} records.
+                </p>
+              )}
 
               {records.length === 0 ? (
                 <p className="mt-4 text-sm text-gray-500">No consent recorded for this project yet.</p>

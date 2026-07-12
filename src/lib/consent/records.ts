@@ -228,6 +228,21 @@ export async function listConsentRecords(projectId: string, limit = 200): Promis
   return (data as ConsentRow[]).map(rowToRecord);
 }
 
+/**
+ * Returns the true total number of consent records for a project (independent of
+ * any display page size). Uses a head + exact-count query so the dashboard can
+ * show an accurate total without fetching every row. RLS-scoped.
+ */
+export async function countConsentRecords(projectId: string): Promise<number> {
+  const supabase = await createClient();
+  const { count, error } = await supabase
+    .from("consent_records")
+    .select("id", { count: "exact", head: true })
+    .eq("project_id", projectId);
+  if (error || count === null) return 0;
+  return count;
+}
+
 export interface ConsentSummary {
   total: number;
   byAction: Record<ConsentAction, number>;

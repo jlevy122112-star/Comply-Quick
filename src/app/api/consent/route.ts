@@ -25,8 +25,9 @@ export function OPTIONS() {
  * Body: { projectId, subjectRef, action, categories?, consentModel?, policyVersion?, region? }
  */
 export async function POST(request: NextRequest) {
+  let rateHeaders: Record<string, string> = {};
   try {
-    const rateHeaders = enforceRateLimit(await limiter.check(getClientKey(request.headers)));
+    rateHeaders = enforceRateLimit(await limiter.check(getClientKey(request.headers)));
 
     let body: unknown;
     try {
@@ -50,7 +51,9 @@ export async function POST(request: NextRequest) {
     );
   } catch (err) {
     const response = errorResponse(err);
-    for (const [k, v] of Object.entries(CORS_HEADERS)) response.headers.set(k, v);
+    for (const [k, v] of Object.entries({ ...rateHeaders, ...CORS_HEADERS })) {
+      response.headers.set(k, v);
+    }
     return response;
   }
 }

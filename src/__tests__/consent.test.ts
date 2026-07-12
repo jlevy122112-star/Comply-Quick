@@ -154,6 +154,28 @@ describe("cookie banner audit-trail beacon", () => {
     expect(banner.js).toContain("var RECORD=null");
   });
 
+  it("escapes </script> sequences in embedded values to prevent script injection", () => {
+    const banner = generateConsentBanner({
+      ...base,
+      recordEndpoint: "https://app.comply-quick.com/api/consent",
+      projectId: VALID_UUID,
+      policyVersion: "</script><script>alert(1)//",
+    });
+    // The raw breakout sequence must never appear verbatim in the snippet.
+    expect(banner.js).not.toContain("</script><script>");
+    expect(banner.js).toContain("\\u003c");
+  });
+
+  it("uses a preflight-free content type for the beacon", () => {
+    const banner = generateConsentBanner({
+      ...base,
+      recordEndpoint: "https://app.comply-quick.com/api/consent",
+      projectId: VALID_UUID,
+    });
+    expect(banner.js).toContain("text/plain;charset=UTF-8");
+    expect(banner.js).not.toContain('type:"application/json"');
+  });
+
   it("ignores a non-UUID project id", () => {
     const banner = generateConsentBanner({
       ...base,
