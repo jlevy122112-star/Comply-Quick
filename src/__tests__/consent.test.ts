@@ -130,6 +130,9 @@ describe("cookie banner audit-trail beacon", () => {
     expect(banner.js).toContain(VALID_UUID);
     expect(banner.js).toContain('var POLICY="2026-07"');
     expect(banner.js).toContain("navigator.sendBeacon");
+    // Governing region is captured with each record for audit.
+    expect(banner.js).toContain('var REGION="eu_gdpr"');
+    expect(banner.js).toContain("region:REGION");
   });
 
   it("ignores an unsafe (non-http) endpoint scheme", () => {
@@ -140,6 +143,15 @@ describe("cookie banner audit-trail beacon", () => {
     });
     expect(banner.js).toContain("var RECORD=null");
     expect(banner.js).not.toContain("javascript:alert");
+  });
+
+  it("rejects a plaintext http endpoint (consent data must not travel in cleartext)", () => {
+    const banner = generateConsentBanner({
+      ...base,
+      recordEndpoint: "http://app.comply-quick.com/api/consent",
+      projectId: VALID_UUID,
+    });
+    expect(banner.js).toContain("var RECORD=null");
   });
 
   it("ignores a non-UUID project id", () => {

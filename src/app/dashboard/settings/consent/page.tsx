@@ -17,7 +17,9 @@ const ACTION_LABELS: Record<ConsentAction, string> = {
 function formatWhen(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString();
+  // Explicit locale + UTC so server-rendered timestamps are deterministic
+  // regardless of the deployment host's default locale/timezone.
+  return d.toLocaleString("en-US", { timeZone: "UTC", timeZoneName: "short" });
 }
 
 export default async function ConsentLogPage() {

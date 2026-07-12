@@ -79,16 +79,17 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 /**
  * Only enables server-side recording when the endpoint is a trusted absolute
- * https(s) URL and the project id is a UUID. The endpoint is inlined into a
- * script embedded on merchant sites, so a bad scheme (e.g. `javascript:`) must
- * never reach it.
+ * HTTPS URL and the project id is a UUID. The endpoint is inlined into a script
+ * embedded on merchant sites and carries consent audit data, so a bad scheme
+ * (e.g. `javascript:`) must never reach it and plaintext `http:` is rejected to
+ * prevent the payload being intercepted or tampered with in transit.
  */
 function safeRecordConfig(
   endpoint: string | undefined,
   projectId: string | undefined
 ): { endpoint: string; projectId: string } | null {
   if (!endpoint || !projectId) return null;
-  if (!/^https?:\/\//i.test(endpoint.trim())) return null;
+  if (!/^https:\/\//i.test(endpoint.trim())) return null;
   if (!UUID_RE.test(projectId.trim())) return null;
   return { endpoint: endpoint.trim(), projectId: projectId.trim() };
 }
@@ -136,6 +137,9 @@ export function generateConsentBanner(input: CookieConsentInput): CookieConsentR
   const doNotSell = requiresDoNotSell(input.regions);
   const accent = safeAccent(input.accentColor);
   const record = safeRecordConfig(input.recordEndpoint, input.projectId);
+  // Coarse region label stored with each consent record: the jurisdiction that
+  // governs the consent model (else the first selected region), for audit.
+  const regionId = input.regions.find((r) => REGION_RULES[r].consentModel === model) ?? input.regions[0] ?? null;
   const company = input.companyName.trim() || "This website";
   const privacyUrl = safePolicyUrl(input.privacyPolicyUrl);
 
@@ -202,6 +206,7 @@ export function generateConsentBanner(input: CookieConsentInput): CookieConsentR
     `  var CATEGORIES=${JSON.stringify(categories)};`,
     `  var RECORD=${record ? JSON.stringify({ endpoint: record.endpoint, projectId: record.projectId }) : "null"};`,
     `  var POLICY=${input.policyVersion ? JSON.stringify(input.policyVersion) : "null"};`,
+    `  var REGION=${regionId ? JSON.stringify(regionId) : "null"};`,
     `  function read(){try{return JSON.parse(localStorage.getItem(KEY))||null;}catch(e){return null;}}`,
     `  function write(state){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}`,
     `  function subject(){try{var s=localStorage.getItem(SUBJ_KEY);if(!s){s=(Date.now().toString(36)+Math.random().toString(36).slice(2,10));localStorage.setItem(SUBJ_KEY,s);}return s;}catch(e){return "anon";}}`,
@@ -209,7 +214,7 @@ export function generateConsentBanner(input: CookieConsentInput): CookieConsentR
     `  function report(action,cats){`,
     `    if(!RECORD)return;`,
     `    try{`,
-    `      var payload=JSON.stringify({projectId:RECORD.projectId,subjectRef:subject(),action:action,categories:cats,consentModel:MODEL,policyVersion:POLICY});`,
+    `      var payload=JSON.stringify({projectId:RECORD.projectId,subjectRef:subject(),action:action,categories:cats,consentModel:MODEL,policyVersion:POLICY,region:REGION});`,
     `      if(navigator.sendBeacon){navigator.sendBeacon(RECORD.endpoint,new Blob([payload],{type:"application/json"}));}`,
     `      else{fetch(RECORD.endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:payload,keepalive:true,mode:"cors"}).catch(function(){});}`,
     `    }catch(e){}`,

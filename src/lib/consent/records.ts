@@ -23,14 +23,12 @@ export const CONSENT_ACTIONS: readonly ConsentAction[] = [
 
 export const CONSENT_MODELS: readonly ConsentModel[] = ["opt-in", "opt-out", "notice"];
 
-/** Categories a banner may gate. Mirrors the cookie-banner generator's buckets. */
-export const CONSENT_CATEGORIES: readonly string[] = [
-  "essential",
-  "analytics",
-  "advertising",
-  "functional",
-  "personalization",
-];
+/**
+ * Categories a banner may gate. Kept in sync with the canonical `ConsentCategory`
+ * type in `@/lib/tools/data` so the validator only accepts categories the banner
+ * can actually produce.
+ */
+export const CONSENT_CATEGORIES: readonly string[] = ["essential", "analytics", "advertising", "functional"];
 
 export interface ConsentRecordInput {
   projectId: string;
@@ -244,6 +242,10 @@ export function summarizeConsent(records: ConsentRecord[]): ConsentSummary {
     withdraw: 0,
     do_not_sell: 0,
   } satisfies Record<ConsentAction, number>;
-  for (const r of records) byAction[r.action] += 1;
+  for (const r of records) {
+    // Guard against an action added to the DB CHECK constraint before the
+    // TypeScript union — count only known actions rather than producing NaN.
+    if (r.action in byAction) byAction[r.action] += 1;
+  }
   return { total: records.length, byAction };
 }
