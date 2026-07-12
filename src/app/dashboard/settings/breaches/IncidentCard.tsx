@@ -31,7 +31,7 @@ function ObligationRow({
       <div>
         <span className="font-medium">{o.framework}</span> — {o.basis}
         <span className="mt-0.5 block text-xs opacity-80">
-          {STATE_LABELS[o.state]} · due {fmt(o.dueAt)} · {o.authority}
+          {STATE_LABELS[o.state]} · {o.dueAt ? `due ${fmt(o.dueAt)}` : "due as soon as feasible"} · {o.authority}
           {o.satisfied && ` · notified ${fmt(o.notifiedAt)}`}
         </span>
       </div>

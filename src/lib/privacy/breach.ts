@@ -452,25 +452,27 @@ export async function updateBreachIncident(id: string, update: BreachUpdate): Pr
   if (update.notify !== undefined) {
     const { ruleId, at } = update.notify;
     if (!NOTIFICATION_RULES.some((r) => r.id === ruleId)) return { ok: false, error: "Unknown obligation." };
-    // Read-merge-write the per-obligation map so marking one notification does
-    // not clobber the others. RLS scopes the read to the caller's own row.
-    const { data: current, error: readError } = await supabase
-      .from("breach_incidents")
-      .select("notifications")
-      .eq("id", id)
-      .maybeSingle();
-    if (readError) return { ok: false, error: "Could not update the breach incident." };
-    if (!current) return { ok: false, error: "Incident not found.", notFound: true };
-    const map = { ...((current.notifications as Record<string, string> | null) ?? {}) };
-    if (at === null) delete map[ruleId];
-    else map[ruleId] = at;
-    patch.notifications = map;
+    // Merge the single obligation key atomically in the database (JSONB `||`/`-`)
+    // so concurrent updates to different obligations can't clobber each other.
+    // RLS scopes the update to the caller's own row.
+    const { data, error } = await supabase.rpc("apply_breach_notification", {
+      p_incident_id: id,
+      p_rule_id: ruleId,
+      p_at: at,
+    });
+    if (error) return { ok: false, error: "Could not update the breach incident." };
+    if (!data) return { ok: false, error: "Incident not found.", notFound: true };
   }
 
-  const { data, error } = await supabase.from("breach_incidents").update(patch).eq("id", id).select("id");
-  if (error) return { ok: false, error: "Could not update the breach incident." };
-  // RLS scopes the update to the owner; zero rows means the id is unknown or
-  // not the caller's, so surface a not-found rather than a false success.
-  if (!data || data.length === 0) return { ok: false, error: "Incident not found.", notFound: true };
+  // Apply the scalar-field updates (status/containment/notes). Skip when the
+  // only change was a notification merge, which was already applied above.
+  const hasScalarUpdate = Object.keys(patch).length > 1;
+  if (hasScalarUpdate || update.notify === undefined) {
+    const { data, error } = await supabase.from("breach_incidents").update(patch).eq("id", id).select("id");
+    if (error) return { ok: false, error: "Could not update the breach incident." };
+    // RLS scopes the update to the owner; zero rows means the id is unknown or
+    // not the caller's, so surface a not-found rather than a false success.
+    if (!data || data.length === 0) return { ok: false, error: "Incident not found.", notFound: true };
+  }
   return { ok: true };
 }
