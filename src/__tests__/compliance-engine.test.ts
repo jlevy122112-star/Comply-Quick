@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { detectToolsDetailed } from "@/lib/scanner/analyzer";
+import { detectToolsDetailed, CONSENT_GATED_TRACKER_CATEGORIES, FINGERPRINT_CATEGORIES } from "@/lib/scanner/analyzer";
 import { deriveObligations } from "@/lib/compliance/traverse";
 import { lintCompliance, type ComplianceState } from "@/lib/compliance/linter";
 import { buildObligationReport } from "@/lib/compliance/report";
@@ -263,5 +263,26 @@ describe("buildObligationReport — orchestration", () => {
     expect(report.detected).toHaveLength(0);
     expect(report.obligations).toHaveLength(0);
     expect(report.detectionConfidence).toBe(0);
+  });
+});
+
+// Guards against drift between the two tracker-classification systems: the
+// scanner's category set (CONSENT_GATED_TRACKER_CATEGORIES) and the catalog's
+// per-service `consentGated` flag. For every service present in BOTH, the flag
+// must equal whether its scanner category is consent-gated.
+describe("consent-gating consistency (scanner categories <-> catalog)", () => {
+  it("catalog consentGated matches the scanner tracker category for every shared service", () => {
+    const mismatches: string[] = [];
+    for (const entry of SERVICE_CATALOG) {
+      const category = FINGERPRINT_CATEGORIES[entry.id];
+      if (category === undefined) continue; // no scanner fingerprint for this service
+      const scannerSaysTracker = CONSENT_GATED_TRACKER_CATEGORIES.includes(category);
+      if (scannerSaysTracker !== entry.consentGated) {
+        mismatches.push(
+          `${entry.id}: scanner(${category})=${scannerSaysTracker} vs catalog.consentGated=${entry.consentGated}`
+        );
+      }
+    }
+    expect(mismatches).toEqual([]);
   });
 });

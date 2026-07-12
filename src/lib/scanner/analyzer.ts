@@ -146,7 +146,30 @@ const FINGERPRINTS: Fingerprint[] = [
   { id: "datadog", name: "Datadog RUM", category: "monitoring", patterns: [/datadoghq-browser-agent/i, /DD_RUM/] },
 ];
 
+/** Maps each known service id to its scanner category (for cross-checks). */
+export const FINGERPRINT_CATEGORIES: Readonly<Record<string, ToolCategory>> = Object.fromEntries(
+  FINGERPRINTS.map((fp) => [fp.id, fp.category])
+);
+
 export const SEVERITY_PENALTY: Record<Severity, number> = { info: 3, warning: 12, critical: 25 };
+
+/**
+ * Tool categories treated as consent-gated behavioral trackers. These observe
+ * or transmit user behavior and therefore require prior consent under
+ * GDPR/ePrivacy best practice. `chat` (Intercom, Drift) is included because
+ * such widgets load on page-load and set persistent identifying cookies before
+ * any interaction; `error_monitoring` (Sentry) is deliberately excluded as pure
+ * diagnostics. This set is the single source of truth shared by the scanner and
+ * cross-checked against the catalog's `consentGated` flags (see catalog tests).
+ */
+export const CONSENT_GATED_TRACKER_CATEGORIES: readonly ToolCategory[] = [
+  "advertising",
+  "analytics",
+  "chat",
+  "session_replay",
+  "cdp",
+  "monitoring",
+];
 
 /**
  * Fingerprints the third-party tools referenced in the page.
@@ -306,23 +329,9 @@ export function analyzeHtml(html: string, requestUrls: string[] = []): ScanAnaly
 
   const consentTools = detectedTools.filter((t) => t.category === "consent");
   // Consent-gated trackers: everything that observes/transmits user behavior.
-  // `monitoring` (real-user/behavioral, e.g. Datadog RUM) is included;
-  // `chat` (e.g. Intercom, Drift) is included because these widgets load on
-  // page-load and set persistent identifying cookies (e.g. intercom-id, ~9mo)
-  // before any interaction — beyond "strictly necessary" under ePrivacy
-  // Art. 5(3), so prior consent is required.
-  // `error_monitoring` (pure crash reporting, e.g. Sentry) is deliberately NOT,
-  // since it doesn't do behavioral session tracking and isn't consent-gated by
-  // default under GDPR/ePrivacy best practice.
-  const trackers = detectedTools.filter(
-    (t) =>
-      t.category === "advertising" ||
-      t.category === "analytics" ||
-      t.category === "chat" ||
-      t.category === "session_replay" ||
-      t.category === "cdp" ||
-      t.category === "monitoring"
-  );
+  // The category set is the single source of truth shared with the catalog's
+  // `consentGated` flags (see CONSENT_GATED_TRACKER_CATEGORIES).
+  const trackers = detectedTools.filter((t) => CONSENT_GATED_TRACKER_CATEGORIES.includes(t.category));
   const sessionReplay = detectedTools.filter((t) => t.category === "session_replay");
   const hasConsentBanner = consentTools.length > 0;
   const hasPrivacyPolicy = hasPrivacyPolicyLink(html);
