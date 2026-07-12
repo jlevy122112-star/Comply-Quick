@@ -41,7 +41,11 @@ export default async function PublicScorePage({ params }: { params: Promise<{ sl
 
   return (
     <main className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center px-6 py-16">
-      <div className="w-full max-w-md rounded-2xl border border-gray-800 bg-gray-900 p-8 text-center">
+      <div
+        className="w-full max-w-md rounded-2xl border border-gray-800 bg-gray-900 p-8 text-center"
+        // On a white-label brief, accent the card with the agency's brand color.
+        style={brand ? { borderTopColor: brand.primaryColor, borderTopWidth: 3 } : undefined}
+      >
         {/* Brand header — agency's own logo on a white-label brief, else Comply-Quick. */}
         <div className="mb-6 flex justify-center">
           {brand ? (

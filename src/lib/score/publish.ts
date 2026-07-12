@@ -5,6 +5,7 @@
 // scan), so a shared score stays stable and is revocable.
 
 import { randomBytes } from "node:crypto";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { UnauthorizedError, NotFoundError } from "@/services/errors";
@@ -148,8 +149,11 @@ export async function listPublishedScores(): Promise<PublishedScore[]> {
  * Reads a live public score by slug for the anonymous public page / badge.
  * Uses the service-role client so it works without a session; returns null for
  * unknown or revoked slugs.
+ *
+ * Wrapped in React `cache()` so a single request that reads it more than once
+ * (e.g. `generateMetadata` + the page body) shares one set of DB queries.
  */
-export async function getPublicScore(slug: string): Promise<PublicScore | null> {
+export const getPublicScore = cache(async (slug: string): Promise<PublicScore | null> => {
   const admin = createAdminClient();
   const { data } = await admin
     .from("published_scores")
@@ -179,4 +183,4 @@ export async function getPublicScore(slug: string): Promise<PublicScore | null> 
     createdAt: data.created_at,
     brand,
   };
-}
+});

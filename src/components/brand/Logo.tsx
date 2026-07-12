@@ -43,8 +43,12 @@ export function Logo({
   const wordColor = tone === "dark" ? "text-white" : "text-gray-900";
   const tagColor = tone === "dark" ? "text-gray-400" : "text-gray-500";
 
-  const content = (
-    <span className={`inline-flex items-center gap-2.5 ${className}`}>
+  // Applied to whichever element is outermost so layout utilities (margins,
+  // positioning) target the rendered root — including the Link when `href` is set.
+  const rootCls = `inline-flex items-center gap-2.5 ${className}`.trim();
+
+  const inner = (
+    <>
       <Image
         src="/brand/mark.png"
         alt="Comply-Quick"
@@ -64,15 +68,15 @@ export function Logo({
           )}
         </span>
       )}
-    </span>
+    </>
   );
 
   if (href) {
     return (
-      <Link href={href} aria-label="Comply-Quick" className="inline-flex">
-        {content}
+      <Link href={href} aria-label="Comply-Quick" className={rootCls}>
+        {inner}
       </Link>
     );
   }
-  return content;
+  return <span className={rootCls}>{inner}</span>;
 }
