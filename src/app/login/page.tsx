@@ -50,7 +50,7 @@ function AuthPage() {
 
   const strength = useMemo(() => passwordStrength(password), [password]);
 
-  // Release the preview blob URL when the component unmounts.
+  // Revoke the preview blob URL when it changes (cleanup captures the prior value) and on unmount.
   useEffect(() => {
     return () => {
       if (logoPreview) URL.revokeObjectURL(logoPreview);
@@ -526,7 +526,10 @@ function LogoUploadField({
         type="file"
         accept="image/png,image/jpeg,image/webp"
         className="hidden"
-        onChange={(e) => onPick(e.target.files?.[0] ?? null)}
+        onChange={(e) => {
+          onPick(e.target.files?.[0] ?? null);
+          e.currentTarget.value = "";
+        }}
       />
       {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
     </div>

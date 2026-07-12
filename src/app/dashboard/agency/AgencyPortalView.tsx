@@ -517,7 +517,10 @@ function BrandingTab({
               type="file"
               accept="image/png,image/jpeg,image/webp"
               className="hidden"
-              onChange={(e) => uploadLogo(e.target.files?.[0] ?? null)}
+              onChange={(e) => {
+                uploadLogo(e.target.files?.[0] ?? null);
+                e.currentTarget.value = "";
+              }}
             />
           </div>
           <p className="mt-1 text-xs text-gray-500">Paste a URL or upload a PNG, JPG or WebP (up to 2 MB).</p>
