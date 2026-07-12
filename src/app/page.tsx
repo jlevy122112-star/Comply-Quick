@@ -8,6 +8,7 @@ import { ExitIntentCapture } from "@/components/landing/ExitIntentCapture";
 import { PricingPlans } from "@/components/landing/PricingPlans";
 import { AgencyRevenueCalculator } from "@/components/landing/AgencyRevenueCalculator";
 import { StructuredData } from "@/components/seo/StructuredData";
+import { LANDING_FAQ } from "@/lib/landing/faq";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://comply-quick.com";
 
@@ -72,7 +73,7 @@ export default function LandingPage() {
       <div className="bg-indigo-600 text-white text-center text-xs sm:text-sm font-medium px-4 py-2">
         Founding 100: the first 100 members get a free premium scan.{" "}
         <a href={SCAN_HREF} className="underline underline-offset-2 hover:text-indigo-100">
-          Claim your spot &rarr;
+          Claim Your Spot &rarr;
         </a>
       </div>
 
@@ -103,13 +104,13 @@ export default function LandingPage() {
               href="/login"
               className="text-sm font-medium text-gray-200 hover:text-white transition-colors hidden sm:inline"
             >
-              Log in
+              Log In
             </Link>
             <Link
               href={START_HREF}
               className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-colors"
             >
-              Create free agency account
+              Create Free Agency Account
             </Link>
           </div>
         </div>
@@ -126,8 +127,8 @@ export default function LandingPage() {
               </span>
             </div>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight tracking-tight">
-              Agencies ship fully compliant client sites in under a minute &mdash; white-labeled, automated, and
-              billable.
+              Agencies Ship Fully Compliant Client Sites in Under a Minute &mdash; White-Labeled, Automated, and
+              Billable.
             </h1>
             <p className="mt-5 text-lg text-gray-200 leading-relaxed">
               Scan any client site. Auto-generate every policy. Shift liability off your agency. Deliver compliance as a
@@ -154,6 +155,26 @@ export default function LandingPage() {
                 Create Free Agency Account
               </Link>
             </div>
+            {/* Purchase-risk reducers (all truthful: see pricing + FAQ) */}
+            <ul className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-gray-300">
+              {["No Credit Card Required", "30-Day Money-Back Guarantee", "Cancel Anytime"].map((point) => (
+                <li key={point} className="inline-flex items-center gap-1.5">
+                  <svg
+                    className="w-3.5 h-3.5 text-emerald-400"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0L3.3 9.7a1 1 0 011.4-1.4l3.1 3.1 6.8-6.8a1 1 0 011.4 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  {point}
+                </li>
+              ))}
+            </ul>
             {/* Trust bar */}
             <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs text-gray-300">
               <span className="inline-flex items-center gap-1.5">
@@ -163,7 +184,7 @@ export default function LandingPage() {
               <span className="hidden sm:inline text-gray-600">&bull;</span>
               <span className="inline-flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                2,400+ sites scanned
+                2,400+ Sites Scanned
               </span>
               <span className="hidden sm:inline text-gray-600">&bull;</span>
               <span className="inline-flex items-center gap-1.5 rounded-md border border-gray-700 px-2 py-1">
@@ -181,7 +202,7 @@ export default function LandingPage() {
                   <span className="w-6 h-6 rounded-md bg-indigo-500/20 border border-indigo-500/30" />
                   <span className="text-sm font-semibold text-white">Your Agency</span>
                   <span className="text-[10px] uppercase tracking-wider text-indigo-300 border border-indigo-500/30 rounded px-1.5 py-0.5">
-                    White-label
+                    White-Label
                   </span>
                 </div>
                 <span className="text-xs text-gray-400">client-export.pdf</span>
@@ -195,7 +216,7 @@ export default function LandingPage() {
               <div className="mt-6 flex items-center justify-between rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4">
                 <div>
                   <div className="text-xs uppercase tracking-wider text-emerald-300">Compliance score</div>
-                  <div className="text-xs text-gray-300 mt-1">Embeddable trust badge</div>
+                  <div className="text-xs text-gray-300 mt-1">Embeddable Trust Badge</div>
                 </div>
                 <div className="flex items-center justify-center w-16 h-16 rounded-full border-4 border-emerald-400/60 text-xl font-bold text-white">
                   94
@@ -219,6 +240,17 @@ export default function LandingPage() {
               </span>
             ))}
           </div>
+          {/* Framework coverage — factual breadth of what the engine maps to. */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-2.5">
+            {["GDPR", "CCPA / CPRA", "PIPEDA", "LGPD", "ADA / WCAG", "HIPAA", "PCI-DSS", "SOC 2"].map((fw) => (
+              <span
+                key={fw}
+                className="inline-flex items-center rounded-full border border-gray-700 bg-gray-900/60 px-3 py-1 text-xs font-medium text-gray-200"
+              >
+                {fw}
+              </span>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -227,7 +259,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12 sm:mb-16">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white leading-tight">
-              Turn compliance into recurring revenue &mdash; without doing the work.
+              Turn Compliance Into Recurring Revenue &mdash; Without Doing the Work.
             </h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
@@ -236,7 +268,7 @@ export default function LandingPage() {
               body="Manage every client from one dashboard. White-label every export."
             />
             <ValueColumn
-              title="Agency Liability Shield\u2122"
+              title="Agency Liability Shield™"
               body="Shift GDPR/ADA liability from your agency to the merchant automatically."
             />
             <ValueColumn
@@ -264,7 +296,7 @@ export default function LandingPage() {
               Agency &amp; Enterprise &middot; AI Compliance Agent
             </span>
             <h2 className="mt-4 text-2xl sm:text-3xl md:text-4xl font-bold text-white leading-tight">
-              A dedicated AI Compliance Agent &mdash; and Autopilot that keeps your documents current.
+              A Dedicated AI Compliance Agent &mdash; and Autopilot That Keeps Your Documents Current.
             </h2>
             <p className="mt-4 text-gray-200 leading-relaxed">
               Agency and Enterprise plans include a dedicated AI Compliance Agent that continuously watches{" "}
@@ -282,11 +314,11 @@ export default function LandingPage() {
               body="Assigned to your account on Agency and Enterprise. It owns the scanning, drafting, and monitoring workflow across every client site."
             />
             <AiCard
-              title="Auto-updating compliance documents"
+              title="Auto-Updating Compliance Documents"
               body="When regulations move, your generated policies, cookie disclosures, and waivers are re-drafted automatically so they never go stale."
             />
             <AiCard
-              title="You review and publish"
+              title="You Review and Publish"
               body="Every update arrives with a clear implementation strategy. You review it and publish to the site — Comply-Quick never changes a live site on its own."
             />
           </div>
@@ -300,11 +332,11 @@ export default function LandingPage() {
             <h3 className="text-lg font-semibold text-white">Before Comply-Quick</h3>
             <ul className="mt-6 space-y-4">
               {[
-                "3\u20135 days to produce compliance docs",
-                "Manual updates every time laws change",
-                "Liability sits on the agency",
-                "No recurring revenue",
-                "No white-label deliverables",
+                "3\u20135 Days to Produce Compliance Docs",
+                "Manual Updates Every Time Laws Change",
+                "Liability Sits on the Agency",
+                "No Recurring Revenue",
+                "No White-Label Deliverables",
               ].map((item) => (
                 <BeforeAfterItem key={item} negative>
                   {item}
@@ -316,11 +348,11 @@ export default function LandingPage() {
             <h3 className="text-lg font-semibold text-white">After Comply-Quick</h3>
             <ul className="mt-6 space-y-4">
               {[
-                "Full package in <60 seconds",
-                "Automated updates forever",
-                "Liability shifted to the merchant",
-                "Recurring revenue from compliance autopilot",
-                "White-label exports for every client",
+                "Full Package in <60 Seconds",
+                "Automated Updates Forever",
+                "Liability Shifted to the Merchant",
+                "Recurring Revenue From Compliance Autopilot",
+                "White-Label Exports for Every Client",
               ].map((item) => (
                 <BeforeAfterItem key={item}>{item}</BeforeAfterItem>
               ))}
@@ -369,14 +401,14 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12 sm:mb-16">
             <h2 className="text-2xl sm:text-3xl font-bold text-white">
-              One dashboard for every client. Unlimited sites. Team roles. White-label everything.
+              One Dashboard for Every Client. Unlimited Sites. Team Roles. White-Label Everything.
             </h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:gap-8">
-            <DashboardPanel label="Multi-client dashboard" rows={4} />
-            <DashboardPanel label="White-label export modal" rows={3} />
-            <DashboardPanel label="Compliance score + badge" score />
-            <DashboardPanel label="Findings & remediation workspace" rows={4} />
+            <DashboardPanel label="Multi-Client Dashboard" rows={4} />
+            <DashboardPanel label="White-Label Export Modal" rows={3} />
+            <DashboardPanel label="Compliance Score + Badge" score />
+            <DashboardPanel label="Findings & Remediation Workspace" rows={4} />
           </div>
         </div>
       </section>
@@ -386,17 +418,17 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12 sm:mb-16">
             <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight max-w-3xl mx-auto">
-              Built differently &mdash; because we start from your live site, not a form.
+              Built Differently &mdash; Because We Start From Your Live Site, Not a Form.
             </h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
             {[
-              "Scan-first detection",
-              "Stack-aware documents",
-              "Developer liability shield",
-              "Regulation autopilot",
-              "Compliance marketplace",
-              "Embeddable score badges",
+              "Scan-First Detection",
+              "Stack-Aware Documents",
+              "Developer Liability Shield",
+              "Regulation Autopilot",
+              "Compliance Marketplace",
+              "Embeddable Score Badges",
             ].map((label) => (
               <DiffBullet key={label}>{label}</DiffBullet>
             ))}
@@ -427,7 +459,7 @@ export default function LandingPage() {
       <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white">Agencies and freelancers, in their words.</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white">Agencies and Freelancers, in Their Words.</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
             <Testimonial
@@ -464,7 +496,7 @@ export default function LandingPage() {
       <section id="pricing" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50 scroll-mt-20">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-4">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white">Simple, transparent pricing.</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white">Simple, Transparent Pricing.</h2>
             <p className="mt-4 text-base text-indigo-300 font-medium max-w-xl mx-auto">
               Less than one billable hour &mdash; for unlimited client compliance packages.
             </p>
@@ -487,13 +519,13 @@ export default function LandingPage() {
           <div className="text-center mb-12 sm:mb-16">
             <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">Partner program</span>
             <h2 className="mt-3 text-2xl sm:text-3xl font-bold text-white">
-              Earn recurring revenue on every client you bring.
+              Earn Recurring Revenue on Every Client You Bring.
             </h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-            <PartnerCard title="Resell under your brand" />
-            <PartnerCard title="Bundle compliance into every build" />
-            <PartnerCard title="Earn recurring commissions" />
+            <PartnerCard title="Resell Under Your Brand" />
+            <PartnerCard title="Bundle Compliance Into Every Build" />
+            <PartnerCard title="Earn Recurring Commissions" />
           </div>
           <div className="mt-10 text-center">
             <Link
@@ -510,10 +542,10 @@ export default function LandingPage() {
       <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50">
         <div className="max-w-4xl mx-auto rounded-3xl border border-gray-800 bg-gray-900/60 p-8 sm:p-12">
           <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight">
-            For freelancers &amp; solo devs &mdash; deliver professional compliance on every build.
+            For Freelancers &amp; Solo Devs &mdash; Deliver Professional Compliance on Every Build.
           </h2>
           <ul className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {["Full package per project", "Contract shield included", "Cancel anytime"].map((point) => (
+            {["Full Package per Project", "Contract Shield Included", "Cancel Anytime"].map((point) => (
               <li key={point} className="flex items-start gap-3 rounded-2xl border border-gray-800 bg-gray-900/60 p-4">
                 <span className="shrink-0 mt-0.5 text-indigo-400">&#x2713;</span>
                 <span className="text-sm text-gray-200">{point}</span>
@@ -536,7 +568,7 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto text-center rounded-3xl border border-amber-500/25 bg-gradient-to-b from-amber-600/10 to-transparent p-8 sm:p-12">
           <span className="text-xs font-semibold uppercase tracking-wider text-amber-300">Enterprise</span>
           <h2 className="mt-3 text-2xl sm:text-3xl font-bold text-white leading-tight">
-            Enterprise compliance stack &mdash; HIPAA, PCI-DSS, ADA/WCAG, SOC 2.
+            Enterprise Compliance Stack &mdash; HIPAA, PCI-DSS, ADA/WCAG, SOC 2.
           </h2>
           <p className="mt-4 text-gray-200 max-w-2xl mx-auto">
             Plus a{" "}
@@ -559,28 +591,28 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12 sm:mb-16">
             <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">Resources</span>
-            <h2 className="mt-3 text-2xl sm:text-3xl font-bold text-white">Learn, compare, decide.</h2>
+            <h2 className="mt-3 text-2xl sm:text-3xl font-bold text-white">Learn, Compare, Decide.</h2>
             <p className="mt-4 text-gray-200 max-w-2xl mx-auto">
               Free guides to common compliance questions and honest comparisons with the tools you may be weighing.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
             <PlgCard
-              title="Compliance guides"
+              title="Compliance Guides"
               body="Plain-English answers to GDPR, CCPA, cookie-consent, and ADA questions for real websites."
-              cta="Read the guides"
+              cta="Read the Guides"
               href="/blog"
             />
             <PlgCard
               title="Comply-Quick vs Termly"
               body="How scan-first detection and regulation autopilot compare to template-based generation."
-              cta="See the comparison"
+              cta="See the Comparison"
               href="/compare/termly"
             />
             <PlgCard
               title="Comply-Quick vs iubenda"
               body="Documents driven by your live stack, plus a developer liability shield and agency white-label."
-              cta="See the comparison"
+              cta="See the Comparison"
               href="/compare/iubenda"
             />
           </div>
@@ -591,39 +623,14 @@ export default function LandingPage() {
       <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white">Questions, answered.</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white">Questions, Answered.</h2>
           </div>
           <div className="space-y-4">
-            <FaqItem question="Is this a substitute for a lawyer?">
-              No. Comply-Quick is compliance software, not a law firm, and its output does not constitute legal advice.
-              It does the heavy lifting — mapping your stack to the right clauses, waivers, and checklist — so that if
-              you do involve counsel, you hand them a finished draft instead of a blank page.
-            </FaqItem>
-            <FaqItem question="What do I actually get?">
-              A complete package: an inward liability waiver (developer → merchant), a store privacy policy with
-              per-pixel disclosures, a jurisdiction-aware compliance checklist, and a compliance score you can share or
-              embed as a badge. You can download everything as markdown.
-            </FaqItem>
-            <FaqItem question="How does the automated regulation monitoring work?">
-              Comply-Quick monitors 26+ official federal and state regulatory sources directly. When a rule changes, the
-              AI Compliance Agent alerts you and automatically re-drafts the affected documents plus an implementation
-              strategy, ready for you to review and publish. Comply-Quick prepares the updates — you decide what goes
-              live on the site.
-            </FaqItem>
-            <FaqItem question="How is the free preview different from paid?">
-              The free preview shows your compliance score and a look at your contract shield so you can judge the value
-              first. Paid plans unlock the full downloadable package, more monthly scans, automated regulatory updates,
-              and (on Enterprise) HIPAA/PCI-DSS/SOC 2/ADA modules and a dedicated AI Compliance Agent.
-            </FaqItem>
-            <FaqItem question="Can I cancel anytime?">
-              Yes — plans are month-to-month and you can cancel from your dashboard in one click. Every plan is also
-              backed by a 30-day money-back guarantee, no questions asked.
-            </FaqItem>
-            <FaqItem question="Which platforms and regions are supported?">
-              9 platforms (Shopify, WooCommerce, BigCommerce, WordPress, Next.js, Webflow, Wix, Squarespace, GoDaddy), 6
-              tracking pixels, and 6 jurisdictions (US, CCPA, GDPR, PIPEDA, LGPD, Australia) — with enterprise modules
-              for HIPAA, PCI-DSS, ADA/WCAG and SOC 2.
-            </FaqItem>
+            {LANDING_FAQ.map((item) => (
+              <FaqItem key={item.q} question={item.q}>
+                {item.a}
+              </FaqItem>
+            ))}
           </div>
         </div>
       </section>
@@ -632,7 +639,7 @@ export default function LandingPage() {
       <section className="px-4 sm:px-6 lg:px-8 py-16 sm:py-24 border-t border-gray-800/50">
         <div className="max-w-4xl mx-auto text-center bg-gradient-to-b from-indigo-600/10 to-transparent border border-indigo-500/20 rounded-3xl px-6 py-12 sm:py-16">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white leading-tight">
-            Know exactly where your site stands &mdash; in 60 seconds.
+            Know Exactly Where Your Site Stands &mdash; in 60 Seconds.
           </h2>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
@@ -648,7 +655,7 @@ export default function LandingPage() {
               Create Free Agency Account
             </Link>
           </div>
-          <p className="mt-4 text-xs text-gray-300">No credit card required.</p>
+          <p className="mt-4 text-xs text-gray-300">No Credit Card Required.</p>
           <div className="mt-8">
             <LeadCaptureForm source="landing_footer_cta" />
           </div>
@@ -701,7 +708,7 @@ export default function LandingPage() {
                 Comparisons
               </Link>
               <Link href="/login" className="hover:text-gray-200 transition-colors">
-                Log in
+                Log In
               </Link>
               <Link href="/legal/terms" className="hover:text-gray-200 transition-colors">
                 Terms of Service
