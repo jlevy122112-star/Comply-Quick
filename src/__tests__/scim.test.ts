@@ -96,6 +96,15 @@ describe("parseScimUser", () => {
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.value.email).toBeNull();
   });
+
+  it('coerces a stringified active flag (Azure AD sends "True")', () => {
+    const t = parseScimUser({ userName: "a@x.com", active: "True" });
+    expect(t.ok && t.value.active).toBe(true);
+    const f = parseScimUser({ userName: "a@x.com", active: "False" });
+    expect(f.ok && f.value.active).toBe(false);
+    const bt = parseScimUser({ userName: "a@x.com", active: true });
+    expect(bt.ok && bt.value.active).toBe(true);
+  });
 });
 
 describe("pickPrimaryEmail", () => {

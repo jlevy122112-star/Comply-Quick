@@ -73,7 +73,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   if (!auth.ok) return auth.response;
   const { id } = await params;
 
-  const ok = await deleteScimUser(auth.organizationId, id);
-  if (!ok) return scimErrorResponse(500, "Could not delete user.");
+  const result = await deleteScimUser(auth.organizationId, id);
+  if (result === "not_found") return scimErrorResponse(404, "User not found.");
+  if (result === "error") return scimErrorResponse(500, "Could not delete user.");
   return new Response(null, { status: 204 });
 }

@@ -84,7 +84,7 @@ export function parseScimUser(raw: unknown): ParseResult<ScimUserInput> {
       displayName: str(body.displayName),
       givenName: str(name.givenName),
       familyName: str(name.familyName),
-      active: body.active === undefined ? true : body.active === true,
+      active: body.active === undefined ? true : coerceBool(body.active),
     },
   };
 }

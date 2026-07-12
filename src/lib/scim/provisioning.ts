@@ -149,8 +149,10 @@ export async function setScimUserActive(orgId: string, id: string, active: boole
   return { ok: true, user };
 }
 
+export type DeleteResult = "deleted" | "not_found" | "error";
+
 /** Hard-deletes a provisioned user and revokes any linked membership. */
-export async function deleteScimUser(orgId: string, id: string): Promise<boolean> {
+export async function deleteScimUser(orgId: string, id: string): Promise<DeleteResult> {
   const admin = createAdminClient();
   const { data } = await admin
     .from("scim_users")
@@ -158,10 +160,12 @@ export async function deleteScimUser(orgId: string, id: string): Promise<boolean
     .eq("organization_id", orgId)
     .eq("id", id)
     .maybeSingle();
+  if (!data) return "not_found";
+
   const { error } = await admin.from("scim_users").delete().eq("organization_id", orgId).eq("id", id);
-  if (error) return false;
-  if (data?.email) await reconcileMembership(orgId, data.email as string, false);
-  return true;
+  if (error) return "error";
+  if (data.email) await reconcileMembership(orgId, data.email as string, false);
+  return "deleted";
 }
 
 /**
