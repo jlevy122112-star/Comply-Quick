@@ -51,13 +51,21 @@ export async function listScimUsers(
   const offset = opts.offset ?? 0;
   const limit = opts.limit ?? 100;
 
+  // SCIM count=0 is a valid "total only" request — return no rows but the real total.
+  if (limit === 0) {
+    let head = admin.from("scim_users").select("id", { count: "exact", head: true }).eq("organization_id", orgId);
+    if (opts.userName) head = head.eq("user_name", opts.userName);
+    const { count } = await head;
+    return { users: [], total: count ?? 0 };
+  }
+
   let query = admin
     .from("scim_users")
     .select(USER_COLS, { count: "exact" })
     .eq("organization_id", orgId)
     .order("created_at", { ascending: true });
   if (opts.userName) query = query.eq("user_name", opts.userName);
-  if (limit > 0) query = query.range(offset, offset + limit - 1);
+  query = query.range(offset, offset + limit - 1);
 
   const { data, count, error } = await query;
   if (error || !data) return { users: [], total: 0 };
@@ -105,6 +113,12 @@ export async function createScimUser(orgId: string, input: ScimUserInput): Promi
 
 export async function replaceScimUser(orgId: string, id: string, input: ScimUserInput): Promise<WriteResult> {
   const admin = createAdminClient();
+  const { data: prior } = await admin
+    .from("scim_users")
+    .select("email")
+    .eq("organization_id", orgId)
+    .eq("id", id)
+    .maybeSingle();
   const { data, error } = await admin
     .from("scim_users")
     .update({
@@ -128,6 +142,10 @@ export async function replaceScimUser(orgId: string, id: string, input: ScimUser
   }
   if (!data) return { ok: false, error: "User not found." };
   const user = mapUser(data as ScimUserRow);
+  const oldEmail = (prior as { email: string | null } | null)?.email ?? null;
+  if (oldEmail && oldEmail.toLowerCase() !== (user.email ?? "").toLowerCase()) {
+    await reconcileMembership(orgId, oldEmail, false);
+  }
   await reconcileMembership(orgId, user.email, user.active);
   return { ok: true, user };
 }

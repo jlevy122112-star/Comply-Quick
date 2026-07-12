@@ -9,7 +9,7 @@ const SCIM_CONTENT_TYPE = "application/scim+json";
 
 /** JSON response with the SCIM content type. */
 export function scimJson(body: unknown, status = 200, headers: Record<string, string> = {}): NextResponse {
-  return NextResponse.json(body, {
+  return new NextResponse(JSON.stringify(body), {
     status,
     headers: { "Content-Type": SCIM_CONTENT_TYPE, ...headers },
   });
