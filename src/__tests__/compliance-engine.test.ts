@@ -184,6 +184,29 @@ describe("lintCompliance — rule-based checker", () => {
     expect(us.find((f) => f.id === "trackers_without_consent")!.severity).toBe("warning");
   });
 
+  it("does NOT raise trackers_without_consent for error-monitoring-only (Sentry)", () => {
+    // Sentry touches online_activity-shaped data but is not a consent-gated
+    // behavioral tracker (consentGated: false), so a site running only Sentry
+    // without a consent mechanism must not be flagged.
+    const findings = lintCompliance({
+      ...base,
+      services: ["sentry"],
+      dpaWith: ["sentry"],
+      hasConsentMechanism: false,
+    });
+    expect(findings.some((f) => f.id === "trackers_without_consent")).toBe(false);
+  });
+
+  it("still raises trackers_without_consent for behavioral monitoring (Datadog RUM)", () => {
+    const findings = lintCompliance({
+      ...base,
+      services: ["datadog"],
+      dpaWith: ["datadog"],
+      hasConsentMechanism: false,
+    });
+    expect(findings.some((f) => f.id === "trackers_without_consent")).toBe(true);
+  });
+
   it("errors when EU data goes to a non-EU vendor without SCCs", () => {
     const findings = lintCompliance({ ...base, mentionsSccs: false });
     expect(findings.some((f) => f.id === "transfers_without_sccs" && f.severity === "error")).toBe(true);
@@ -207,6 +230,32 @@ describe("buildObligationReport — orchestration", () => {
     expect(report.obligations.some((o) => o.obligation.id === "gdpr.art28.dpa")).toBe(true);
     expect(report.detectionConfidence).toBeGreaterThan(0);
     expect(report.dataCategories).toEqual(expect.arrayContaining(["financial", "online_activity"]));
+  });
+
+  it("does NOT derive obligations from a weak-only detection (self-hosted analytics.min.js)", () => {
+    // A generic bundle name is a weak-only hint: it must appear in `detected`
+    // for transparency but must NOT impose Segment's legal obligation set.
+    const report = buildObligationReport({
+      html: '<script src="https://acme.example.com/js/analytics.min.js"></script>',
+      jurisdictions: ["eu"],
+    });
+    const seg = report.detected.find((d) => d.id === "segment");
+    expect(seg).toBeDefined();
+    expect(seg!.isWeakOnly).toBe(true);
+    expect(report.obligations).toHaveLength(0);
+    expect(report.dataCategories).toHaveLength(0);
+    expect(report.detectionConfidence).toBe(0);
+  });
+
+  it("DOES derive obligations from a strong (vendor-specific) Segment detection", () => {
+    const report = buildObligationReport({
+      html: '<script src="https://cdn.segment.com/analytics.js/v1/x/analytics.min.js"></script>',
+      jurisdictions: ["eu"],
+    });
+    const seg = report.detected.find((d) => d.id === "segment");
+    expect(seg!.isWeakOnly).toBe(false);
+    expect(report.obligations.length).toBeGreaterThan(0);
+    expect(report.detectionConfidence).toBeGreaterThan(0.3);
   });
 
   it("returns zero confidence and no obligations for a clean page", () => {

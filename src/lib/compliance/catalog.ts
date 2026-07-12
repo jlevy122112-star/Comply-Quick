@@ -20,6 +20,20 @@ export interface ServiceCatalogEntry {
   /** Where the vendor is primarily established (drives transfer analysis). */
   vendorRegion: "us" | "eu" | "global";
   dataCategories: DataCategory[];
+  /**
+   * Whether this service is a consent-gated behavioral tracker under
+   * GDPR/ePrivacy best practice. This is an EXPLICIT decision decoupled from
+   * `dataCategories`: pure error/crash monitoring (e.g. Sentry) touches
+   * `online_activity`-shaped data for diagnostics but does not perform
+   * behavioral session tracking, so it is NOT consent-gated. Behavioral
+   * trackers (analytics, ad pixels, session replay, RUM, CDPs) are. This
+   * mirrors the scanner's category-based exclusion of `error_monitoring`
+   * (see scanner/analyzer.ts). `chat` widgets (Intercom, Drift) ARE
+   * consent-gated: they load on page-load and set persistent identifying
+   * cookies before any interaction, beyond "strictly necessary" under ePrivacy
+   * Art. 5(3) — the scanner includes `chat` in its tracker set to match.
+   */
+  consentGated: boolean;
   /** Canonical DPA URL for the vendor, when one is published. */
   dpaUrl?: string;
   /** Obligation node ids this service triggers (see graph.OBLIGATION_NODES). */
@@ -54,6 +68,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     id: "google",
     name: "Google Analytics / Ads",
     vendor: "Google LLC",
+    consentGated: true,
     role: "processor",
     vendorRegion: "us",
     dataCategories: ["identifiers", "online_activity", "device", "location"],
@@ -64,6 +79,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     id: "meta",
     name: "Meta Pixel",
     vendor: "Meta Platforms, Inc.",
+    consentGated: true,
     role: "joint_controller",
     vendorRegion: "us",
     dataCategories: ["identifiers", "online_activity", "device"],
@@ -74,6 +90,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     id: "tiktok",
     name: "TikTok Pixel",
     vendor: "TikTok Technology Ltd.",
+    consentGated: true,
     role: "processor",
     vendorRegion: "global",
     dataCategories: ["identifiers", "online_activity", "device"],
@@ -84,6 +101,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     id: "linkedin",
     name: "LinkedIn Insight",
     vendor: "LinkedIn Corporation (Microsoft)",
+    consentGated: true,
     role: "processor",
     vendorRegion: "us",
     dataCategories: ["identifiers", "online_activity", "device"],
@@ -94,6 +112,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     id: "pinterest",
     name: "Pinterest Tag",
     vendor: "Pinterest, Inc.",
+    consentGated: true,
     role: "processor",
     vendorRegion: "us",
     dataCategories: ["identifiers", "online_activity"],
@@ -103,6 +122,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     id: "snapchat",
     name: "Snap Pixel",
     vendor: "Snap Inc.",
+    consentGated: true,
     role: "processor",
     vendorRegion: "us",
     dataCategories: ["identifiers", "online_activity"],
@@ -112,6 +132,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     id: "hotjar",
     name: "Hotjar",
     vendor: "Hotjar Ltd.",
+    consentGated: true,
     role: "processor",
     vendorRegion: "eu",
     dataCategories: ["online_activity", "device"],
@@ -122,6 +143,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     id: "fullstory",
     name: "FullStory",
     vendor: "FullStory, Inc.",
+    consentGated: true,
     role: "processor",
     vendorRegion: "us",
     dataCategories: ["online_activity", "device", "identifiers"],
@@ -131,6 +153,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     id: "clarity",
     name: "Microsoft Clarity",
     vendor: "Microsoft Corporation",
+    consentGated: true,
     role: "processor",
     vendorRegion: "us",
     dataCategories: ["online_activity", "device"],
@@ -142,25 +165,28 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     id: "intercom",
     name: "Intercom",
     vendor: "Intercom, Inc.",
+    consentGated: true,
     role: "processor",
     vendorRegion: "us",
     dataCategories: ["identifiers", "online_activity"],
     dpaUrl: "https://www.intercom.com/legal/data-processing-agreement",
-    triggersObligations: ["gdpr.art13.privacy_notice", "gdpr.art28.dpa"],
+    triggersObligations: US_TRACKER_OBLIGATIONS,
   },
   {
     id: "drift",
     name: "Drift",
     vendor: "Drift.com, Inc.",
+    consentGated: true,
     role: "processor",
     vendorRegion: "us",
     dataCategories: ["identifiers", "online_activity"],
-    triggersObligations: ["gdpr.art13.privacy_notice", "gdpr.art28.dpa"],
+    triggersObligations: US_TRACKER_OBLIGATIONS,
   },
   {
     id: "segment",
     name: "Segment",
     vendor: "Twilio Inc.",
+    consentGated: true,
     role: "processor",
     vendorRegion: "us",
     dataCategories: ["identifiers", "online_activity", "device"],
@@ -171,6 +197,8 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     id: "sentry",
     name: "Sentry",
     vendor: "Functional Software, Inc.",
+    // Pure error/crash monitoring — diagnostics, not behavioral tracking.
+    consentGated: false,
     role: "processor",
     vendorRegion: "us",
     dataCategories: ["online_activity", "device", "identifiers"],
@@ -181,16 +209,23 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     id: "datadog",
     name: "Datadog RUM",
     vendor: "Datadog, Inc.",
+    // Real-user monitoring performs behavioral session tracking.
+    consentGated: true,
     role: "processor",
     vendorRegion: "us",
     dataCategories: ["online_activity", "device"],
     dpaUrl: "https://www.datadoghq.com/legal/data-processing-addendum/",
-    triggersObligations: ["gdpr.art13.privacy_notice", "gdpr.art28.dpa"],
+    // A US-based, consent-gated behavioral tracker: use the shared tracker
+    // obligation set (privacy notice + Art. 7 consent + DPA + CCPA/CPRA notices)
+    // so it matches every other US behavioral tracker and the traversal engine
+    // derives the same consent requirement the linter enforces.
+    triggersObligations: US_TRACKER_OBLIGATIONS,
   },
   {
     id: "stripe",
     name: "Stripe",
     vendor: "Stripe, Inc.",
+    consentGated: false,
     role: "processor",
     vendorRegion: "us",
     dataCategories: ["identifiers", "financial"],
@@ -201,6 +236,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     id: "paypal",
     name: "PayPal",
     vendor: "PayPal Holdings, Inc.",
+    consentGated: false,
     role: "processor",
     vendorRegion: "us",
     dataCategories: ["identifiers", "financial"],
@@ -211,6 +247,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     id: "square",
     name: "Square",
     vendor: "Block, Inc.",
+    consentGated: false,
     role: "processor",
     vendorRegion: "us",
     dataCategories: ["identifiers", "financial"],

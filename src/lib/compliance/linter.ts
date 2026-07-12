@@ -51,7 +51,12 @@ export function lintCompliance(state: ComplianceState): LintFinding[] {
   const findings: LintFinding[] = [];
   const entries = state.services.map((id) => getService(id)).filter((e) => e !== undefined);
 
-  const trackers = entries.filter((e) => e.dataCategories.includes("online_activity"));
+  // Consent-gated behavioral trackers are flagged EXPLICITLY via `consentGated`,
+  // not inferred from `dataCategories`. This decouples the consent decision from
+  // the data shape so pure error monitoring (Sentry) — which touches
+  // `online_activity`-shaped data but does no behavioral tracking — is not swept
+  // in, matching the scanner's category-based exclusion of `error_monitoring`.
+  const trackers = entries.filter((e) => e.consentGated);
   const processors = entries.filter((e) => e.role === "processor" || e.role === "sub_processor");
   const jointControllers = entries.filter((e) => e.role === "joint_controller");
   const payments = entries.filter((e) => e.dataCategories.includes("financial"));
