@@ -101,11 +101,16 @@ describe("computeObligations", () => {
     expect(high.some((o) => o.id === "gdpr_art34_individuals")).toBe(true);
   });
 
-  it("adds the HIPAA 60-day duty when health data is involved", () => {
-    const obs = computeObligations(incident({ dataCategories: ["health"] }));
+  it("adds the HIPAA 60-day duty for US health-data incidents", () => {
+    const obs = computeObligations(incident({ regions: ["us_general"], dataCategories: ["health"] }));
     const hipaa = obs.find((o) => o.id === "hipaa_individuals");
     expect(hipaa).toBeDefined();
     expect(hipaa?.dueAt).toBe("2026-03-02T00:00:00.000Z");
+  });
+
+  it("does not add HIPAA for health data without a US nexus", () => {
+    const obs = computeObligations(incident({ regions: ["eu_gdpr"], dataCategories: ["health"] }));
+    expect(obs.some((o) => o.id === "hipaa_individuals")).toBe(false);
   });
 
   it("adds a US state duty for us_general or california_ccpa", () => {

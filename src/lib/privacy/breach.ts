@@ -234,7 +234,9 @@ export const NOTIFICATION_RULES: readonly NotificationRule[] = [
     audience: "individuals",
     dueHours: 1440, // 60 days (45 CFR §164.404).
     basis: "Notify affected individuals (and HHS) without unreasonable delay and no later than 60 days.",
-    applies: (i) => i.dataCategories.includes("health"),
+    // HIPAA is a US federal regime; only applies when there is a US nexus.
+    applies: (i) =>
+      i.dataCategories.includes("health") && (hasRegion(i, "us_general") || hasRegion(i, "california_ccpa")),
   },
   {
     id: "lgpd_authority",
@@ -428,7 +430,7 @@ export interface BreachUpdate {
   notes?: string | null;
 }
 
-export type UpdateBreachResult = { ok: true } | { ok: false; error: string };
+export type UpdateBreachResult = { ok: true } | { ok: false; error: string; notFound?: boolean };
 
 /**
  * Applies a status/notification update to one of the caller's incidents. RLS
@@ -448,7 +450,10 @@ export async function updateBreachIncident(id: string, update: BreachUpdate): Pr
   if (update.individualsNotifiedAt !== undefined) patch.individuals_notified_at = update.individualsNotifiedAt;
   if (update.notes !== undefined) patch.notes = update.notes === null ? null : String(update.notes).slice(0, TEXT_MAX);
 
-  const { error } = await supabase.from("breach_incidents").update(patch).eq("id", id);
+  const { data, error } = await supabase.from("breach_incidents").update(patch).eq("id", id).select("id");
   if (error) return { ok: false, error: "Could not update the breach incident." };
+  // RLS scopes the update to the owner; zero rows means the id is unknown or
+  // not the caller's, so surface a not-found rather than a false success.
+  if (!data || data.length === 0) return { ok: false, error: "Incident not found.", notFound: true };
   return { ok: true };
 }

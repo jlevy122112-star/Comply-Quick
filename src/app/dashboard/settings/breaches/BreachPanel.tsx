@@ -82,6 +82,8 @@ export function BreachPanel({ views, regionOptions, dataCategoryOptions }: Props
       setRegions([]);
       setCategories([]);
       setHighRisk(false);
+      setSeverity("medium");
+      setDiscoveredAt(new Date().toISOString().slice(0, 16));
       setShowForm(false);
       router.refresh();
     } catch (e) {
@@ -91,14 +93,14 @@ export function BreachPanel({ views, regionOptions, dataCategoryOptions }: Props
     }
   }
 
-  async function patch(id: string, patch: Record<string, unknown>) {
+  async function patch(id: string, payload: Record<string, unknown>) {
     setBusy(true);
     setError(null);
     try {
       const res = await fetch(`/api/privacy/breaches/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const body = (await res.json().catch(() => ({}))) as { error?: string };

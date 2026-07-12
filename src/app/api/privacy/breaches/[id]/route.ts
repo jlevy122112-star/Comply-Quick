@@ -6,6 +6,7 @@ import {
   getClientKey,
   enforceRateLimit,
   errorResponse,
+  NotFoundError,
   UnauthorizedError,
   ValidationError,
 } from "@/services";
@@ -70,7 +71,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     const result = await updateBreachIncident(id, update);
-    if (!result.ok) throw new ValidationError(result.error);
+    if (!result.ok) {
+      if (result.notFound) throw new NotFoundError(result.error);
+      throw new ValidationError(result.error);
+    }
 
     return NextResponse.json({ ok: true }, { status: 200, headers: rateHeaders });
   } catch (err) {
