@@ -50,7 +50,7 @@ export default function AssistantView({ tier, projectCount, frameworks }: Assist
         });
         const data = await res.json();
         if (!res.ok || !data.success) {
-          throw new Error(data.error ?? "The assistant is unavailable right now.");
+          throw new Error(data.message ?? data.error ?? "The assistant is unavailable right now.");
         }
         setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
       } catch (e) {
