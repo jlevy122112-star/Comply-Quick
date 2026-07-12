@@ -39,6 +39,7 @@ export function BreachForm({ regionOptions, dataCategoryOptions, busy, onSubmit 
   }
 
   async function handleSubmit() {
+    if (!title.trim() || !discoveredAt) return;
     const ok = await onSubmit({
       title,
       severity,
