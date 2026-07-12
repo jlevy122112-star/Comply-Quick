@@ -154,11 +154,15 @@ export function IntakeWizard({
       if (submittingRef.current) return;
       setSaveState("saving");
       const p = (async () => {
-        const res = await saveIntakeAction(clientId, answers, false);
-        if (res.ok) {
-          setSaveState("saved");
-          setSavedAt(res.updatedAt);
-        } else {
+        try {
+          const res = await saveIntakeAction(clientId, answers, false);
+          if (res.ok) {
+            setSaveState("saved");
+            setSavedAt(res.updatedAt);
+          } else {
+            setSaveState("error");
+          }
+        } catch {
           setSaveState("error");
         }
       })();
@@ -196,14 +200,20 @@ export function IntakeWizard({
     }
     setSubmitting(true);
     setSubmitError(null);
-    const res = await saveIntakeAction(clientId, answers, true);
-    setSubmitting(false);
-    if (res.ok) {
-      setSavedAt(res.updatedAt);
-      setDone(true);
-    } else {
-      setSubmitError(res.error);
+    try {
+      const res = await saveIntakeAction(clientId, answers, true);
+      if (res.ok) {
+        setSavedAt(res.updatedAt);
+        setDone(true);
+      } else {
+        setSubmitError(res.error);
+        submittingRef.current = false;
+      }
+    } catch {
+      setSubmitError("Network error — please try again.");
       submittingRef.current = false;
+    } finally {
+      setSubmitting(false);
     }
   }, [answers, clientId]);
 
