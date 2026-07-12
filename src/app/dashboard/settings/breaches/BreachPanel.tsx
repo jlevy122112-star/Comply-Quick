@@ -115,8 +115,7 @@ export function BreachPanel({ views, regionOptions, dataCategoryOptions }: Props
   }
 
   function markNotified(o: ComputedObligation, id: string) {
-    const field = o.audience === "authority" ? "authorityNotifiedAt" : "individualsNotifiedAt";
-    patch(id, { [field]: new Date().toISOString() });
+    patch(id, { notify: { ruleId: o.id, at: o.satisfied ? null : new Date().toISOString() } });
   }
 
   return (
@@ -285,17 +284,16 @@ export function BreachPanel({ views, regionOptions, dataCategoryOptions }: Props
                       <span className="font-medium">{o.framework}</span> — {o.basis}
                       <span className="mt-0.5 block text-xs opacity-80">
                         {STATE_LABELS[o.state]} · due {fmt(o.dueAt)} · {o.authority}
+                        {o.satisfied && ` · notified ${fmt(o.notifiedAt)}`}
                       </span>
                     </div>
-                    {!o.satisfied && (
-                      <button
-                        onClick={() => markNotified(o, incident.id)}
-                        disabled={busy}
-                        className="shrink-0 rounded-md border border-current px-3 py-1 text-xs font-medium hover:opacity-80 disabled:opacity-50"
-                      >
-                        Mark {o.audience === "authority" ? "authority" : "individuals"} notified
-                      </button>
-                    )}
+                    <button
+                      onClick={() => markNotified(o, incident.id)}
+                      disabled={busy}
+                      className="shrink-0 rounded-md border border-current px-3 py-1 text-xs font-medium hover:opacity-80 disabled:opacity-50"
+                    >
+                      {o.satisfied ? "Undo notified" : "Mark notified"}
+                    </button>
                   </li>
                 ))}
               </ul>

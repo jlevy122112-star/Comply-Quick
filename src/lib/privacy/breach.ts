@@ -50,8 +50,8 @@ export interface BreachIncident {
   dataCategories: string[];
   regions: string[];
   highRisk: boolean;
-  authorityNotifiedAt: string | null;
-  individualsNotifiedAt: string | null;
+  /** Per-obligation notification timestamps, keyed by notification-rule id. */
+  notifications: Record<string, string>;
   notes: string | null;
   createdAt: string;
   updatedAt: string;
@@ -190,8 +190,8 @@ export interface NotifiableIncident {
   regions: string[];
   dataCategories: string[];
   highRisk: boolean;
-  authorityNotifiedAt: string | null;
-  individualsNotifiedAt: string | null;
+  /** Per-obligation notification timestamps, keyed by notification-rule id. */
+  notifications: Record<string, string>;
 }
 
 const HOUR_MS = 3_600_000;
@@ -275,8 +275,10 @@ export interface ComputedObligation {
   basis: string;
   /** ISO deadline, or null for "without undue delay" duties. */
   dueAt: string | null;
-  /** Whether the relevant notification has been recorded as made. */
+  /** Whether this specific notification has been recorded as made. */
   satisfied: boolean;
+  /** ISO timestamp this specific notification was recorded, or null. */
+  notifiedAt: string | null;
   state: ObligationState;
 }
 
@@ -288,8 +290,8 @@ export function computeObligations(incident: NotifiableIncident, now: Date = new
   const discovered = new Date(incident.discoveredAt).getTime();
 
   return NOTIFICATION_RULES.filter((rule) => rule.applies(incident)).map((rule) => {
-    const satisfied =
-      rule.audience === "authority" ? incident.authorityNotifiedAt !== null : incident.individualsNotifiedAt !== null;
+    const notifiedAt = incident.notifications[rule.id] ?? null;
+    const satisfied = notifiedAt !== null;
 
     const dueAt = rule.dueHours === null ? null : new Date(discovered + rule.dueHours * HOUR_MS).toISOString();
 
@@ -314,6 +316,7 @@ export function computeObligations(incident: NotifiableIncident, now: Date = new
       basis: rule.basis,
       dueAt,
       satisfied,
+      notifiedAt,
       state,
     };
   });
@@ -349,8 +352,7 @@ interface BreachRow {
   data_categories: string[] | null;
   regions: string[] | null;
   high_risk: boolean;
-  authority_notified_at: string | null;
-  individuals_notified_at: string | null;
+  notifications: Record<string, string> | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -370,8 +372,7 @@ function rowToIncident(row: BreachRow): BreachIncident {
     dataCategories: row.data_categories ?? [],
     regions: row.regions ?? [],
     highRisk: row.high_risk,
-    authorityNotifiedAt: row.authority_notified_at,
-    individualsNotifiedAt: row.individuals_notified_at,
+    notifications: row.notifications ?? {},
     notes: row.notes,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -425,8 +426,8 @@ export async function listBreachIncidents(limit = 100): Promise<BreachIncident[]
 export interface BreachUpdate {
   status?: BreachStatus;
   containedAt?: string | null;
-  authorityNotifiedAt?: string | null;
-  individualsNotifiedAt?: string | null;
+  /** Records (or clears, when `at` is null) the notification for one obligation. */
+  notify?: { ruleId: string; at: string | null };
   notes?: string | null;
 }
 
@@ -446,9 +447,25 @@ export async function updateBreachIncident(id: string, update: BreachUpdate): Pr
     patch.status = update.status;
   }
   if (update.containedAt !== undefined) patch.contained_at = update.containedAt;
-  if (update.authorityNotifiedAt !== undefined) patch.authority_notified_at = update.authorityNotifiedAt;
-  if (update.individualsNotifiedAt !== undefined) patch.individuals_notified_at = update.individualsNotifiedAt;
   if (update.notes !== undefined) patch.notes = update.notes === null ? null : String(update.notes).slice(0, TEXT_MAX);
+
+  if (update.notify !== undefined) {
+    const { ruleId, at } = update.notify;
+    if (!NOTIFICATION_RULES.some((r) => r.id === ruleId)) return { ok: false, error: "Unknown obligation." };
+    // Read-merge-write the per-obligation map so marking one notification does
+    // not clobber the others. RLS scopes the read to the caller's own row.
+    const { data: current, error: readError } = await supabase
+      .from("breach_incidents")
+      .select("notifications")
+      .eq("id", id)
+      .maybeSingle();
+    if (readError) return { ok: false, error: "Could not update the breach incident." };
+    if (!current) return { ok: false, error: "Incident not found.", notFound: true };
+    const map = { ...((current.notifications as Record<string, string> | null) ?? {}) };
+    if (at === null) delete map[ruleId];
+    else map[ruleId] = at;
+    patch.notifications = map;
+  }
 
   const { data, error } = await supabase.from("breach_incidents").update(patch).eq("id", id).select("id");
   if (error) return { ok: false, error: "Could not update the breach incident." };

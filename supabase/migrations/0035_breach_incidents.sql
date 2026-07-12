@@ -35,9 +35,12 @@ create table if not exists public.breach_incidents (
   -- Whether the breach is likely to result in a high risk to individuals
   -- (drives the Art. 34 duty to notify data subjects).
   high_risk boolean not null default false,
-  -- Timestamps recording that the required notifications were made.
-  authority_notified_at timestamptz,
-  individuals_notified_at timestamptz,
+  -- Per-obligation record of when each required notification was made, keyed by
+  -- the deterministic notification-rule id (e.g. gdpr_art33_authority) -> ISO
+  -- timestamp. Tracking per obligation (rather than one timestamp per audience)
+  -- keeps multi-jurisdiction incidents honest: notifying one supervisory
+  -- authority does not mark the others as satisfied.
+  notifications jsonb not null default '{}'::jsonb,
   notes text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

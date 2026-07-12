@@ -61,10 +61,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     const contained = optionalTimestamp(body.containedAt, "containedAt");
     if (contained !== undefined) update.containedAt = contained;
-    const authority = optionalTimestamp(body.authorityNotifiedAt, "authorityNotifiedAt");
-    if (authority !== undefined) update.authorityNotifiedAt = authority;
-    const individuals = optionalTimestamp(body.individualsNotifiedAt, "individualsNotifiedAt");
-    if (individuals !== undefined) update.individualsNotifiedAt = individuals;
+
+    if (body.notify !== undefined) {
+      const notify = body.notify as Record<string, unknown> | null;
+      if (typeof notify !== "object" || notify === null || typeof notify.ruleId !== "string") {
+        throw new ValidationError("notify must be an object with a ruleId.");
+      }
+      // Omitted `at` means "mark notified now"; explicit null clears it.
+      const parsed = optionalTimestamp(notify.at, "notify.at");
+      update.notify = { ruleId: notify.ruleId, at: parsed === undefined ? new Date().toISOString() : parsed };
+    }
 
     if (body.notes !== undefined) {
       update.notes = body.notes === null ? null : String(body.notes);

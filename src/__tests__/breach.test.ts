@@ -79,8 +79,7 @@ function incident(overrides: Partial<NotifiableIncident> = {}): NotifiableIncide
     regions: [],
     dataCategories: [],
     highRisk: false,
-    authorityNotifiedAt: null,
-    individualsNotifiedAt: null,
+    notifications: {},
     ...overrides,
   };
 }
@@ -134,10 +133,24 @@ describe("computeObligations", () => {
 
   it("treats a recorded notification as met", () => {
     const obs = computeObligations(
-      incident({ regions: ["eu_gdpr"], authorityNotifiedAt: "2026-01-02T00:00:00Z" }),
+      incident({ regions: ["eu_gdpr"], notifications: { gdpr_art33_authority: "2026-01-02T00:00:00Z" } }),
       new Date("2026-01-05T00:00:00Z")
     );
     expect(obs.find((o) => o.id === "gdpr_art33_authority")?.state).toBe("met");
+  });
+
+  it("tracks notifications per obligation, not per audience", () => {
+    // A multi-jurisdiction incident: notifying the GDPR authority must NOT mark
+    // the LGPD authority obligation as met.
+    const obs = computeObligations(
+      incident({
+        regions: ["eu_gdpr", "brazil_lgpd"],
+        notifications: { gdpr_art33_authority: "2026-01-02T00:00:00Z" },
+      }),
+      new Date("2026-01-02T12:00:00Z")
+    );
+    expect(obs.find((o) => o.id === "gdpr_art33_authority")?.state).toBe("met");
+    expect(obs.find((o) => o.id === "lgpd_authority")?.state).not.toBe("met");
   });
 
   it("surfaces no-fixed-clock duties (PIPEDA) as due_soon until met", () => {
@@ -155,7 +168,11 @@ describe("computeObligations", () => {
 describe("summarizeObligations", () => {
   it("counts states", () => {
     const obs = computeObligations(
-      incident({ regions: ["eu_gdpr", "us_general"], highRisk: true, authorityNotifiedAt: "2026-01-02T00:00:00Z" }),
+      incident({
+        regions: ["eu_gdpr", "us_general"],
+        highRisk: true,
+        notifications: { gdpr_art33_authority: "2026-01-02T00:00:00Z" },
+      }),
       new Date("2026-01-05T00:00:00Z")
     );
     const s = summarizeObligations(obs);
