@@ -52,6 +52,7 @@ export default function AgencyPortalView({
   const [clients, setClients] = useState(initialClients);
   const [domains, setDomains] = useState(initialDomains);
   const [members, setMembers] = useState(initialMembers);
+  const headerLogo = safeImageSrc(agency.logoUrl);
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100" style={{ ["--brand" as string]: agency.primaryColor }}>
@@ -80,13 +81,9 @@ export default function AgencyPortalView({
             className="h-11 w-11 rounded-xl flex items-center justify-center text-lg font-bold text-white shrink-0"
             style={{ backgroundColor: agency.primaryColor }}
           >
-            {safeImageSrc(agency.logoUrl) ? (
+            {headerLogo ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={safeImageSrc(agency.logoUrl)!}
-                alt={agency.name}
-                className="h-11 w-11 rounded-xl object-cover"
-              />
+              <img src={headerLogo} alt={agency.name} className="h-11 w-11 rounded-xl object-cover" />
             ) : (
               agency.name.charAt(0).toUpperCase()
             )}
@@ -437,6 +434,7 @@ function BrandingTab({
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
+  const previewLogo = safeImageSrc(logoUrl);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const uploadLogo = useCallback(async (file: File | null) => {
@@ -567,9 +565,9 @@ function BrandingTab({
         <div className="rounded-xl border border-gray-800 overflow-hidden">
           <div className="px-4 py-3 flex items-center gap-3" style={{ backgroundColor: primaryColor }}>
             <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center text-white font-bold">
-              {safeImageSrc(logoUrl) ? (
+              {previewLogo ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={safeImageSrc(logoUrl)!} alt="logo" className="h-8 w-8 rounded-lg object-cover" />
+                <img src={previewLogo} alt="logo" className="h-8 w-8 rounded-lg object-cover" />
               ) : (
                 (name || "A").charAt(0).toUpperCase()
               )}
