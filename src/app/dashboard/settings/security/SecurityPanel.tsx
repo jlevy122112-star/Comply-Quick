@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Factor } from "@supabase/supabase-js";
 import { Badge, Button, Card, CardBody, CardHeader, Input } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
@@ -28,6 +28,13 @@ export function SecurityPanel({ initialFactors }: Props) {
   const verified = factors.filter((f) => f.status === "verified");
   const hasVerified = verified.length > 0;
 
+  // Track the latest enroll state so the unmount cleanup below sees the current
+  // value rather than the closure captured at mount time.
+  const enrollRef = useRef<EnrollState | null>(null);
+  useEffect(() => {
+    enrollRef.current = enroll;
+  }, [enroll]);
+
   const refreshFactors = useCallback(async () => {
     const supabase = createClient();
     const { data } = await supabase.auth.mfa.listFactors();
@@ -37,12 +44,12 @@ export function SecurityPanel({ initialFactors }: Props) {
   // Clean up any dangling unverified factor if the user navigates away mid-enroll.
   useEffect(() => {
     return () => {
-      if (enroll) {
+      const pending = enrollRef.current;
+      if (pending) {
         const supabase = createClient();
-        void supabase.auth.mfa.unenroll({ factorId: enroll.factorId });
+        void supabase.auth.mfa.unenroll({ factorId: pending.factorId });
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const startEnroll = useCallback(async () => {
