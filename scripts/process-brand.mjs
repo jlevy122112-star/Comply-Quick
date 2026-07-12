@@ -23,40 +23,26 @@ async function run() {
     .png()
     .toFile(join(outPublic, "logo-full.png"));
 
-  // Transparent icon mark — trim transparent margins, square-ish, a few sizes.
-  const trimmedMark = sharp(mark).trim();
-  await trimmedMark
-    .clone()
-    .resize({ width: 512, height: 512, fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
-    .png()
-    .toFile(join(outPublic, "mark.png"));
-  await trimmedMark
-    .clone()
-    .resize({ width: 64, height: 64, fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
-    .png()
-    .toFile(join(outPublic, "mark-64.png"));
+  // Read the source mark into a buffer once, then trim it once. Each output
+  // starts from a fresh sharp() instance over the trimmed buffer — sharp
+  // discourages reusing/cloning one file-based instance for multiple pipelines.
+  const transparent = { r: 0, g: 0, b: 0, alpha: 0 };
+  const trimmedMark = await sharp(mark).trim().png().toBuffer();
+  const squareMark = (size) =>
+    sharp(trimmedMark).resize({ width: size, height: size, fit: "contain", background: transparent }).png();
+
+  // Transparent icon mark — square-ish, a few sizes.
+  await squareMark(512).toFile(join(outPublic, "mark.png"));
+  await squareMark(64).toFile(join(outPublic, "mark-64.png"));
 
   // Next.js app icon (favicon). 256px PNG named icon.png in app dir.
-  await sharp(mark)
-    .trim()
-    .resize({ width: 256, height: 256, fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
-    .png()
-    .toFile(join(outApp, "icon.png"));
+  await squareMark(256).toFile(join(outApp, "icon.png"));
 
   // Apple touch icon on a solid dark tile (transparent looks bad on iOS).
   await sharp({
     create: { width: 180, height: 180, channels: 4, background: { r: 3, g: 7, b: 18, alpha: 1 } },
   })
-    .composite([
-      {
-        input: await sharp(mark)
-          .trim()
-          .resize({ width: 132, height: 132, fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
-          .png()
-          .toBuffer(),
-        gravity: "center",
-      },
-    ])
+    .composite([{ input: await squareMark(132).toBuffer(), gravity: "center" }])
     .png()
     .toFile(join(outApp, "apple-icon.png"));
 

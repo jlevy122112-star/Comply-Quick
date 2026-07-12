@@ -33,7 +33,7 @@ export interface PublicScore {
   label: string | null;
   score: number;
   createdAt: string;
-  /** Agency branding when the score was published by an agency owner. */
+  /** Agency branding when the publisher owns or is a member of an agency. */
   brand: PublicScoreBrand | null;
 }
 
@@ -146,6 +146,40 @@ export async function listPublishedScores(): Promise<PublishedScore[]> {
 }
 
 /**
+ * Resolves the white-label brand for a publishing user. Checks agency
+ * ownership first, then team membership (agency_members), so a score published
+ * by any member of an agency carries that agency's branding. Returns null when
+ * the user isn't attached to any agency (→ Comply-Quick branding).
+ */
+async function resolveAgencyBrand(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string
+): Promise<PublicScoreBrand | null> {
+  const { data: owned } = await admin
+    .from("agencies")
+    .select("name, logo_url, primary_color")
+    .eq("owner_id", userId)
+    .maybeSingle();
+
+  let agency = owned;
+  if (!agency) {
+    const { data: membership } = await admin
+      .from("agency_members")
+      .select("agencies ( name, logo_url, primary_color )")
+      .eq("user_id", userId)
+      // Deterministic when a user belongs to more than one agency: oldest first.
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    const joined = membership?.agencies;
+    agency = Array.isArray(joined) ? (joined[0] ?? null) : (joined ?? null);
+  }
+
+  if (!agency) return null;
+  return { name: agency.name, logoUrl: agency.logo_url ?? null, primaryColor: agency.primary_color };
+}
+
+/**
  * Reads a live public score by slug for the anonymous public page / badge.
  * Uses the service-role client so it works without a session; returns null for
  * unknown or revoked slugs.
@@ -162,18 +196,11 @@ export const getPublicScore = cache(async (slug: string): Promise<PublicScore | 
     .maybeSingle();
   if (!data || data.revoked_at) return null;
 
-  // Resolve white-label branding: if the publishing user owns an agency
-  // workspace, the shared brief carries the agency's logo + brand color rather
-  // than Comply-Quick's. Falls back to null (Comply-Quick branding) otherwise.
-  let brand: PublicScoreBrand | null = null;
-  const { data: agency } = await admin
-    .from("agencies")
-    .select("name, logo_url, primary_color")
-    .eq("owner_id", data.user_id)
-    .maybeSingle();
-  if (agency) {
-    brand = { name: agency.name, logoUrl: agency.logo_url ?? null, primaryColor: agency.primary_color };
-  }
+  // Resolve white-label branding: if the publishing user belongs to an agency
+  // workspace — as its owner OR as a team member (agency_members) — the shared
+  // brief carries the agency's logo + brand color rather than Comply-Quick's.
+  // Falls back to null (Comply-Quick branding) otherwise.
+  const brand = await resolveAgencyBrand(admin, data.user_id);
 
   return {
     slug: data.slug,
