@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { decodeJwtAal, mfaGate } from "@/lib/auth/mfa";
 
 /**
  * Refreshes the Supabase auth session on every request and guards protected
@@ -7,6 +8,9 @@ import { NextResponse, type NextRequest } from "next/server";
  * /login.
  */
 const PROTECTED_PREFIXES = ["/dashboard"];
+
+/** Where sessions with an unmet second factor are sent to complete the challenge. */
+const MFA_CHALLENGE_PATH = "/auth/mfa";
 
 /** Cookie that carries a partner referral code from first touch until checkout. */
 const REFERRAL_COOKIE = "cq_ref";
@@ -93,6 +97,27 @@ export async function updateSession(request: NextRequest, csp?: { nonce: string;
     const redirectResponse = NextResponse.redirect(url);
     captureReferral(request, redirectResponse);
     return redirectResponse;
+  }
+
+  // Second-factor gate: an authenticated session that has a verified TOTP factor
+  // but hasn't cleared it (aal1 → aal2) is sent to the challenge page before it
+  // can reach any protected route — regardless of how it signed in (password,
+  // magic link, OAuth). The `aal` claim is read locally from the session to
+  // avoid an extra network round-trip on every request.
+  if (isProtected && user) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const hasVerifiedFactor = (user.factors ?? []).some((f) => f.status === "verified");
+    const gate = mfaGate(decodeJwtAal(session?.access_token), hasVerifiedFactor ? "aal2" : "aal1");
+    if (gate === "challenge") {
+      const url = request.nextUrl.clone();
+      url.pathname = MFA_CHALLENGE_PATH;
+      url.searchParams.set("redirect", path);
+      const redirectResponse = NextResponse.redirect(url);
+      captureReferral(request, redirectResponse);
+      return redirectResponse;
+    }
   }
 
   captureReferral(request, supabaseResponse);
