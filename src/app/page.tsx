@@ -8,6 +8,7 @@ import { ExitIntentCapture } from "@/components/landing/ExitIntentCapture";
 import { PricingPlans } from "@/components/landing/PricingPlans";
 import { AgencyRevenueCalculator } from "@/components/landing/AgencyRevenueCalculator";
 import { StructuredData } from "@/components/seo/StructuredData";
+import { Logo } from "@/components/brand/Logo";
 import { LANDING_FAQ } from "@/lib/landing/faq";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://comply-quick.com";
@@ -80,7 +81,7 @@ export default function LandingPage() {
       {/* Navigation */}
       <nav className="sticky top-0 z-30 border-b border-gray-800/50 bg-gray-950/80 backdrop-blur">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <span className="text-lg font-bold text-white tracking-tight">Comply-Quick</span>
+          <Logo href="/" tone="dark" size="md" />
           <div className="flex items-center gap-4 sm:gap-6">
             <a
               href="#pricing"
@@ -121,6 +122,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
           {/* Left: message + scan */}
           <div>
+            <Logo tone="dark" size="lg" tagline className="mb-7" />
             <div className="inline-block mb-5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20">
               <span className="text-xs font-medium text-indigo-400">
                 One-click website scan &middot; tailored compliance documents &middot; auto-updated
@@ -666,8 +668,8 @@ export default function LandingPage() {
       <footer className="border-t border-gray-800/50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto mb-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
           <div>
-            <span className="text-lg font-bold text-white tracking-tight">Comply-Quick</span>
-            <p className="mt-2 text-sm text-gray-300 max-w-sm">
+            <Logo tone="dark" size="lg" tagline />
+            <p className="mt-4 text-sm text-gray-300 max-w-sm">
               Scan your site&apos;s tech stack and auto-generate every legal document it needs — in under a minute.
             </p>
           </div>

@@ -19,12 +19,21 @@ export interface PublishedScore {
   createdAt: string;
 }
 
+/** White-label branding resolved from the publishing user's agency, if any. */
+export interface PublicScoreBrand {
+  name: string;
+  logoUrl: string | null;
+  primaryColor: string;
+}
+
 export interface PublicScore {
   slug: string;
   url: string;
   label: string | null;
   score: number;
   createdAt: string;
+  /** Agency branding when the score was published by an agency owner. */
+  brand: PublicScoreBrand | null;
 }
 
 /** Unguessable URL-safe public identifier (~12 chars of base64url entropy). */
@@ -144,9 +153,30 @@ export async function getPublicScore(slug: string): Promise<PublicScore | null> 
   const admin = createAdminClient();
   const { data } = await admin
     .from("published_scores")
-    .select("slug, url, label, score, created_at, revoked_at")
+    .select("user_id, slug, url, label, score, created_at, revoked_at")
     .eq("slug", slug)
     .maybeSingle();
   if (!data || data.revoked_at) return null;
-  return { slug: data.slug, url: data.url, label: data.label, score: data.score, createdAt: data.created_at };
+
+  // Resolve white-label branding: if the publishing user owns an agency
+  // workspace, the shared brief carries the agency's logo + brand color rather
+  // than Comply-Quick's. Falls back to null (Comply-Quick branding) otherwise.
+  let brand: PublicScoreBrand | null = null;
+  const { data: agency } = await admin
+    .from("agencies")
+    .select("name, logo_url, primary_color")
+    .eq("owner_id", data.user_id)
+    .maybeSingle();
+  if (agency) {
+    brand = { name: agency.name, logoUrl: agency.logo_url ?? null, primaryColor: agency.primary_color };
+  }
+
+  return {
+    slug: data.slug,
+    url: data.url,
+    label: data.label,
+    score: data.score,
+    createdAt: data.created_at,
+    brand,
+  };
 }

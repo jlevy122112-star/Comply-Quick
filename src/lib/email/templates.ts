@@ -31,7 +31,14 @@ function shell(bodyHtml: string): string {
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0b1220;border:1px solid #1f2937;border-radius:16px;overflow:hidden;">
         <tr><td style="padding:28px 32px 8px 32px;">
-          <span style="font-family:Segoe UI,Arial,sans-serif;font-size:18px;font-weight:700;color:#ffffff;letter-spacing:-0.3px;">${BRAND}</span>
+          <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+            <td style="padding-right:10px;vertical-align:middle;">
+              <img src="${SITE_URL}/brand/mark-64.png" width="28" height="28" alt="" style="display:block;border:0;" />
+            </td>
+            <td style="vertical-align:middle;">
+              <span style="font-family:Segoe UI,Arial,sans-serif;font-size:18px;font-weight:700;color:#ffffff;letter-spacing:-0.3px;">${BRAND}</span>
+            </td>
+          </tr></table>
         </td></tr>
         <tr><td style="padding:8px 32px 32px 32px;font-family:Segoe UI,Arial,sans-serif;color:#d1d5db;font-size:15px;line-height:1.6;">
           ${bodyHtml}

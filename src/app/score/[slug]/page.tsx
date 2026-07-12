@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getPublicScore } from "@/lib/score/publish";
 import { REPORT_DISCLAIMER } from "@/lib/legal";
+import { Logo } from "@/components/brand/Logo";
 
 export const dynamic = "force-dynamic";
 
@@ -36,10 +37,27 @@ export default async function PublicScorePage({ params }: { params: Promise<{ sl
   const published = await getPublicScore(slug);
   if (!published) notFound();
 
+  const brand = published.brand;
+
   return (
     <main className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center px-6 py-16">
       <div className="w-full max-w-md rounded-2xl border border-gray-800 bg-gray-900 p-8 text-center">
-        <p className="text-xs uppercase tracking-wide text-gray-500">Comply-Quick verified score</p>
+        {/* Brand header — agency's own logo on a white-label brief, else Comply-Quick. */}
+        <div className="mb-6 flex justify-center">
+          {brand ? (
+            brand.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- agency-supplied remote logo, not a static asset
+              <img src={brand.logoUrl} alt={brand.name} className="h-9 w-auto object-contain" />
+            ) : (
+              <span className="text-xl font-bold tracking-tight text-white">{brand.name}</span>
+            )
+          ) : (
+            <Logo tone="dark" size="lg" />
+          )}
+        </div>
+        <p className="text-xs uppercase tracking-wide text-gray-500">
+          {brand ? "Compliance score" : "Comply-Quick verified score"}
+        </p>
         <h1 className="mt-2 text-lg font-semibold text-white break-all">{published.label ?? published.url}</h1>
 
         <div className={`mt-6 text-6xl font-bold ${scoreColor(published.score)}`}>{published.score}</div>
@@ -55,13 +73,24 @@ export default async function PublicScorePage({ params }: { params: Promise<{ sl
         />
 
         <div className="mt-8 border-t border-gray-800 pt-6">
-          <p className="text-xs text-gray-500">Want a compliance score for your own site?</p>
-          <Link
-            href="/dashboard"
-            className="mt-3 inline-block rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
-          >
-            Scan your site free →
-          </Link>
+          {brand ? (
+            <p className="text-[11px] text-gray-500">
+              Powered by{" "}
+              <Link href="/" className="font-medium text-gray-400 hover:text-gray-200">
+                Comply-Quick
+              </Link>
+            </p>
+          ) : (
+            <>
+              <p className="text-xs text-gray-500">Want a compliance score for your own site?</p>
+              <Link
+                href="/dashboard"
+                className="mt-3 inline-block rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+              >
+                Scan your site free →
+              </Link>
+            </>
+          )}
         </div>
       </div>
       <p className="mt-6 text-xs text-gray-600">Published {new Date(published.createdAt).toLocaleDateString()}</p>
