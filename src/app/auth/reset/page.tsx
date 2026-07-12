@@ -41,15 +41,19 @@ export default function ResetPasswordPage() {
     }
     setBusy(true);
     setError("");
-    const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({ password });
-    if (error) {
-      setError(error.message);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) {
+        setError(error.message);
+        return;
+      }
+      setDone(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Update failed. Please try again.");
+    } finally {
       setBusy(false);
-      return;
     }
-    setDone(true);
-    setBusy(false);
   }, [password, confirm, strong]);
 
   return (

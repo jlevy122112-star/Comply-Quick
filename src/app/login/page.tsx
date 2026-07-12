@@ -74,14 +74,19 @@ function AuthPage() {
     async (provider: "google" | "github") => {
       setBusy(true);
       setError("");
-      const supabase = createClient();
-      const redirect = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`;
-      const { error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: redirect } });
-      if (error) {
-        setError(error.message);
+      try {
+        const supabase = createClient();
+        const redirect = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`;
+        const { error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: redirect } });
+        if (error) {
+          setError(error.message);
+          setBusy(false);
+        }
+        // On success the browser redirects to the provider.
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Sign-in failed. Please try again.");
         setBusy(false);
       }
-      // On success the browser redirects to the provider.
     },
     [redirectTo]
   );
@@ -106,14 +111,20 @@ function AuthPage() {
   const handleSignin = useCallback(async () => {
     setBusy(true);
     setError("");
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      setError(error.message);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        setError(error.message);
+        setBusy(false);
+        return;
+      }
+      // Keep busy true through the full-page navigation.
+      window.location.assign(redirectTo);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Sign-in failed. Please try again.");
       setBusy(false);
-      return;
     }
-    window.location.assign(redirectTo);
   }, [email, password, redirectTo]);
 
   const handleSignup = useCallback(async () => {
@@ -128,76 +139,90 @@ function AuthPage() {
     setBusy(true);
     setError("");
 
-    const supabase = createClient();
-    const emailRedirectTo = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}&channel=signup`;
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo,
-        data: { full_name: fullName.trim() || null, company_name: companyName.trim() || null },
-      },
-    });
+    try {
+      const supabase = createClient();
+      const emailRedirectTo = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}&channel=signup`;
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo,
+          data: { full_name: fullName.trim() || null, company_name: companyName.trim() || null },
+        },
+      });
 
-    if (error) {
-      setError(error.message);
-      setBusy(false);
-      return;
-    }
-
-    // Autoconfirm on → we get a session immediately; upload the logo (if any)
-    // and land in the dashboard. Otherwise the user must verify by email first.
-    if (data.session && data.user) {
-      if (logoFile) {
-        try {
-          const up = await uploadBrandLogo(data.user.id, logoFile);
-          if (up.ok) {
-            await supabase.auth.updateUser({ data: { company_logo_url: up.url } });
-          }
-        } catch {
-          // Non-fatal: the account exists; the logo can be added later from Settings.
-        }
+      if (error) {
+        setError(error.message);
+        setBusy(false);
+        return;
       }
-      window.location.assign(redirectTo);
-      return;
-    }
 
-    setNoticeEmail(email);
-    setNotice("confirm");
-    setBusy(false);
+      // Autoconfirm on → we get a session immediately; upload the logo (if any)
+      // and land in the dashboard. Otherwise the user must verify by email first.
+      if (data.session && data.user) {
+        if (logoFile) {
+          try {
+            const up = await uploadBrandLogo(data.user.id, logoFile);
+            if (up.ok) {
+              await supabase.auth.updateUser({ data: { company_logo_url: up.url } });
+            }
+          } catch {
+            // Non-fatal: the account exists; the logo can be added later from Settings.
+          }
+        }
+        // Keep busy true through the full-page navigation.
+        window.location.assign(redirectTo);
+        return;
+      }
+
+      setNoticeEmail(email);
+      setNotice("confirm");
+      setBusy(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Sign-up failed. Please try again.");
+      setBusy(false);
+    }
   }, [email, password, confirmPassword, fullName, companyName, logoFile, redirectTo]);
 
   const handleMagicLink = useCallback(async () => {
     setBusy(true);
     setError("");
-    const supabase = createClient();
-    const emailRedirectTo = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`;
-    const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo } });
-    if (error) {
-      setError(error.message);
+    try {
+      const supabase = createClient();
+      const emailRedirectTo = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`;
+      const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo } });
+      if (error) {
+        setError(error.message);
+        return;
+      }
+      setNoticeEmail(email);
+      setNotice("magic");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't send the link. Please try again.");
+    } finally {
       setBusy(false);
-      return;
     }
-    setNoticeEmail(email);
-    setNotice("magic");
-    setBusy(false);
   }, [email, redirectTo]);
 
   const handleForgot = useCallback(async () => {
     setBusy(true);
     setError("");
-    const supabase = createClient();
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?redirect=/auth/reset`,
-    });
-    if (error) {
-      setError(error.message);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback?redirect=/auth/reset`,
+      });
+      if (error) {
+        setError(error.message);
+        return;
+      }
+      setNoticeEmail(email);
+      setNotice("reset");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't send the reset link. Please try again.");
+    } finally {
       setBusy(false);
-      return;
     }
-    setNoticeEmail(email);
-    setNotice("reset");
-    setBusy(false);
   }, [email]);
 
   return (
