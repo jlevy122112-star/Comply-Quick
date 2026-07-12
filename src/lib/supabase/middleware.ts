@@ -31,8 +31,12 @@ function captureReferral(request: NextRequest, response: NextResponse) {
   });
 }
 
-export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+export async function updateSession(request: NextRequest, requestHeaders?: Headers) {
+  // When the caller (proxy) has stamped a per-request nonce onto `requestHeaders`,
+  // forward those headers to the rendered request so Next.js can read the nonce
+  // and apply it to its scripts. Falls back to the original request otherwise.
+  const nextInit = requestHeaders ? { request: { headers: requestHeaders } } : { request };
+  let supabaseResponse = NextResponse.next(nextInit);
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -62,7 +66,7 @@ export async function updateSession(request: NextRequest) {
       },
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        supabaseResponse = NextResponse.next({ request });
+        supabaseResponse = NextResponse.next(nextInit);
         cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options));
       },
     },

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import { bareHost, primaryHosts } from "@/lib/appHost";
+import { buildCsp, cspHeaderName, generateNonce } from "@/lib/security/csp";
 
 /**
  * White-label custom-domain routing (Phase 5).
@@ -28,6 +29,21 @@ export async function proxy(request: NextRequest) {
   const host = request.headers.get("host") ?? "";
   const path = request.nextUrl.pathname;
 
+  // Per-request CSP nonce. Stamp it onto the request headers Next.js renders
+  // with (both `x-nonce` for our own components and the CSP header Next parses
+  // to nonce its scripts), and set the browser-facing CSP header on whatever
+  // response we ultimately return.
+  const nonce = generateNonce();
+  const csp = buildCsp(nonce);
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("content-security-policy", csp);
+
+  const withCsp = (response: NextResponse): NextResponse => {
+    response.headers.set(cspHeaderName(), csp);
+    return response;
+  };
+
   // On a custom domain, serve the branded white-label portal at the root and let
   // app internals (portal pages, static assets, the Sentry tunnel) pass through
   // untouched.
@@ -40,10 +56,10 @@ export async function proxy(request: NextRequest) {
   ) {
     const url = request.nextUrl.clone();
     url.pathname = `/portal/domain/${encodeURIComponent(host.split(":")[0].toLowerCase())}`;
-    return NextResponse.rewrite(url);
+    return withCsp(NextResponse.rewrite(url, { request: { headers: requestHeaders } }));
   }
 
-  return await updateSession(request);
+  return withCsp(await updateSession(request, requestHeaders));
 }
 
 export const config = {
