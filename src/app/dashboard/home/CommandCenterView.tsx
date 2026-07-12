@@ -296,6 +296,12 @@ export default function CommandCenterView({
               Privacy
             </Link>
             <Link
+              href="/dashboard/settings/security"
+              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-gray-600/50 text-gray-300 text-sm font-medium hover:border-gray-400 hover:text-gray-100 transition-colors"
+            >
+              Security
+            </Link>
+            <Link
               href="/dashboard/settings/consent"
               className="hidden sm:inline-block px-3 py-2 rounded-lg border border-gray-600/50 text-gray-300 text-sm font-medium hover:border-gray-400 hover:text-gray-100 transition-colors"
             >
