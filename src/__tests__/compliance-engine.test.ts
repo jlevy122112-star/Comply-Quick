@@ -286,10 +286,17 @@ describe("consent-gating consistency (scanner categories <-> catalog)", () => {
     expect(mismatches).toEqual([]);
   });
 
-  it("every consent-gated-category fingerprint has a catalog entry (reverse direction)", () => {
+  it("every scanner fingerprint has a catalog entry (full coverage, both directions)", () => {
+    // Full coverage closes the earlier gap: previously only consent-gated
+    // fingerprints were required to have a catalog entry, so a NON-consent-gated
+    // fingerprint (e.g. a tag manager or a consent CMP) could be added with no
+    // deliberate catalog decision about its obligations. Now every detectable
+    // service must have an explicit catalog entry — a missing one is a build
+    // failure, forcing the author to decide its role, consent posture, and
+    // obligations rather than letting it silently derive nothing.
     const catalogIds = new Set(SERVICE_CATALOG.map((e) => e.id));
     const missing = Object.entries(FINGERPRINT_CATEGORIES)
-      .filter(([id, category]) => CONSENT_GATED_TRACKER_CATEGORIES.includes(category) && !catalogIds.has(id))
+      .filter(([id]) => !catalogIds.has(id))
       .map(([id, category]) => `${id} (${category})`);
     expect(missing).toEqual([]);
   });

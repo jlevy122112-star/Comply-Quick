@@ -53,6 +53,13 @@ const US_TRACKER_OBLIGATIONS = [
   "cpra.opt_out_sale_share",
 ];
 
+// A non-tracker processor (payment gateway, tag container, consent CMP, error
+// monitor) is not consent-gated, but its presence still means personal data is
+// disclosed to a third party — so it must be named in the privacy notice and
+// covered by a DPA. It does NOT trigger Art. 7 consent or the CCPA/CPRA
+// sale/share notices, which are specific to behavioral tracking.
+const PROCESSOR_DISCLOSURE_OBLIGATIONS = ["gdpr.art13.privacy_notice", "gdpr.art28.dpa"];
+
 // A joint controller (e.g. Meta Pixel, per CJEU C-40/17 Fashion ID) requires an
 // Art. 26 joint-controller arrangement rather than an Art. 28 processor DPA.
 const US_JOINT_CONTROLLER_OBLIGATIONS = [
@@ -252,6 +259,64 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     vendorRegion: "us",
     dataCategories: ["identifiers", "financial"],
     triggersObligations: ["gdpr.art13.privacy_notice", "gdpr.art28.dpa", "pci_dss.saq_scope"],
+  },
+  {
+    id: "gtm",
+    name: "Google Tag Manager",
+    vendor: "Google LLC",
+    // A tag container, not itself a behavioral tracker: loading GTM does not by
+    // itself set tracking cookies, so it is not consent-gated. The tags it
+    // deploys are detected and gated on their own merits.
+    consentGated: false,
+    role: "processor",
+    vendorRegion: "us",
+    dataCategories: ["online_activity", "device"],
+    dpaUrl: "https://business.safety.google/adsprocessorterms/",
+    triggersObligations: PROCESSOR_DISCLOSURE_OBLIGATIONS,
+  },
+  {
+    id: "cookiebot",
+    name: "Cookiebot",
+    vendor: "Cybot A/S",
+    // A consent management platform — the compliance control itself, not a
+    // tracker. Runs before consent as strictly necessary.
+    consentGated: false,
+    role: "processor",
+    vendorRegion: "eu",
+    dataCategories: ["identifiers"],
+    dpaUrl: "https://www.cookiebot.com/en/data-processing-agreement/",
+    triggersObligations: PROCESSOR_DISCLOSURE_OBLIGATIONS,
+  },
+  {
+    id: "onetrust",
+    name: "OneTrust",
+    vendor: "OneTrust, LLC",
+    consentGated: false,
+    role: "processor",
+    vendorRegion: "us",
+    dataCategories: ["identifiers"],
+    dpaUrl: "https://www.onetrust.com/dpa/",
+    triggersObligations: PROCESSOR_DISCLOSURE_OBLIGATIONS,
+  },
+  {
+    id: "termly",
+    name: "Termly",
+    vendor: "Termly, Inc.",
+    consentGated: false,
+    role: "processor",
+    vendorRegion: "us",
+    dataCategories: ["identifiers"],
+    triggersObligations: PROCESSOR_DISCLOSURE_OBLIGATIONS,
+  },
+  {
+    id: "osano",
+    name: "Osano",
+    vendor: "Osano, Inc.",
+    consentGated: false,
+    role: "processor",
+    vendorRegion: "us",
+    dataCategories: ["identifiers"],
+    triggersObligations: PROCESSOR_DISCLOSURE_OBLIGATIONS,
   },
 ];
 
