@@ -35,9 +35,6 @@ export async function proxy(request: NextRequest) {
   // response we ultimately return.
   const nonce = generateNonce();
   const csp = buildCsp(nonce);
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set("x-nonce", nonce);
-  requestHeaders.set("content-security-policy", csp);
 
   const withCsp = (response: NextResponse): NextResponse => {
     response.headers.set(cspHeaderName(), csp);
@@ -56,10 +53,13 @@ export async function proxy(request: NextRequest) {
   ) {
     const url = request.nextUrl.clone();
     url.pathname = `/portal/domain/${encodeURIComponent(host.split(":")[0].toLowerCase())}`;
-    return withCsp(NextResponse.rewrite(url, { request: { headers: requestHeaders } }));
+    const rewriteHeaders = new Headers(request.headers);
+    rewriteHeaders.set("x-nonce", nonce);
+    rewriteHeaders.set("content-security-policy", csp);
+    return withCsp(NextResponse.rewrite(url, { request: { headers: rewriteHeaders } }));
   }
 
-  return withCsp(await updateSession(request, requestHeaders));
+  return withCsp(await updateSession(request, { nonce, policy: csp }));
 }
 
 export const config = {
