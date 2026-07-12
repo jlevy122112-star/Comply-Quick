@@ -90,7 +90,9 @@ function escapeHtml(value: string): string {
 
 /** Escapes characters that would break a Markdown table cell. */
 function mdCell(value: string): string {
-  return value.replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
+  // Escape backslashes first so an existing "\" can't combine with the pipe
+  // escape below and produce a malformed sequence.
+  return value.replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
 }
 
 /**
@@ -120,6 +122,14 @@ function fingerprint(value: string): string {
 /** Today's date as an ISO yyyy-mm-dd string in UTC. */
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+/** True only for a syntactically AND semantically valid yyyy-mm-dd date. */
+function isValidIsoDate(value: string | undefined): value is string {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [y, m, d] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d));
+  return date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d;
 }
 
 const CATEGORY_COPY: Record<CookiePolicyCategory["key"], { name: string; description: string }> = {
@@ -166,9 +176,7 @@ export function generateCookiePolicy(input: CookiePolicyInput): CookiePolicyResu
   const company = input.companyName.trim() || "This website";
   const model = governingConsentModel(input.regions);
   const doNotSell = requiresDoNotSell(input.regions);
-  const effectiveDate = /^\d{4}-\d{2}-\d{2}$/.test(input.effectiveDate ?? "")
-    ? (input.effectiveDate as string)
-    : todayIso();
+  const effectiveDate = isValidIsoDate(input.effectiveDate) ? input.effectiveDate : todayIso();
   const privacyUrl = safeUrl(input.privacyPolicyUrl, DEFAULT_PRIVACY_URL);
   const contactEmail = (input.contactEmail ?? "").trim();
   const regionNames = input.regions.map((r) => REGION_RULES[r].name);

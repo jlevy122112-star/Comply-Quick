@@ -38,7 +38,9 @@ function csvCell(value: string): string {
 
 /** Escapes characters that would break a Markdown table cell. */
 function mdCell(value: string): string {
-  return value.replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
+  // Escape backslashes first so an existing "\" can't combine with the pipe
+  // escape below and produce a malformed sequence.
+  return value.replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
 }
 
 /** Builds a subprocessor register from the selected pixels. */

@@ -113,7 +113,7 @@ function groundedFallback(messages: AssistantMessage[]): string {
   if (mentions(["scan", "audit", "check my site"])) {
     return "Run the URL scanner from your Command Center to auto-detect trackers and missing disclosures, then generate the matching compliance package. Not legal advice.";
   }
-  return "I can help with GDPR, CCPA, LGPD, PIPEDA, HIPAA, PCI-DSS and more — and point you to the right tool. Try: generate a compliance package (/dashboard), a cookie banner (/dashboard/tools/cookie-banner), a DPA (/dashboard/tools/dpa), or a subprocessor register (/dashboard/tools/subprocessors). (A live model isn't configured in this environment, so this is a grounded summary, not model-generated. Not legal advice.)";
+  return "I can help with GDPR, CCPA, LGPD, PIPEDA, HIPAA, PCI-DSS and more — and point you to the right tool. Try: generate a compliance package (/dashboard), a cookie banner (/dashboard/tools/cookie-banner), a cookie policy (/dashboard/tools/cookie-policy), a DPA (/dashboard/tools/dpa), or a subprocessor register (/dashboard/tools/subprocessors). (A live model isn't configured in this environment, so this is a grounded summary, not model-generated. Not legal advice.)";
 }
 
 /** Answers a conversation turn, using the live model when available. */
