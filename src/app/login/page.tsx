@@ -149,9 +149,13 @@ function AuthPage() {
     // and land in the dashboard. Otherwise the user must verify by email first.
     if (data.session && data.user) {
       if (logoFile) {
-        const up = await uploadBrandLogo(data.user.id, logoFile);
-        if (up.ok) {
-          await supabase.auth.updateUser({ data: { company_logo_url: up.url } });
+        try {
+          const up = await uploadBrandLogo(data.user.id, logoFile);
+          if (up.ok) {
+            await supabase.auth.updateUser({ data: { company_logo_url: up.url } });
+          }
+        } catch {
+          // Non-fatal: the account exists; the logo can be added later from Settings.
         }
       }
       window.location.assign(redirectTo);

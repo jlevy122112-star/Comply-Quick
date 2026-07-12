@@ -446,22 +446,26 @@ function BrandingTab({
       return;
     }
     setUploading(true);
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setLogoUploadError("Please sign in again to upload.");
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setLogoUploadError("Please sign in again to upload.");
+        return;
+      }
+      const res = await uploadBrandLogo(user.id, file);
+      if (res.ok) {
+        setLogoUrl(res.url);
+      } else {
+        setLogoUploadError(res.error);
+      }
+    } catch {
+      setLogoUploadError("Upload failed. Please try again.");
+    } finally {
       setUploading(false);
-      return;
     }
-    const res = await uploadBrandLogo(user.id, file);
-    if (res.ok) {
-      setLogoUrl(res.url);
-    } else {
-      setLogoUploadError(res.error);
-    }
-    setUploading(false);
   }, []);
 
   const save = useCallback(async () => {
