@@ -25,8 +25,8 @@ export function ApprovalActions({ proposalId }: { proposalId: string }) {
         body: JSON.stringify({ action }),
       });
       if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(data?.error ?? "Could not update this proposal.");
+        const data = (await res.json().catch(() => null)) as { message?: string } | null;
+        throw new Error(data?.message ?? "Could not update this proposal.");
       }
       startTransition(() => router.refresh());
     } catch (e) {

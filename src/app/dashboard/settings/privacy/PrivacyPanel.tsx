@@ -25,8 +25,8 @@ export function PrivacyPanel({ accountEmail, retention }: Props) {
         body: JSON.stringify({ type: "export" }),
       });
       if (!res.ok) {
-        const body = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(body.error ?? "Export failed.");
+        const body = (await res.json().catch(() => ({}))) as { message?: string };
+        throw new Error(body.message ?? "Export failed.");
       }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -56,8 +56,8 @@ export function PrivacyPanel({ accountEmail, retention }: Props) {
         body: JSON.stringify({ type: "deletion", confirmationEmail: confirmEmail }),
       });
       if (!res.ok) {
-        const body = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(body.error ?? "Deletion failed.");
+        const body = (await res.json().catch(() => ({}))) as { message?: string };
+        throw new Error(body.message ?? "Deletion failed.");
       }
       window.location.href = "/login";
     } catch (e) {

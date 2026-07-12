@@ -73,8 +73,8 @@ export function BreachPanel({ views, regionOptions, dataCategoryOptions }: Props
         }),
       });
       if (!res.ok) {
-        const body = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(body.error ?? "Could not record the breach.");
+        const body = (await res.json().catch(() => ({}))) as { message?: string };
+        throw new Error(body.message ?? "Could not record the breach.");
       }
       setTitle("");
       setDescription("");
@@ -103,8 +103,8 @@ export function BreachPanel({ views, regionOptions, dataCategoryOptions }: Props
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
-        const body = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(body.error ?? "Could not update the incident.");
+        const body = (await res.json().catch(() => ({}))) as { message?: string };
+        throw new Error(body.message ?? "Could not update the incident.");
       }
       router.refresh();
     } catch (e) {
