@@ -33,6 +33,8 @@ create or replace function public.update_breach_incident(
   p_at text
 ) returns uuid
 language sql
+security invoker
+set search_path = ''
 as $$
   update public.breach_incidents
   set
