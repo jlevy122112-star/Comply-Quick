@@ -19,8 +19,8 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getSession().then(({ data }) => {
-      setHasSession(Boolean(data.session));
+    supabase.auth.getUser().then(({ data }) => {
+      setHasSession(Boolean(data.user));
       setChecking(false);
     });
   }, []);

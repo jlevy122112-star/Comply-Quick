@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/brand/Logo";
@@ -24,7 +24,7 @@ export default function LoginPageWrapper() {
 
 function AuthPage() {
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") ?? "/dashboard/home";
+  const redirectTo = useMemo(() => safeInternalPath(searchParams.get("redirect")), [searchParams]);
   const initialMode: Mode = searchParams.get("mode") === "signup" ? "signup" : "signin";
 
   const [mode, setMode] = useState<Mode>(initialMode);
@@ -49,6 +49,13 @@ function AuthPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const strength = useMemo(() => passwordStrength(password), [password]);
+
+  // Release the preview blob URL when the component unmounts.
+  useEffect(() => {
+    return () => {
+      if (logoPreview) URL.revokeObjectURL(logoPreview);
+    };
+  }, [logoPreview]);
 
   const resetTransientState = useCallback(() => {
     setError("");
@@ -511,13 +518,13 @@ function LogoUploadField({
               Remove
             </button>
           )}
-          <p className="mt-1 text-xs text-gray-600">PNG, JPG, SVG or WebP · up to 2 MB</p>
+          <p className="mt-1 text-xs text-gray-600">PNG, JPG or WebP · up to 2 MB</p>
         </div>
       </div>
       <input
         ref={inputRef}
         type="file"
-        accept="image/png,image/jpeg,image/svg+xml,image/webp"
+        accept="image/png,image/jpeg,image/webp"
         className="hidden"
         onChange={(e) => onPick(e.target.files?.[0] ?? null)}
       />
@@ -626,6 +633,19 @@ function NoticePanel({
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
+
+/** Only allow same-origin relative destinations, guarding against open redirects. */
+function safeInternalPath(raw: string | null): string {
+  const fallback = "/dashboard/home";
+  if (!raw) return fallback;
+  try {
+    const url = new URL(raw, window.location.origin);
+    if (url.origin !== window.location.origin) return fallback;
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return fallback;
+  }
+}
 
 function passwordStrength(pw: string): { score: number; label: string } {
   if (!pw) return { score: 0, label: "—" };

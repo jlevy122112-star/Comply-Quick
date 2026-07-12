@@ -2,14 +2,16 @@ import { createClient } from "@/lib/supabase/client";
 
 export const BRAND_LOGO_BUCKET = "brand-logos";
 export const MAX_LOGO_BYTES = 2 * 1024 * 1024; // 2 MB
-export const ALLOWED_LOGO_TYPES = ["image/png", "image/jpeg", "image/svg+xml", "image/webp"] as const;
+// SVG is intentionally excluded: the bucket is public, and an SVG served from a
+// public URL can execute embedded scripts on direct navigation (stored XSS).
+export const ALLOWED_LOGO_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
 
 export type LogoUploadResult = { ok: true; url: string } | { ok: false; error: string };
 
 /** Human-readable client-side validation before we bother hitting storage. */
 export function validateLogoFile(file: File): string | null {
   if (!(ALLOWED_LOGO_TYPES as readonly string[]).includes(file.type)) {
-    return "Use a PNG, JPG, SVG, or WebP image.";
+    return "Use a PNG, JPG, or WebP image.";
   }
   if (file.size > MAX_LOGO_BYTES) {
     return "Image must be 2 MB or smaller.";
@@ -17,28 +19,19 @@ export function validateLogoFile(file: File): string | null {
   return null;
 }
 
-function extensionFor(file: File): string {
-  const fromType: Record<string, string> = {
-    "image/png": "png",
-    "image/jpeg": "jpg",
-    "image/svg+xml": "svg",
-    "image/webp": "webp",
-  };
-  return fromType[file.type] ?? "png";
-}
-
 /**
  * Uploads a brand logo to the public `brand-logos` bucket under the user's own
  * uid folder and returns its public URL. Requires an authenticated session
- * (RLS restricts writes to the caller's own folder). Overwrites any prior logo
- * for the user so the URL stays stable.
+ * (RLS restricts writes to the caller's own folder). Uses a single fixed path
+ * per user so re-uploading any format overwrites the prior logo (no orphans)
+ * and the URL stays stable.
  */
 export async function uploadBrandLogo(userId: string, file: File): Promise<LogoUploadResult> {
   const validationError = validateLogoFile(file);
   if (validationError) return { ok: false, error: validationError };
 
   const supabase = createClient();
-  const path = `${userId}/logo.${extensionFor(file)}`;
+  const path = `${userId}/logo`;
 
   const { error } = await supabase.storage.from(BRAND_LOGO_BUCKET).upload(path, file, {
     upsert: true,
