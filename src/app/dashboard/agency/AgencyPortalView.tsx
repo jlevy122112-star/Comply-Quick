@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import { uploadBrandLogo, validateLogoFile } from "@/lib/storage/brand";
 import type { Tier } from "@/lib/entitlements";
 import type { Agency, AgencyClient, AgencyDomain, ClientStats, AgencyMember } from "@/lib/agency/service";
 import type { BillingSummary } from "@/lib/billing/usage";
@@ -19,6 +21,22 @@ interface Props {
 
 type Tab = "clients" | "team" | "branding" | "domains";
 
+/**
+ * Only allow absolute http(s) image URLs. A pasted `javascript:`/`data:` value
+ * can't then be bound as a live `src`, and routing the user-controlled string
+ * through `URL` parsing + a protocol allowlist neutralizes the DOM-text-to-HTML
+ * flow before it reaches the preview.
+ */
+function safeImageSrc(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  try {
+    const u = new URL(raw);
+    return u.protocol === "http:" || u.protocol === "https:" ? u.href : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function AgencyPortalView({
   agency: initialAgency,
   clients: initialClients,
@@ -34,6 +52,7 @@ export default function AgencyPortalView({
   const [clients, setClients] = useState(initialClients);
   const [domains, setDomains] = useState(initialDomains);
   const [members, setMembers] = useState(initialMembers);
+  const headerLogo = safeImageSrc(agency.logoUrl);
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100" style={{ ["--brand" as string]: agency.primaryColor }}>
@@ -62,9 +81,9 @@ export default function AgencyPortalView({
             className="h-11 w-11 rounded-xl flex items-center justify-center text-lg font-bold text-white shrink-0"
             style={{ backgroundColor: agency.primaryColor }}
           >
-            {agency.logoUrl ? (
+            {headerLogo ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={agency.logoUrl} alt={agency.name} className="h-11 w-11 rounded-xl object-cover" />
+              <img src={headerLogo} alt={agency.name} className="h-11 w-11 rounded-xl object-cover" />
             ) : (
               agency.name.charAt(0).toUpperCase()
             )}
@@ -419,6 +438,41 @@ function BrandingTab({
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
+  const previewLogo = safeImageSrc(logoUrl);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const uploadLogo = useCallback(async (file: File | null) => {
+    setLogoUploadError(null);
+    if (!file) return;
+    const invalid = validateLogoFile(file);
+    if (invalid) {
+      setLogoUploadError(invalid);
+      return;
+    }
+    setUploading(true);
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setLogoUploadError("Please sign in again to upload.");
+        return;
+      }
+      const res = await uploadBrandLogo(user.id, file);
+      if (res.ok) {
+        setLogoUrl(res.url);
+      } else {
+        setLogoUploadError(res.error);
+      }
+    } catch {
+      setLogoUploadError("Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  }, []);
 
   const save = useCallback(async () => {
     setBusy(true);
@@ -452,13 +506,35 @@ function BrandingTab({
             className="w-full px-3 py-2 rounded-lg bg-gray-950 border border-gray-700 text-sm text-white focus:border-indigo-500 focus:outline-none"
           />
         </Field>
-        <Field label="Logo URL">
-          <input
-            value={logoUrl}
-            onChange={(e) => setLogoUrl(e.target.value)}
-            placeholder="https://…/logo.png"
-            className="w-full px-3 py-2 rounded-lg bg-gray-950 border border-gray-700 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none"
-          />
+        <Field label="Logo">
+          <div className="flex gap-2">
+            <input
+              value={logoUrl}
+              onChange={(e) => setLogoUrl(e.target.value)}
+              placeholder="https://…/logo.png"
+              className="flex-1 px-3 py-2 rounded-lg bg-gray-950 border border-gray-700 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="shrink-0 px-3 py-2 rounded-lg border border-gray-700 text-sm text-gray-200 hover:bg-gray-800 disabled:opacity-40"
+            >
+              {uploading ? "Uploading…" : "Upload"}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                uploadLogo(e.target.files?.[0] ?? null);
+                e.currentTarget.value = "";
+              }}
+            />
+          </div>
+          <p className="mt-1 text-xs text-gray-500">Paste a URL or upload a PNG, JPG or WebP (up to 2 MB).</p>
+          {logoUploadError && <p className="mt-1 text-xs text-red-400">{logoUploadError}</p>}
         </Field>
         <Field label="Primary color">
           <div className="flex items-center gap-3">
@@ -502,9 +578,9 @@ function BrandingTab({
         <div className="rounded-xl border border-gray-800 overflow-hidden">
           <div className="px-4 py-3 flex items-center gap-3" style={{ backgroundColor: primaryColor }}>
             <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center text-white font-bold">
-              {logoUrl ? (
+              {previewLogo ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={logoUrl} alt="logo" className="h-8 w-8 rounded-lg object-cover" />
+                <img src={previewLogo} alt="logo" className="h-8 w-8 rounded-lg object-cover" />
               ) : (
                 (name || "A").charAt(0).toUpperCase()
               )}
