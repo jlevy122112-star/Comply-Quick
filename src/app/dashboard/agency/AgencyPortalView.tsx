@@ -21,6 +21,22 @@ interface Props {
 
 type Tab = "clients" | "team" | "branding" | "domains";
 
+/**
+ * Only allow absolute http(s) image URLs. A pasted `javascript:`/`data:` value
+ * can't then be bound as a live `src`, and routing the user-controlled string
+ * through `URL` parsing + a protocol allowlist neutralizes the DOM-text-to-HTML
+ * flow before it reaches the preview.
+ */
+function safeImageSrc(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  try {
+    const u = new URL(raw);
+    return u.protocol === "http:" || u.protocol === "https:" ? u.href : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function AgencyPortalView({
   agency: initialAgency,
   clients: initialClients,
@@ -64,9 +80,13 @@ export default function AgencyPortalView({
             className="h-11 w-11 rounded-xl flex items-center justify-center text-lg font-bold text-white shrink-0"
             style={{ backgroundColor: agency.primaryColor }}
           >
-            {agency.logoUrl ? (
+            {safeImageSrc(agency.logoUrl) ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={agency.logoUrl} alt={agency.name} className="h-11 w-11 rounded-xl object-cover" />
+              <img
+                src={safeImageSrc(agency.logoUrl)!}
+                alt={agency.name}
+                className="h-11 w-11 rounded-xl object-cover"
+              />
             ) : (
               agency.name.charAt(0).toUpperCase()
             )}
@@ -547,9 +567,9 @@ function BrandingTab({
         <div className="rounded-xl border border-gray-800 overflow-hidden">
           <div className="px-4 py-3 flex items-center gap-3" style={{ backgroundColor: primaryColor }}>
             <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center text-white font-bold">
-              {logoUrl ? (
+              {safeImageSrc(logoUrl) ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={logoUrl} alt="logo" className="h-8 w-8 rounded-lg object-cover" />
+                <img src={safeImageSrc(logoUrl)!} alt="logo" className="h-8 w-8 rounded-lg object-cover" />
               ) : (
                 (name || "A").charAt(0).toUpperCase()
               )}
