@@ -62,7 +62,7 @@ export async function updateSession(request: NextRequest, csp?: { nonce: string;
     if (PROTECTED_PREFIXES.some((p) => path.startsWith(p))) {
       const url = request.nextUrl.clone();
       url.pathname = "/login";
-      url.searchParams.set("redirect", path);
+      url.searchParams.set("redirect", `${path}${request.nextUrl.search}`);
       const redirectResponse = NextResponse.redirect(url);
       captureReferral(request, redirectResponse);
       return redirectResponse;
@@ -93,7 +93,7 @@ export async function updateSession(request: NextRequest, csp?: { nonce: string;
   if (isProtected && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("redirect", path);
+    url.searchParams.set("redirect", `${path}${request.nextUrl.search}`);
     const redirectResponse = NextResponse.redirect(url);
     captureReferral(request, redirectResponse);
     return redirectResponse;
