@@ -33,6 +33,7 @@ export const CONSENT_CATEGORIES: readonly string[] = ["essential", "analytics", 
 export interface ConsentRecord {
   id: string;
   projectId: string;
+  deploymentId: string | null;
   subjectRef: string;
   action: ConsentAction;
   categories: string[];
@@ -46,6 +47,8 @@ export interface ConsentRecord {
 /** A normalized, validated payload ready to persist. */
 export interface NormalizedConsent {
   projectId: string;
+  /** Public deployment id embedded on the merchant site, if this is managed. */
+  deploymentId: string | null;
   subjectRef: string;
   action: ConsentAction;
   categories: string[];
@@ -92,6 +95,13 @@ export function normalizeConsent(raw: unknown): NormalizeResult {
   if (!subjectRef || subjectRef.length > SUBJECT_REF_MAX) {
     return { ok: false, error: "A subjectRef between 1 and 128 characters is required." };
   }
+  if (
+    body.deploymentId !== undefined &&
+    (typeof body.deploymentId !== "string" || !UUID_RE.test(body.deploymentId.trim()))
+  ) {
+    return { ok: false, error: "deploymentId must be a valid UUID when supplied." };
+  }
+  const deploymentId = typeof body.deploymentId === "string" ? body.deploymentId.trim() : null;
 
   const action = body.action;
   if (typeof action !== "string" || !CONSENT_ACTIONS.includes(action as ConsentAction)) {
@@ -125,6 +135,7 @@ export function normalizeConsent(raw: unknown): NormalizeResult {
     ok: true,
     value: {
       projectId,
+      deploymentId,
       subjectRef: subjectRef.slice(0, SUBJECT_REF_MAX),
       action: action as ConsentAction,
       categories,
@@ -147,7 +158,10 @@ export type RecordConsentResult = { ok: true; id: string } | { ok: false; error:
  * validated-input requirement is type-enforced — callers cannot pass raw,
  * unbounded values into the ledger.
  */
-export async function recordConsent(input: NormalizedConsent): Promise<RecordConsentResult> {
+export async function recordConsent(
+  input: NormalizedConsent,
+  requestOrigin?: string | null
+): Promise<RecordConsentResult> {
   const admin = createAdminClient();
 
   const { data: project, error: projectError } = await admin
@@ -158,10 +172,31 @@ export async function recordConsent(input: NormalizedConsent): Promise<RecordCon
   if (projectError) return { ok: false, error: "Could not verify the project." };
   if (!project) return { ok: false, error: "Unknown project." };
 
+  let deploymentId: string | null = null;
+  if (input.deploymentId) {
+    const { data: deployment, error: deploymentError } = await admin
+      .from("consent_deployments")
+      .select("id, site_origin, status")
+      .eq("public_id", input.deploymentId)
+      .eq("project_id", input.projectId)
+      .maybeSingle();
+    if (deploymentError || !deployment || deployment.status === "paused") {
+      return { ok: false, error: "Unknown or inactive consent deployment." };
+    }
+    // Browsers attach Origin to cross-origin fetches/beacons. When it is
+    // available, bind public writes to the configured site; allowing a missing
+    // Origin preserves sendBeacon compatibility in restrictive user agents.
+    if (requestOrigin && requestOrigin !== deployment.site_origin) {
+      return { ok: false, error: "Consent deployment origin does not match." };
+    }
+    deploymentId = deployment.id as string;
+  }
+
   const { data, error } = await admin
     .from("consent_records")
     .insert({
       project_id: input.projectId,
+      deployment_id: deploymentId,
       subject_ref: input.subjectRef,
       action: input.action,
       categories: input.categories,
@@ -180,6 +215,7 @@ export async function recordConsent(input: NormalizedConsent): Promise<RecordCon
 interface ConsentRow {
   id: string;
   project_id: string;
+  deployment_id: string | null;
   subject_ref: string;
   action: string;
   categories: string[] | null;
@@ -194,6 +230,7 @@ function rowToRecord(row: ConsentRow): ConsentRecord {
   return {
     id: row.id,
     projectId: row.project_id,
+    deploymentId: row.deployment_id,
     subjectRef: row.subject_ref,
     action: row.action as ConsentAction,
     categories: row.categories ?? [],

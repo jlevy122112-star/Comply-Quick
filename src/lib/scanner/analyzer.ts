@@ -25,6 +25,14 @@ export interface DetectedTool {
   id: string;
   name: string;
   category: ToolCategory;
+  /** Plain-language compliance classification for the scanner and workspace. */
+  classification?: TrackerClassification;
+}
+
+export interface TrackerClassification {
+  label: string;
+  consentRequired: boolean;
+  detail: string;
 }
 
 export type Severity = "info" | "warning" | "critical";
@@ -119,6 +127,12 @@ const FINGERPRINTS: Fingerprint[] = [
   { id: "termly", name: "Termly", category: "consent", patterns: [/app\.termly\.io/i] },
   { id: "osano", name: "Osano", category: "consent", patterns: [/cmp\.osano\.com/i] },
   {
+    id: "comply_quick_consent",
+    name: "Comply-Quick Consent",
+    category: "consent",
+    patterns: [/data-cq-consent-banner/i, /complyQuickConsent/i],
+  },
+  {
     id: "stripe",
     name: "Stripe",
     category: "payments",
@@ -146,9 +160,47 @@ const FINGERPRINTS: Fingerprint[] = [
   { id: "datadog", name: "Datadog RUM", category: "monitoring", patterns: [/datadoghq-browser-agent/i, /DD_RUM/] },
 ];
 
-/** Maps each known service id to its scanner category (for cross-checks). */
+/**
+ * Explains how a detected integration should be handled. This deliberately
+ * distinguishes behavioral monitoring from error diagnostics so teams can
+ * prioritize real consent obligations without hiding operational telemetry.
+ */
+export function classifyTracker(category: string): TrackerClassification {
+  if (CONSENT_GATED_TRACKER_CATEGORIES.includes(category as ToolCategory)) {
+    return {
+      label: category === "monitoring" ? "Behavioral monitoring — consent required" : "Consent-gated tracker",
+      consentRequired: true,
+      detail: "Block until the visitor grants the applicable category preference.",
+    };
+  }
+  if (category === "error_monitoring") {
+    return {
+      label: "Error monitoring — review configuration",
+      consentRequired: false,
+      detail: "Keep diagnostics minimized and avoid sending session-replay or unnecessary personal data.",
+    };
+  }
+  if (category === "consent") {
+    return {
+      label: "Consent management",
+      consentRequired: false,
+      detail: "Verify that configured categories are blocked before a preference is saved.",
+    };
+  }
+  return {
+    label: "Operational integration",
+    consentRequired: false,
+    detail: "Review its data handling and disclose it in your privacy documentation.",
+  };
+}
+
+/**
+ * Maps third-party service ids to scanner categories for catalog cross-checks.
+ * The Comply-Quick marker proves that the site's banner is present; it is not
+ * an external service whose processing role belongs in the vendor catalog.
+ */
 export const FINGERPRINT_CATEGORIES: Readonly<Record<string, ToolCategory>> = Object.fromEntries(
-  FINGERPRINTS.map((fp) => [fp.id, fp.category])
+  FINGERPRINTS.filter((fp) => fp.id !== "comply_quick_consent").map((fp) => [fp.id, fp.category])
 );
 
 export const SEVERITY_PENALTY: Record<Severity, number> = { info: 3, warning: 12, critical: 25 };
@@ -192,7 +244,7 @@ export function detectTools(html: string, requestUrls: string[] = []): DetectedT
     // are unaffected.
     const matched = fp.patterns.some((p) => p.test(haystack));
     if (matched) {
-      found.push({ id: fp.id, name: fp.name, category: fp.category });
+      found.push({ id: fp.id, name: fp.name, category: fp.category, classification: classifyTracker(fp.category) });
     }
   }
   return found;
@@ -306,7 +358,16 @@ export function detectToolsDetailed(html: string, requestUrls: string[] = []): D
     const { confidence, layer } = isWeakOnly
       ? scoreWeakOnly(weakHtml, weakRuntime)
       : scoreConfidence(strongHtml, strongRuntime, strongSignals.length, weakMatches > 0);
-    found.push({ id: fp.id, name: fp.name, category: fp.category, confidence, layer, signals, isWeakOnly });
+    found.push({
+      id: fp.id,
+      name: fp.name,
+      category: fp.category,
+      classification: classifyTracker(fp.category),
+      confidence,
+      layer,
+      signals,
+      isWeakOnly,
+    });
   }
   return found;
 }

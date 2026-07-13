@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { detectTools, analyzeHtml } from "@/lib/scanner/analyzer";
+import { detectTools, analyzeHtml, classifyTracker } from "@/lib/scanner/analyzer";
 import { normalizeScanUrl, fetchPageHtml, renderPageViaWorker, scanPage } from "@/lib/scanner/crawler";
 import { runScan } from "@/lib/scanner/pipeline";
 import { DeterministicAiClient, type AiClient } from "@/services/ai";
@@ -53,6 +53,12 @@ describe("detectTools", () => {
     expect(ids).toContain("tiktok");
     expect(ids).toContain("google");
   });
+
+  it("classifies behavioral monitoring separately from error diagnostics", () => {
+    expect(classifyTracker("monitoring").consentRequired).toBe(true);
+    expect(classifyTracker("error_monitoring").consentRequired).toBe(false);
+    expect(classifyTracker("error_monitoring").label).toContain("Error monitoring");
+  });
 });
 
 describe("analyzeHtml", () => {
@@ -77,6 +83,16 @@ describe("analyzeHtml", () => {
     expect(result.hasConsentBanner).toBe(true);
     expect(result.findings.some((f) => f.id === "trackers_without_consent")).toBe(false);
     expect(result.findings.some((f) => f.id === "consent_present")).toBe(true);
+  });
+
+  it("recognizes a Comply-Quick deployed banner marker as consent management", () => {
+    const page = `
+      <script src="https://connect.facebook.net/en_US/fbevents.js"></script>
+      <div data-cq-consent-banner="true" data-cq-deployment="22222222-2222-4222-8222-222222222222"></div>
+      <a href="/privacy">Privacy</a><a href="/terms">Terms</a>`;
+    const result = analyzeHtml(page);
+    expect(result.detectedTools.some((tool) => tool.id === "comply_quick_consent")).toBe(true);
+    expect(result.findings.some((finding) => finding.id === "trackers_without_consent")).toBe(false);
   });
 
   it("does NOT treat pure error monitoring (Sentry) as a consent-gated tracker", () => {

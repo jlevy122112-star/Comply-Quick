@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { normalizeConsent, summarizeConsent, CONSENT_ACTIONS, type ConsentRecord } from "@/lib/consent/records";
 import { generateConsentBanner } from "@/lib/tools/cookieConsent";
 import type { TargetRegion } from "@/lib/tools/data";
+import { normalizeConsentDeployment } from "@/lib/consent/deployments";
 
 const VALID_UUID = "11111111-1111-4111-8111-111111111111";
 
@@ -66,7 +67,14 @@ describe("normalizeConsent", () => {
       subjectRef: "x".repeat(200),
       action: "accept_all",
     });
+
     expect(result.ok).toBe(false);
+  });
+
+  it("rejects a malformed managed deployment id instead of silently unscoping it", () => {
+    expect(
+      normalizeConsent({ projectId: VALID_UUID, subjectRef: "x", action: "accept_all", deploymentId: "not-a-uuid" }).ok
+    ).toBe(false);
   });
 
   it("defaults categories to [] and model to opt-in when omitted", () => {
@@ -183,6 +191,88 @@ describe("cookie banner audit-trail beacon", () => {
       projectId: "nope",
     });
     expect(banner.js).toContain("var RECORD=null");
+  });
+
+  it("scopes preference persistence and automatic tag enforcement to a managed deployment", () => {
+    const deploymentId = "22222222-2222-4222-8222-222222222222";
+    const banner = generateConsentBanner({
+      ...base,
+      pixels: ["google"],
+      recordEndpoint: "https://app.comply-quick.com/api/consent",
+      projectId: VALID_UUID,
+      deploymentId,
+    });
+    expect(banner.html).toContain(`data-cq-deployment="${deploymentId}"`);
+    expect(banner.js).toContain('KEY="cq_consent_v1"+(DEPLOYMENT?"_"+DEPLOYMENT:"")');
+    expect(banner.js).toContain('script[type="text/plain"][data-cq-category]');
+    expect(banner.js).toContain("deploymentId:RECORD.deploymentId");
+    expect(banner.html).toContain('data-cq="manage"');
+    expect(banner.html).toContain('data-cq="save"');
+  });
+
+  it("persists granular preferences and activates marked tags only after the preference is saved", () => {
+    const deploymentId = "33333333-3333-4333-8333-333333333333";
+    const banner = generateConsentBanner({ ...base, pixels: ["google"], deploymentId });
+    document.body.innerHTML = `${banner.html}<script type="text/plain" data-cq-category="analytics">window.__cqTagLoaded=true;</script>`;
+    const executable = banner.js.replace(/^<script>\n/, "").replace(/\n<\/script>$/, "");
+    // Generated code is intentionally framework-free and executes in the host
+    // page. Execute it in jsdom to exercise the actual preference lifecycle.
+    new Function(executable)();
+    const dialog = document.getElementById("cq-consent")!;
+    expect(dialog.hidden).toBe(false);
+    (dialog.querySelector('[data-cq="manage"]') as HTMLButtonElement).click();
+    (dialog.querySelector('[data-cq-category="analytics"]') as HTMLInputElement).checked = true;
+    (dialog.querySelector('[data-cq="save"]') as HTMLButtonElement).click();
+    expect(JSON.parse(localStorage.getItem(`cq_consent_v1_${deploymentId}`) ?? "{}").categories).toEqual(["analytics"]);
+    expect(
+      (
+        window as typeof window & { complyQuickConsent: { allows: (category: string) => boolean } }
+      ).complyQuickConsent.allows("analytics")
+    ).toBe(true);
+    expect(document.querySelector('script[data-cq-category="analytics"]')?.getAttribute("data-cq-loaded")).toBe("true");
+    document.body.innerHTML = "";
+    localStorage.clear();
+  });
+});
+
+describe("normalizeConsentDeployment", () => {
+  it("normalizes a managed deployment with valid project-owned configuration", () => {
+    const result = normalizeConsentDeployment({
+      projectId: VALID_UUID,
+      siteUrl: "https://www.acme.test/store",
+      privacyPolicyUrl: "/privacy",
+      policyVersion: "2026-07",
+      regions: ["eu_gdpr"],
+      pixels: ["google"],
+      enforcementMode: "automatic",
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.siteUrl).toBe("https://www.acme.test/store");
+    expect(result.value.enforcementMode).toBe("automatic");
+  });
+
+  it("rejects credentials and unknown vendors in a deployment", () => {
+    expect(
+      normalizeConsentDeployment({
+        projectId: VALID_UUID,
+        siteUrl: "https://user:pass@acme.test",
+        privacyPolicyUrl: "/privacy",
+        policyVersion: "1",
+        regions: ["eu_gdpr"],
+        pixels: [],
+      }).ok
+    ).toBe(false);
+    expect(
+      normalizeConsentDeployment({
+        projectId: VALID_UUID,
+        siteUrl: "https://acme.test",
+        privacyPolicyUrl: "/privacy",
+        policyVersion: "1",
+        regions: ["eu_gdpr"],
+        pixels: ["unknown"],
+      }).ok
+    ).toBe(false);
   });
 });
 

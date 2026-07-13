@@ -14,6 +14,7 @@ import {
 } from "@/components/ui";
 import type { WorkspaceData } from "@/lib/workspace/data";
 import { ScoreTrend } from "./ScoreTrend";
+import { classifyTracker } from "@/lib/scanner/analyzer";
 
 /** Scans tab — score trend sparkline + scan history table. */
 export function ScansPanel({ scans }: { scans: WorkspaceData["scans"] }) {
@@ -43,7 +44,7 @@ export function ScansPanel({ scans }: { scans: WorkspaceData["scans"] }) {
           <TR>
             <TH>Scanned</TH>
             <TH>URL</TH>
-            <TH>Tools</TH>
+            <TH>Trackers & classification</TH>
             <TH className="text-right">Score</TH>
           </TR>
         </THead>
@@ -52,7 +53,30 @@ export function ScansPanel({ scans }: { scans: WorkspaceData["scans"] }) {
             <TR key={s.id}>
               <TD className="tabular-nums text-gray-400">{new Date(s.createdAt).toLocaleDateString()}</TD>
               <TD className="max-w-xs truncate text-white">{s.url}</TD>
-              <TD className="tabular-nums text-gray-400">{s.detectedTools.length}</TD>
+              <TD className="min-w-64">
+                {s.detectedTools.length === 0 ? (
+                  <span className="text-gray-500">None detected</span>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {s.detectedTools.map((tool) => {
+                      const classification = tool.classification ?? classifyTracker(tool.category);
+                      return (
+                        <span
+                          key={tool.id}
+                          title={classification.detail}
+                          className={`rounded-full border px-2 py-1 text-xs ${
+                            classification.consentRequired
+                              ? "border-amber-500/30 bg-amber-500/10 text-amber-200"
+                              : "border-gray-700 bg-gray-900 text-gray-300"
+                          }`}
+                        >
+                          {tool.name} · {classification.consentRequired ? "gate" : classification.label}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </TD>
               <TD className="text-right">
                 <Badge tone={toneForScore(s.score ?? 0)}>{s.score ?? 0}/100</Badge>
               </TD>

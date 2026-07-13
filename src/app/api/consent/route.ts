@@ -48,10 +48,13 @@ export async function POST(request: NextRequest) {
     // it to the same 512-char cap normalizeConsent enforces so a hostile client
     // cannot bloat the ledger with an oversized header.
     const headerUa = (request.headers.get("user-agent") ?? "").slice(0, 512) || null;
-    const result = await recordConsent({
-      ...normalized.value,
-      userAgent: normalized.value.userAgent ?? headerUa,
-    });
+    const result = await recordConsent(
+      {
+        ...normalized.value,
+        userAgent: normalized.value.userAgent ?? headerUa,
+      },
+      request.headers.get("origin")
+    );
     if (!result.ok) throw new ValidationError(result.error);
 
     return NextResponse.json(

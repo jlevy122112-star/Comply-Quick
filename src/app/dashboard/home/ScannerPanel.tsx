@@ -6,12 +6,14 @@ import { computePaywallTriggers } from "@/lib/funnel/triggers";
 import { computeImprovementPath } from "@/lib/score/improvement";
 import { trackClientEvent, trackFunnel } from "@/lib/funnel/client";
 import { alertsForRegions } from "@/lib/regulations/alerts";
+import { classifyTracker, type TrackerClassification } from "@/lib/scanner/analyzer";
 import type { Tier } from "@/lib/pricing";
 
 interface DetectedTool {
   id: string;
   name: string;
   category: string;
+  classification?: TrackerClassification;
 }
 
 interface Finding {
@@ -253,7 +255,10 @@ export default function ScannerPanel({ tier }: { tier: Tier }) {
                     key={t.id}
                     className="px-2 py-0.5 rounded-full bg-gray-800 border border-gray-700 text-xs text-gray-300"
                   >
-                    {t.name}
+                    {t.name} ·{" "}
+                    {(t.classification ?? classifyTracker(t.category)).consentRequired
+                      ? "consent required"
+                      : (t.classification ?? classifyTracker(t.category)).label}
                   </span>
                 ))}
               </div>

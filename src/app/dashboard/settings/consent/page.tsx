@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { listProjects } from "@/lib/projects-db";
 import { listConsentRecords, getConsentSummary, type ConsentAction } from "@/lib/consent/records";
+import { listConsentDeployments } from "@/lib/consent/deployments";
 
 const RECENT_LIMIT = 25;
 
@@ -34,8 +35,12 @@ export default async function ConsentLogPage() {
   const projects = await listProjects();
   const perProject = await Promise.all(
     projects.map(async (p) => {
-      const [records, summary] = await Promise.all([listConsentRecords(p.id, RECENT_LIMIT), getConsentSummary(p.id)]);
-      return { project: p, records, total: summary.total, summary };
+      const [records, summary, deployments] = await Promise.all([
+        listConsentRecords(p.id, RECENT_LIMIT),
+        getConsentSummary(p.id),
+        listConsentDeployments(p.id),
+      ]);
+      return { project: p, records, total: summary.total, summary, deployments };
     })
   );
 
@@ -70,7 +75,7 @@ export default async function ConsentLogPage() {
         )}
 
         <div className="space-y-6">
-          {perProject.map(({ project, records, total, summary }) => (
+          {perProject.map(({ project, records, total, summary, deployments }) => (
             <section key={project.id} className="rounded-xl border border-gray-800 bg-gray-900/40 p-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-lg font-semibold text-white">{project.name}</h2>
@@ -86,6 +91,26 @@ export default async function ConsentLogPage() {
                   ) : null
                 )}
               </div>
+
+              {deployments.length > 0 && (
+                <div className="mt-4 rounded-lg border border-gray-800 bg-gray-950/50 p-3">
+                  <p className="text-xs font-semibold text-gray-300">Managed deployment evidence</p>
+                  <ul className="mt-2 space-y-2">
+                    {deployments.map((deployment) => (
+                      <li key={deployment.id} className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span className="text-gray-400">
+                          {deployment.siteOrigin} · policy {deployment.policyVersion}
+                        </span>
+                        <span className={deployment.status === "verified" ? "text-emerald-300" : "text-amber-300"}>
+                          {deployment.status === "verified"
+                            ? `Verified${deployment.lastVerifiedAt ? ` ${formatWhen(deployment.lastVerifiedAt)}` : ""}`
+                            : (deployment.verificationDetail ?? "Awaiting installation verification")}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {total > records.length && (
                 <p className="mt-2 text-xs text-gray-500">
