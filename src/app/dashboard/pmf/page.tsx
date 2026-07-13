@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getPmfSummary } from "@/lib/pmf/service";
-import { isPmfAdmin, toPercent, CHURN_REASON_LABELS, type ChurnReason } from "@/lib/pmf/metrics";
+import { isEmailPolicyAllowed } from "@/lib/access-policy";
+import { toPercent, CHURN_REASON_LABELS, type ChurnReason } from "@/lib/pmf/metrics";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,7 @@ export default async function PmfDashboardPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?redirect=/dashboard/pmf");
 
-  if (!isPmfAdmin(user.email ?? null, process.env.PMF_ADMIN_EMAILS)) redirect("/dashboard/home");
+  if (!isEmailPolicyAllowed("pmfMetrics", user.email ?? null, process.env)) redirect("/dashboard/home");
 
   const s = await getPmfSummary();
   const npsChannels = Object.entries(s.nps.byChannel).sort((a, b) => b[1].count - a[1].count);

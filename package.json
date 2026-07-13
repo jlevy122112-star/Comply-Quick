@@ -15,7 +15,9 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "quality": "npm run typecheck && npm run lint && npm run test && npm run format:check",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test:e2e": "playwright test",
+    "test:e2e:update": "playwright test --update-snapshots"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -56,6 +58,7 @@
     "prettier": "^3.9.4",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.9",
+    "@playwright/test": "1.61.1"
   }
 }

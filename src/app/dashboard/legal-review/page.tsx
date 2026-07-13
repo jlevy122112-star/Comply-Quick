@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { isLegalAdmin } from "@/lib/legal/review";
+import { isEmailPolicyAllowed } from "@/lib/access-policy";
 import { listReviewItems } from "@/lib/legal/review-queue";
 import LegalReviewView from "./LegalReviewView";
 
@@ -14,7 +14,7 @@ export default async function LegalReviewPage() {
 
   if (!user) redirect("/login?redirect=/dashboard/legal-review");
 
-  const admin = isLegalAdmin(user.email ?? null, process.env.LEGAL_REVIEW_ADMIN_EMAILS);
+  const admin = isEmailPolicyAllowed("legalReview", user.email ?? null, process.env);
 
   if (!admin) redirect("/dashboard/home");
 
