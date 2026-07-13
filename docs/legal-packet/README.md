@@ -53,8 +53,13 @@ Primary runbooks live in `docs/operations/`:
 - `CHANGE_MANAGEMENT.md`
 - `BACKUP_RESTORE.md`
 - `MONITORING.md`
+- `EMERGENCY_REVERT_PLAN.md`
 - `SLA.md`
 - `SUPPORT.md`
+
+## Compliance Matrix (counsel-facing)
+
+- `COMPLIANCE_REQUIREMENTS_MATRIX.md` maps requirement areas, source expectations, and current implementation status.
 
 ## Counsel Review Workflow
 

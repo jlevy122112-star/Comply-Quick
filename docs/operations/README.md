@@ -13,6 +13,7 @@ with the SLA and support policies they form the "Operational" and enterprise
 | [CHANGE_MANAGEMENT.md](./CHANGE_MANAGEMENT.md) | How code and schema changes are proposed, reviewed, tested, deployed, and rolled back. |
 | [BACKUP_RESTORE.md](./BACKUP_RESTORE.md) | What is backed up, how often, and the tested restore procedure. |
 | [MONITORING.md](./MONITORING.md) | What we watch (errors, availability, CI, usage) and how alerts are routed. |
+| [EMERGENCY_REVERT_PLAN.md](./EMERGENCY_REVERT_PLAN.md) | High-urgency production rollback runbook for service restoration. |
 | [SLA.md](./SLA.md) | Availability target, support response times, and credit terms by plan. |
 | [SUPPORT.md](./SUPPORT.md) | Support channels, hours, escalation, and the dedicated-support offering. |
 | [INTERNAL_POLICY_BASELINE.md](./INTERNAL_POLICY_BASELINE.md) | Internal policy baseline and ownership model for compliance operations. |
