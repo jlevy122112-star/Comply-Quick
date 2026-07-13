@@ -2,20 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { createClient } from "@/lib/supabase/server";
 import { analytics, errorResponse, logger, ValidationError, type AnalyticsEvent } from "@/services";
+import { CLIENT_EMITTABLE_EVENTS } from "@/lib/analytics/canonical-events";
 
 // Client-emitted events. Billing-critical events remain server-only so they
 // cannot be spoofed by a browser request.
-const CLIENT_EVENTS: readonly AnalyticsEvent[] = [
-  "paywall_viewed",
-  "upgrade_cta_clicked",
-  "pricing_variant_seen",
-  "expansion_nudge_shown",
-  "expansion_nudge_clicked",
-  "churn_save_offer_shown",
-  "churn_save_offer_accepted",
-  "web_vital_reported",
-  "web_vital_budget_failed",
-];
+const CLIENT_EVENTS: readonly AnalyticsEvent[] = CLIENT_EMITTABLE_EVENTS;
 
 function isClientEvent(value: unknown): value is AnalyticsEvent {
   return typeof value === "string" && (CLIENT_EVENTS as readonly string[]).includes(value);

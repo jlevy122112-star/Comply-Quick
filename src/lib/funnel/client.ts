@@ -1,16 +1,7 @@
+import type { ClientAnalyticsEvent } from "@/lib/analytics/canonical-events";
+
 // Browser helper for emitting client-side analytics events to the analytics API.
 // Fire-and-forget: analytics must never block or break the UI.
-
-export type ClientAnalyticsEvent =
-  | "paywall_viewed"
-  | "upgrade_cta_clicked"
-  | "pricing_variant_seen"
-  | "expansion_nudge_shown"
-  | "expansion_nudge_clicked"
-  | "churn_save_offer_shown"
-  | "churn_save_offer_accepted"
-  | "web_vital_reported"
-  | "web_vital_budget_failed";
 
 export function trackClientEvent(
   event: ClientAnalyticsEvent,
