@@ -1,3 +1,5 @@
+import { isEmailAllowed, parseEmailAllowlist } from "@/lib/access-policy";
+
 // Pure helpers for the quarterly legal-review workflow ([Up10]). No DB or
 // server imports so this stays unit-testable; the DB-backed service lives in
 // review-queue.ts.
@@ -58,21 +60,10 @@ export function isReviewCategory(value: unknown): value is ReviewCategory {
   return typeof value === "string" && (REVIEW_CATEGORIES as readonly string[]).includes(value);
 }
 
-/**
- * Parse the LEGAL_REVIEW_ADMIN_EMAILS allowlist (comma/whitespace separated)
- * into a normalized, lower-cased list.
- */
-export function parseAdminEmails(raw: string | undefined): string[] {
-  if (!raw) return [];
-  return raw
-    .split(/[,\s]+/)
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-}
+/** @deprecated Use parseEmailAllowlist from @/lib/access-policy. */
+export const parseAdminEmails = parseEmailAllowlist;
 
 /** Whether `email` is permitted to access the legal-review queue. */
 export function isLegalAdmin(email: string | null | undefined, raw: string | undefined): boolean {
-  if (!email) return false;
-  const allow = parseAdminEmails(raw);
-  return allow.includes(email.trim().toLowerCase());
+  return isEmailAllowed(email, raw);
 }

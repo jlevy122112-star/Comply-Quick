@@ -1,3 +1,5 @@
+import { isEmailAllowed, parseEmailAllowlist } from "@/lib/access-policy";
+
 // [Up11] PMF validation — pure, dependency-free metric helpers.
 //
 // Kept side-effect-free and DB-agnostic so they unit-test cleanly; the service
@@ -88,16 +90,9 @@ export function isChurnReason(value: unknown): value is ChurnReason {
   return typeof value === "string" && (CHURN_REASONS as readonly string[]).includes(value);
 }
 
-/** Parses a comma/space-separated admin-email allowlist into normalized emails. */
-export function parseAdminEmails(raw: string | undefined): string[] {
-  if (!raw) return [];
-  return raw
-    .split(/[,\s]+/)
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-}
+/** @deprecated Use parseEmailAllowlist from @/lib/access-policy. */
+export const parseAdminEmails = parseEmailAllowlist;
 
 export function isPmfAdmin(email: string | null | undefined, raw: string | undefined): boolean {
-  if (!email) return false;
-  return parseAdminEmails(raw).includes(email.trim().toLowerCase());
+  return isEmailAllowed(email, raw);
 }

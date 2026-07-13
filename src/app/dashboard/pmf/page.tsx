@@ -1,8 +1,9 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getPmfSummary } from "@/lib/pmf/service";
-import { isPmfAdmin, toPercent, CHURN_REASON_LABELS, type ChurnReason } from "@/lib/pmf/metrics";
+import { isEmailPolicyAllowed } from "@/lib/access-policy";
+import { toPercent, CHURN_REASON_LABELS, type ChurnReason } from "@/lib/pmf/metrics";
 
 export const dynamic = "force-dynamic";
 
@@ -23,23 +24,7 @@ export default async function PmfDashboardPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?redirect=/dashboard/pmf");
 
-  if (!isPmfAdmin(user.email ?? null, process.env.PMF_ADMIN_EMAILS)) {
-    return (
-      <main className="min-h-screen bg-gray-950 text-gray-200">
-        <div className="mx-auto max-w-2xl px-6 py-20 text-center">
-          <h1 className="text-2xl font-bold text-white">PMF Metrics</h1>
-          <p className="mt-4 text-sm text-gray-400">
-            Access is restricted. Ask an administrator to add your email (
-            <span className="font-mono text-gray-300">{user.email}</span>) to the{" "}
-            <span className="font-mono text-gray-300">PMF_ADMIN_EMAILS</span> allowlist.
-          </p>
-          <Link href="/dashboard/home" className="mt-8 inline-block text-sm text-indigo-400 hover:text-indigo-300">
-            &larr; Back to dashboard
-          </Link>
-        </div>
-      </main>
-    );
-  }
+  if (!isEmailPolicyAllowed("pmfMetrics", user.email ?? null, process.env)) redirect("/dashboard/home");
 
   const s = await getPmfSummary();
   const npsChannels = Object.entries(s.nps.byChannel).sort((a, b) => b[1].count - a[1].count);

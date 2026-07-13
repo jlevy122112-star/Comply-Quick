@@ -230,9 +230,9 @@ function AuthPage() {
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center text-center mb-8">
           <Logo href="/" tone="dark" size="lg" tagline />
-          <p className="mt-4 text-sm text-gray-400">
-            {mode === "signup" ? "Create your Command Center account" : "Sign in to your Command Center"}
-          </p>
+          <h2 className="mt-4 text-sm text-gray-400 font-normal">
+            {mode === "signup" ? "Create Your Command Center Account" : "Sign In to Your Command Center"}
+          </h2>
         </div>
 
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-8">
@@ -267,7 +267,7 @@ function AuthPage() {
                       mode === m ? "bg-indigo-600 text-white" : "text-gray-400 hover:text-gray-200"
                     }`}
                   >
-                    {m === "signin" ? "Sign in" : "Create account"}
+                    {m === "signin" ? "Sign In" : "Create Account"}
                   </button>
                 ))}
               </div>
@@ -337,7 +337,7 @@ function AuthPage() {
                         onClick={() => switchMode("forgot")}
                         className="text-xs text-indigo-400 hover:text-indigo-300"
                       >
-                        Forgot password?
+                        Forgot Password?
                       </button>
                     )}
                   </div>
@@ -384,11 +384,11 @@ function AuthPage() {
                 >
                   {busy
                     ? mode === "signup"
-                      ? "Creating account…"
-                      : "Signing in…"
+                      ? "Creating Account…"
+                      : "Signing In…"
                     : mode === "signup"
-                      ? "Create account"
-                      : "Sign in"}
+                      ? "Create Account with Email"
+                      : "Sign In with Email"}
                 </button>
 
                 {mode === "signin" && (
@@ -399,7 +399,7 @@ function AuthPage() {
                       disabled={busy || !email}
                       className="text-xs text-gray-400 hover:text-gray-200 disabled:opacity-40"
                     >
-                      Email me a magic link instead
+                      Email Me a Magic Link Instead
                     </button>
                   </div>
                 )}
@@ -608,7 +608,7 @@ function ForgotView({
       className="space-y-4"
     >
       <div>
-        <h2 className="text-lg font-semibold text-white">Reset your password</h2>
+        <h2 className="text-lg font-semibold text-white">Reset Your Password</h2>
         <p className="mt-1 text-sm text-gray-400">
           Enter your email and we&apos;ll send you a link to set a new password.
         </p>
@@ -628,10 +628,10 @@ function ForgotView({
         disabled={busy || !email}
         className="w-full rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:opacity-40"
       >
-        {busy ? "Sending…" : "Send reset link"}
+        {busy ? "Sending…" : "Send Reset Link"}
       </button>
       <button type="button" onClick={onBack} className="w-full text-center text-xs text-gray-400 hover:text-gray-200">
-        &larr; Back to sign in
+        &larr; Back to Sign In
       </button>
     </form>
   );
@@ -647,9 +647,9 @@ function NoticePanel({
   onBack: () => void;
 }) {
   const copy = {
-    magic: { icon: "📬", title: "Check your email", body: "We sent a magic sign-in link to" },
-    confirm: { icon: "✉️", title: "Confirm your email", body: "We sent a verification link to" },
-    reset: { icon: "🔑", title: "Reset link sent", body: "We sent a password-reset link to" },
+    magic: { icon: "📬", title: "Check Your Email", body: "We sent a magic sign-in link to" },
+    confirm: { icon: "✉️", title: "Confirm Your Email", body: "We sent a verification link to" },
+    reset: { icon: "🔑", title: "Reset Link Sent", body: "We sent a password-reset link to" },
   }[notice];
   return (
     <div className="text-center space-y-3">

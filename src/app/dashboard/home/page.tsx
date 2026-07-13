@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getEntitlement } from "@/lib/entitlements";
 import { listProjects, getAggregateScore } from "@/lib/projects-db";
 import { listCompletedTools } from "@/lib/tools/usage";
-import { isLegalAdmin } from "@/lib/legal/review";
+import { isEmailPolicyAllowed } from "@/lib/access-policy";
 import CommandCenterView from "./CommandCenterView";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +32,7 @@ export default async function CommandCenterPage() {
       aggregateScore={aggregateScore}
       completedTools={completedTools}
       userEmail={user.email ?? null}
-      isLegalAdmin={isLegalAdmin(user.email ?? null, process.env.LEGAL_REVIEW_ADMIN_EMAILS)}
+      isLegalAdmin={isEmailPolicyAllowed("legalReview", user.email ?? null, process.env)}
     />
   );
 }
