@@ -87,7 +87,7 @@ export function LeadCaptureForm({ source = "landing_hero" }: { source?: string }
           disabled={status === "submitting"}
           className="px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 disabled:opacity-60 transition-colors whitespace-nowrap"
         >
-          {status === "submitting" ? "Sending…" : "Get my free scan"}
+          {status === "submitting" ? "Sending…" : "Get My Free Scan"}
         </button>
       </div>
       {status === "error" && (

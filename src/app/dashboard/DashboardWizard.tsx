@@ -843,7 +843,7 @@ function PaywallGate({
               className="w-full py-3.5 px-4 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition-colors relative overflow-hidden group"
             >
               <span className="relative z-10">
-                Unlock with {TIER_CONFIG.solo.label} &mdash; {soloPrice}
+                Upgrade to {TIER_CONFIG.solo.label} &mdash; {soloPrice}
               </span>
               <span className="absolute inset-0 bg-white/5 translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-300" />
             </button>
@@ -852,14 +852,14 @@ function PaywallGate({
               onClick={() => handleCta("agency")}
               className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold hover:from-purple-500 hover:to-indigo-500 transition-all"
             >
-              Unlimited Agency Pass &mdash; {agencyPrice}
+              Upgrade to Agency &mdash; {agencyPrice}
             </button>
             <button
               type="button"
               onClick={() => handleCta("enterprise")}
               className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold hover:from-amber-500 hover:to-orange-500 transition-all"
             >
-              Enterprise Tier &mdash; {enterprisePrice}
+              Upgrade to Enterprise &mdash; {enterprisePrice}
             </button>
           </div>
 
