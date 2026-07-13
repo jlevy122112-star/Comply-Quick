@@ -15,6 +15,7 @@ with the SLA and support policies they form the "Operational" and enterprise
 | [MONITORING.md](./MONITORING.md) | What we watch (errors, availability, CI, usage) and how alerts are routed. |
 | [SLA.md](./SLA.md) | Availability target, support response times, and credit terms by plan. |
 | [SUPPORT.md](./SUPPORT.md) | Support channels, hours, escalation, and the dedicated-support offering. |
+| [INTERNAL_POLICY_BASELINE.md](./INTERNAL_POLICY_BASELINE.md) | Internal policy baseline and ownership model for compliance operations. |
 
 ## Ownership
 

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { COMPARISONS, getComparison } from "@/lib/comparisons";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://comply-quick.com";
+const SITE_ORIGIN = BASE_URL.endsWith("/") ? BASE_URL.slice(0, -1) : BASE_URL;
 const START_HREF = "/dashboard?utm_source=landing&utm_medium=compare&utm_campaign=free_scan";
 
 export function generateStaticParams() {
@@ -14,14 +15,25 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const c = getComparison(slug);
   if (!c) return { title: "Not found" };
-  const url = `${BASE_URL}/compare/${c.slug}`;
+  const url = `${SITE_ORIGIN}/compare/${c.slug}`;
   return {
     title: c.title,
     description: c.description,
     keywords: c.keywords,
-    alternates: { canonical: url },
-    openGraph: { type: "article", title: c.title, description: c.description, url },
-    twitter: { card: "summary_large_image", title: c.title, description: c.description },
+    alternates: { canonical: url, languages: { "en-US": url } },
+    openGraph: {
+      type: "article",
+      title: c.title,
+      description: c.description,
+      url,
+      images: [{ url: `${SITE_ORIGIN}/opengraph-image.png`, width: 1200, height: 630, alt: c.title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: c.title,
+      description: c.description,
+      images: [`${SITE_ORIGIN}/opengraph-image.png`],
+    },
   };
 }
 
@@ -30,8 +42,8 @@ export default async function ComparePage({ params }: { params: Promise<{ slug: 
   const c = getComparison(slug);
   if (!c) notFound();
 
-  const url = `${BASE_URL}/compare/${c.slug}`;
-  const jsonLd = {
+  const url = `${SITE_ORIGIN}/compare/${c.slug}`;
+  const faqJsonLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
     mainEntity: c.faqs.map((f) => ({
@@ -41,10 +53,19 @@ export default async function ComparePage({ params }: { params: Promise<{ slug: 
     })),
     url,
   };
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_ORIGIN}/` },
+      { "@type": "ListItem", position: 2, name: "Comparisons", item: `${SITE_ORIGIN}/compare/${c.slug}` },
+    ],
+  };
 
   return (
     <main className="min-h-screen bg-gray-950 text-gray-200">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <div className="mx-auto max-w-4xl px-6 py-16 sm:py-24">
         <nav className="text-xs text-gray-400">
           <Link href="/" className="hover:text-gray-200">

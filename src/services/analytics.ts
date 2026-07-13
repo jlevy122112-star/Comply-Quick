@@ -19,16 +19,26 @@ export type AnalyticsEvent =
   | "scan_limit_reached"
   | "paywall_viewed"
   | "upgrade_cta_clicked"
+  | "pricing_variant_seen"
   // Checkout / revenue
   | "checkout_started"
   | "checkout_completed"
   | "subscription_canceled"
+  | "dunning_payment_failed"
+  | "dunning_payment_recovered"
   // Expansion / usage
   | "api_call_metered"
   | "extra_scan_metered"
   | "scan_cache_hit"
+  | "expansion_nudge_shown"
+  | "expansion_nudge_clicked"
   // Retention
-  | "nps_submitted";
+  | "nps_submitted"
+  | "churn_save_offer_shown"
+  | "churn_save_offer_accepted"
+  // Performance telemetry
+  | "web_vital_reported"
+  | "web_vital_budget_failed";
 
 export interface AnalyticsProperties {
   [key: string]: string | number | boolean | null | undefined;

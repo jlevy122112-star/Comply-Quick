@@ -6,6 +6,7 @@ import { BlogBody } from "../render";
 import { BlogCta } from "../BlogCta";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://comply-quick.com";
+const SITE_ORIGIN = BASE_URL.endsWith("/") ? BASE_URL.slice(0, -1) : BASE_URL;
 
 export function generateStaticParams() {
   return getAllPosts().map((p) => ({ slug: p.slug }));
@@ -15,12 +16,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const post = getPostBySlug(slug);
   if (!post) return { title: "Not found" };
-  const url = `${BASE_URL}/blog/${post.slug}`;
+  const url = `${SITE_ORIGIN}/blog/${post.slug}`;
   return {
     title: post.title,
     description: post.description,
     keywords: post.keywords,
-    alternates: { canonical: url },
+    alternates: { canonical: url, languages: { "en-US": url } },
     openGraph: {
       type: "article",
       title: post.title,
@@ -40,8 +41,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   if (!post) notFound();
 
   const related = getRelatedPosts(post);
-  const url = `${BASE_URL}/blog/${post.slug}`;
-  const jsonLd = {
+  const url = `${SITE_ORIGIN}/blog/${post.slug}`;
+  const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: post.title,
@@ -49,14 +50,28 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     datePublished: post.publishedAt,
     dateModified: post.updatedAt,
     author: { "@type": "Organization", name: post.author },
-    publisher: { "@type": "Organization", name: "Comply-Quick" },
+    publisher: {
+      "@type": "Organization",
+      name: "Comply-Quick",
+      logo: { "@type": "ImageObject", url: `${SITE_ORIGIN}/icon.png` },
+    },
     mainEntityOfPage: { "@type": "WebPage", "@id": url },
     keywords: post.keywords.join(", "),
+  };
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_ORIGIN}/` },
+      { "@type": "ListItem", position: 2, name: "Blog", item: `${SITE_ORIGIN}/blog` },
+      { "@type": "ListItem", position: 3, name: post.title, item: url },
+    ],
   };
 
   return (
     <main className="min-h-screen bg-gray-950 text-gray-200">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <article className="mx-auto max-w-3xl px-6 py-16">
         <nav className="text-sm text-gray-500">
           <Link href="/blog" className="hover:text-gray-300">

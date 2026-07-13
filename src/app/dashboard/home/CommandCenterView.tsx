@@ -52,6 +52,13 @@ interface QuickTool {
 
 const QUICK_TOOLS: QuickTool[] = [
   {
+    label: "Compliance HQ",
+    description: "Internal legal ops center",
+    icon: "🛡️",
+    href: "/dashboard/compliance-hq",
+    available: true,
+  },
+  {
     label: "Generate New Package",
     description: "Run the compliance wizard",
     icon: "🚀",

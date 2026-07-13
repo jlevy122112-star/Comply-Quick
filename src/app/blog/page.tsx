@@ -3,17 +3,25 @@ import Link from "next/link";
 import { getAllPosts, readingTimeMinutes } from "@/lib/blog";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://comply-quick.com";
+const SITE_ORIGIN = BASE_URL.endsWith("/") ? BASE_URL.slice(0, -1) : BASE_URL;
 
 export const metadata: Metadata = {
   title: "Compliance Guides & Resources",
   description:
     "Practical GDPR, CCPA/CPRA, and privacy-policy guides for founders, agencies, and ecommerce stores — from the team behind Comply-Quick.",
-  alternates: { canonical: `${BASE_URL}/blog` },
+  alternates: { canonical: `${SITE_ORIGIN}/blog`, languages: { "en-US": `${SITE_ORIGIN}/blog` } },
   openGraph: {
     type: "website",
     title: "Compliance Guides & Resources | Comply-Quick",
     description: "Practical GDPR, CCPA/CPRA, and privacy-policy guides for founders, agencies, and ecommerce stores.",
-    url: `${BASE_URL}/blog`,
+    url: `${SITE_ORIGIN}/blog`,
+    images: [{ url: `${SITE_ORIGIN}/opengraph-image.png`, width: 1200, height: 630, alt: "Comply-Quick guides" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Compliance Guides & Resources | Comply-Quick",
+    description: "Practical GDPR, CCPA/CPRA, and privacy-policy guides for founders, agencies, and ecommerce stores.",
+    images: [`${SITE_ORIGIN}/opengraph-image.png`],
   },
 };
 

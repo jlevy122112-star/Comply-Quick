@@ -2,6 +2,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import { bareHost, primaryHosts } from "@/lib/appHost";
 import { buildCsp, cspHeaderName, generateNonce } from "@/lib/security/csp";
+import {
+  EXPERIMENT_ID_COOKIE,
+  PRICING_EXPERIMENT_COOKIE,
+  resolveServerPricingVariant,
+} from "@/lib/experiments/pricing";
+import { isProfitOptimizationEnabled } from "@/lib/optimizations/flags";
 
 /**
  * White-label custom-domain routing (Phase 5).
@@ -41,6 +47,27 @@ export async function proxy(request: NextRequest) {
     return response;
   };
 
+  const withExperimentCookies = (response: NextResponse): NextResponse => {
+    if (!isProfitOptimizationEnabled()) return response;
+    const existingId = request.cookies.get(EXPERIMENT_ID_COOKIE)?.value ?? null;
+    const { variant, id } = resolveServerPricingVariant(existingId);
+    response.cookies.set(EXPERIMENT_ID_COOKIE, id, {
+      path: "/",
+      httpOnly: false,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 365,
+    });
+    response.cookies.set(PRICING_EXPERIMENT_COOKIE, variant, {
+      path: "/",
+      httpOnly: false,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+    return response;
+  };
+
   // On a custom domain, serve the branded white-label portal at the root and let
   // app internals (portal pages, static assets, the Sentry tunnel) pass through
   // untouched.
@@ -56,10 +83,10 @@ export async function proxy(request: NextRequest) {
     const rewriteHeaders = new Headers(request.headers);
     rewriteHeaders.set("x-nonce", nonce);
     rewriteHeaders.set("content-security-policy", csp);
-    return withCsp(NextResponse.rewrite(url, { request: { headers: rewriteHeaders } }));
+    return withExperimentCookies(withCsp(NextResponse.rewrite(url, { request: { headers: rewriteHeaders } })));
   }
 
-  return withCsp(await updateSession(request, { nonce, policy: csp }));
+  return withExperimentCookies(withCsp(await updateSession(request, { nonce, policy: csp })));
 }
 
 export const config = {

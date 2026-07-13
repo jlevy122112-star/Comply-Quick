@@ -70,11 +70,11 @@ export function ExitIntentCapture() {
           &#x2715;
         </button>
         <h2 id="exit-intent-title" className="text-xl font-bold text-white">
-          Before you go &mdash; grab your free compliance checklist.
+          Before You Go &mdash; Grab Your Free Compliance Checklist.
         </h2>
         <p className="mt-2 text-sm text-gray-300">
-          The exact steps to get GDPR, CCPA, and cookie-consent ready &mdash; plus a free scan of your site. No card
-          required.
+          The Exact Steps To Get GDPR, CCPA, And Cookie-Consent Ready &mdash; Plus A Free Scan Of Your Site. No Card
+          Required.
         </p>
         <div className="mt-5">
           <LeadCaptureForm source="exit_intent" />
