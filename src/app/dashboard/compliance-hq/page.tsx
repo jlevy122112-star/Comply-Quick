@@ -29,7 +29,6 @@ const OPERATIONS_LOGS = [
   "Vendor Review Log",
   "Compliance Evidence Register",
   "Release and Rollback Log",
-  "Emergency Revert Runbook Log",
   "Support SLA Tracking Log",
   "Dunning and Recovery Log",
   "Regulatory Watch Log",

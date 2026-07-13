@@ -119,35 +119,7 @@ Use these templates as databases in Notion HQ for live operations after launch.
 | Rollback Tested | Checkbox |
 | Outcome | Select (Success/Partial/Rolled Back) |
 
-## 10) Emergency Revert Runbook Execution Log
-
-| Property | Type |
-|---|---|
-| Incident/Release ID | Title |
-| Trigger Time | Date |
-| Trigger Condition | Select (Outage/Error Spike/Auth Failure/Billing Failure/Data Risk/Other) |
-| Last Known Good Deploy | Text |
-| Revert Type | Select (Code/Config/Forward Migration) |
-| Revert Start | Date |
-| Revert Complete | Date |
-| User Impact Summary | Text |
-| Commander | Person |
-| Status | Select (Active/Recovered/Postmortem Required/Closed) |
-
-## 11) Strategic Initiative Tracker
-
-| Property | Type |
-|---|---|
-| Initiative | Title |
-| Pillar | Select (Activation/Integrations/Trust/Retention/Enterprise) |
-| Owner | Person |
-| Start Date | Date |
-| Target Date | Date |
-| KPI Target | Text |
-| Current Status | Select (Planned/In Progress/Blocked/Live) |
-| Notes | Text |
-
-## 12) Support SLA Tracking Log
+## 10) Support SLA Tracking Log
 
 | Property | Type |
 |---|---|
@@ -160,7 +132,7 @@ Use these templates as databases in Notion HQ for live operations after launch.
 | SLA Breached | Formula |
 | Status | Select |
 
-## 13) Billing/Dunning Recovery Log
+## 11) Billing/Dunning Recovery Log
 
 | Property | Type |
 |---|---|
@@ -173,7 +145,7 @@ Use these templates as databases in Notion HQ for live operations after launch.
 | Recovery Date | Date |
 | Notes | Text |
 
-## 14) Legal Review Tracker
+## 12) Legal Review Tracker
 
 | Property | Type |
 |---|---|
@@ -185,7 +157,7 @@ Use these templates as databases in Notion HQ for live operations after launch.
 | Required Edits | Text |
 | Final Sign-Off Date | Date |
 
-## 15) Regulatory Watch Log
+## 13) Regulatory Watch Log
 
 | Property | Type |
 |---|---|
@@ -198,7 +170,7 @@ Use these templates as databases in Notion HQ for live operations after launch.
 | Owner | Person |
 | Status | Select (Open/In Progress/Done) |
 
-## 16) Audit Readiness Log
+## 14) Audit Readiness Log
 
 | Property | Type |
 |---|---|
@@ -210,7 +182,7 @@ Use these templates as databases in Notion HQ for live operations after launch.
 | Remediation Owner | Person |
 | Target Close Date | Date |
 
-## 17) Launch Go/No-Go Log
+## 15) Launch Go/No-Go Log
 
 | Property | Type |
 |---|---|
