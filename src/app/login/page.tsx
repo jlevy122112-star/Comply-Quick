@@ -8,6 +8,14 @@ import { uploadBrandLogo, validateLogoFile } from "@/lib/storage/brand";
 
 type Mode = "signin" | "signup" | "forgot";
 
+function authCallbackUrl(redirectPath: string, channel?: string): string {
+  const configuredOrigin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
+  const origin = configuredOrigin && /^https?:\/\//i.test(configuredOrigin) ? configuredOrigin : window.location.origin;
+  const query = new URLSearchParams({ redirect: redirectPath });
+  if (channel) query.set("channel", channel);
+  return origin + "/auth/callback?" + query.toString();
+}
+
 export default function LoginPageWrapper() {
   return (
     <Suspense
@@ -76,7 +84,7 @@ function AuthPage() {
       setError("");
       try {
         const supabase = createClient();
-        const redirect = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`;
+        const redirect = authCallbackUrl(redirectTo);
         const { error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: redirect } });
         if (error) {
           setError(error.message);
@@ -141,7 +149,7 @@ function AuthPage() {
 
     try {
       const supabase = createClient();
-      const emailRedirectTo = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}&channel=signup`;
+      const emailRedirectTo = authCallbackUrl(redirectTo, "signup");
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -189,7 +197,7 @@ function AuthPage() {
     setError("");
     try {
       const supabase = createClient();
-      const emailRedirectTo = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`;
+      const emailRedirectTo = authCallbackUrl(redirectTo);
       const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo } });
       if (error) {
         setError(error.message);
@@ -210,7 +218,7 @@ function AuthPage() {
     try {
       const supabase = createClient();
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback?redirect=/auth/reset`,
+        redirectTo: authCallbackUrl("/auth/reset"),
       });
       if (error) {
         setError(error.message);
