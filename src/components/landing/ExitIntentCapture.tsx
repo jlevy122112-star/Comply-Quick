@@ -70,7 +70,7 @@ export function ExitIntentCapture() {
           &#x2715;
         </button>
         <h2 id="exit-intent-title" className="text-xl font-bold text-white">
-          Before You Go &mdash; Grab Your Free Compliance Checklist.
+          Before You Go - Sign Up for a Free Compliance Scan for Your Next Website!
         </h2>
         <p className="mt-2 text-sm text-gray-300">
           The Exact Steps To Get GDPR, CCPA, And Cookie-Consent Ready &mdash; Plus A Free Scan Of Your Site. No Card
