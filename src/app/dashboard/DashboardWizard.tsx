@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { computePaywallTriggers } from "@/lib/funnel/triggers";
-import { trackFunnel } from "@/lib/funnel/client";
+import { trackClientEvent, trackFunnel } from "@/lib/funnel/client";
 import {
   generateCompliancePackage,
   exportToMarkdown,
@@ -19,6 +19,11 @@ import { saveProjectAction } from "./actions";
 import type { Tier } from "@/lib/entitlements";
 import { TIER_CONFIG } from "@/lib/pricing";
 import { REPORT_DISCLAIMER, DISCLAIMER_LONG } from "@/lib/legal";
+import {
+  defaultBillingForVariant,
+  orderedPlansForVariant,
+  resolvePricingExperimentVariant,
+} from "@/lib/experiments/pricing";
 
 interface DashboardWizardProps {
   isPremium: boolean;
@@ -596,6 +601,14 @@ export default function DashboardWizard({ isPremium, isAuthenticated }: Dashboar
             <Link href="/legal/terms" className="underline hover:text-gray-400">
               Terms of Service
             </Link>
+            {" · "}
+            <Link href="/legal/privacy" className="underline hover:text-gray-400">
+              Privacy Policy
+            </Link>
+            {" · "}
+            <Link href="/legal" className="underline hover:text-gray-400">
+              Legal Center
+            </Link>
           </p>
         </footer>
       </div>
@@ -671,7 +684,10 @@ function PaywallGate({
   modules: ComplianceModule[];
   onCheckout: (plan: "solo" | "agency" | "enterprise", billing?: "monthly" | "annual") => void;
 }) {
-  const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
+  const pricingVariant = useMemo(() => resolvePricingExperimentVariant(), []);
+  const [billing, setBilling] = useState<"monthly" | "annual">(() =>
+    defaultBillingForVariant(pricingVariant, "monthly")
+  );
 
   const triggers = useMemo(
     () => computePaywallTriggers({ hasAda: modules.includes("ada_wcag"), hasHipaa: modules.includes("hipaa") }),
@@ -679,17 +695,42 @@ function PaywallGate({
   );
 
   useEffect(() => {
-    trackFunnel("paywall_viewed", { surface: "wizard", triggers: triggers.map((t) => t.id).join(",") });
-  }, [triggers]);
+    trackFunnel("paywall_viewed", {
+      surface: "wizard",
+      triggers: triggers.map((t) => t.id).join(","),
+      pricingVariant,
+    });
+    trackClientEvent("pricing_variant_seen", { surface: "wizard_paywall", variant: pricingVariant });
+    trackClientEvent("expansion_nudge_shown", { surface: "wizard_paywall", pricingVariant });
+  }, [pricingVariant, triggers]);
 
   const handleCta = (plan: "solo" | "agency" | "enterprise") => {
-    trackFunnel("upgrade_cta_clicked", { surface: "wizard", plan, billing });
+    trackFunnel("upgrade_cta_clicked", { surface: "wizard", plan, billing, pricingVariant });
+    trackClientEvent("expansion_nudge_clicked", { surface: "wizard_paywall", plan, billing, pricingVariant });
     onCheckout(plan, billing);
   };
   const soloPrice = billing === "annual" ? `$${TIER_CONFIG.solo.annual}/yr` : `$${TIER_CONFIG.solo.monthly}/mo`;
   const agencyPrice = billing === "annual" ? `$${TIER_CONFIG.agency.annual}/yr` : `$${TIER_CONFIG.agency.monthly}/mo`;
   const enterprisePrice =
     billing === "annual" ? `$${TIER_CONFIG.enterprise.annual}/yr` : `$${TIER_CONFIG.enterprise.monthly}/mo`;
+  const ctaOrder = orderedPlansForVariant(pricingVariant, ["solo", "agency", "enterprise"] as const);
+  const ctaConfig: Record<"solo" | "agency" | "enterprise", { className: string; buttonText: string }> = {
+    solo: {
+      buttonText: `Unlock with ${TIER_CONFIG.solo.label} — ${soloPrice}`,
+      className:
+        "w-full py-3.5 px-4 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition-colors relative overflow-hidden group",
+    },
+    agency: {
+      buttonText: `Unlimited Agency Pass — ${agencyPrice}`,
+      className:
+        "w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold hover:from-purple-500 hover:to-indigo-500 transition-all",
+    },
+    enterprise: {
+      buttonText: `Enterprise Tier — ${enterprisePrice}`,
+      className:
+        "w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold hover:from-amber-500 hover:to-orange-500 transition-all",
+    },
+  };
   return (
     <div className="relative">
       {/* Blurred preview tease — shows what's locked */}
@@ -837,30 +878,14 @@ function PaywallGate({
 
           {/* CTA Buttons */}
           <div className="space-y-3">
-            <button
-              type="button"
-              onClick={() => handleCta("solo")}
-              className="w-full py-3.5 px-4 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition-colors relative overflow-hidden group"
-            >
-              <span className="relative z-10">
-                Unlock with {TIER_CONFIG.solo.label} &mdash; {soloPrice}
-              </span>
-              <span className="absolute inset-0 bg-white/5 translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-300" />
-            </button>
-            <button
-              type="button"
-              onClick={() => handleCta("agency")}
-              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold hover:from-purple-500 hover:to-indigo-500 transition-all"
-            >
-              Unlimited Agency Pass &mdash; {agencyPrice}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleCta("enterprise")}
-              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold hover:from-amber-500 hover:to-orange-500 transition-all"
-            >
-              Enterprise Tier &mdash; {enterprisePrice}
-            </button>
+            {ctaOrder.map((plan) => (
+              <button key={plan} type="button" onClick={() => handleCta(plan)} className={ctaConfig[plan].className}>
+                <span className="relative z-10">{ctaConfig[plan].buttonText}</span>
+                {plan === "solo" ? (
+                  <span className="absolute inset-0 bg-white/5 translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-300" />
+                ) : null}
+              </button>
+            ))}
           </div>
 
           {/* Trust signals */}

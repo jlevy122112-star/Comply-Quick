@@ -417,7 +417,10 @@ function AuthPage() {
           <a href="/legal/privacy" className="text-gray-500 underline hover:text-gray-300">
             Privacy Policy
           </a>
-          .
+          . View all legal documents in the{" "}
+          <a href="/legal" className="text-gray-500 underline hover:text-gray-300">
+            Legal Center
+          </a>
         </p>
       </div>
     </div>

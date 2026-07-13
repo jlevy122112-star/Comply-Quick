@@ -1,4 +1,5 @@
 import Script from "next/script";
+import { isSpeedOptimizationEnabled } from "@/lib/optimizations/flags";
 
 /**
  * Microsoft Clarity heatmap + session-recording loader.
@@ -14,15 +15,20 @@ import Script from "next/script";
 const CLARITY_ID_PATTERN = /^[a-z0-9]{1,32}$/i;
 
 export function Clarity() {
+  if (!isSpeedOptimizationEnabled()) return null;
   const projectId = process.env.NEXT_PUBLIC_CLARITY_ID;
   if (!projectId || !CLARITY_ID_PATTERN.test(projectId)) return null;
 
   return (
-    <Script id="ms-clarity" strategy="afterInteractive">
+    <Script id="ms-clarity" strategy="lazyOnload">
       {`(function(c,l,a,r,i,t,y){
         c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+        var cqLoad=function(){
+          t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+          y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+        };
+        if('requestIdleCallback' in c){c.requestIdleCallback(cqLoad,{timeout:2500});}
+        else{setTimeout(cqLoad,1500);}
       })(window, document, "clarity", "script", ${JSON.stringify(projectId)});`}
     </Script>
   );

@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Clarity } from "@/components/analytics/Clarity";
 import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
+import { WebVitalsReporter } from "@/components/analytics/WebVitalsReporter";
 import "./globals.css";
 
 // Google Search Console verification token (env-gated). Validated to the token
@@ -75,6 +76,7 @@ export default function RootLayout({
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         {children}
+        <WebVitalsReporter />
         <Analytics />
         <SpeedInsights />
         <Clarity />

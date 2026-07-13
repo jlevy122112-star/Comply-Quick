@@ -1,8 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { TIER_CONFIG } from "@/lib/pricing";
+import {
+  defaultBillingForVariant,
+  orderedPlansForVariant,
+  resolvePricingExperimentVariant,
+} from "@/lib/experiments/pricing";
+import { trackClientEvent } from "@/lib/funnel/client";
 
 type Billing = "monthly" | "annual";
 
@@ -80,7 +86,13 @@ const BUTTON: Record<Plan["variant"], string> = {
 };
 
 export function PricingPlans({ startHref }: { startHref: string }) {
-  const [billing, setBilling] = useState<Billing>("annual");
+  const variant = useMemo(() => resolvePricingExperimentVariant(), []);
+  const [billing, setBilling] = useState<Billing>(() => defaultBillingForVariant(variant, "annual"));
+  const ordered = useMemo(() => orderedPlansForVariant(variant, PLANS), [variant]);
+
+  useEffect(() => {
+    trackClientEvent("pricing_variant_seen", { surface: "landing_pricing", variant });
+  }, [variant]);
 
   return (
     <>
@@ -94,7 +106,7 @@ export function PricingPlans({ startHref }: { startHref: string }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
-        {PLANS.map((plan) => {
+        {ordered.map((plan) => {
           const cfg = TIER_CONFIG[plan.key];
           const perMonth = billing === "annual" ? Math.round(cfg.annual / 12) : cfg.monthly;
           return (

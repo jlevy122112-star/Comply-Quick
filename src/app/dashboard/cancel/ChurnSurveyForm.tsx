@@ -1,7 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { CHURN_REASONS, CHURN_REASON_LABELS, type ChurnReason } from "@/lib/pmf/metrics";
+import { trackClientEvent } from "@/lib/funnel/client";
+import { isChurnSaveOfferEnabled } from "@/lib/optimizations/flags";
 
 /**
  * Cancellation exit survey ([Up11]). Captures the churn reason before sending
@@ -12,6 +15,13 @@ export default function ChurnSurveyForm() {
   const [reason, setReason] = useState<ChurnReason | null>(null);
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false);
+  const showSaveOffer = isChurnSaveOfferEnabled();
+
+  useEffect(() => {
+    if (showSaveOffer) {
+      trackClientEvent("churn_save_offer_shown", { surface: "cancel_page", offer: "pricing" });
+    }
+  }, [showSaveOffer]);
 
   function readChannel(): string | undefined {
     if (typeof window === "undefined") return undefined;
@@ -36,7 +46,7 @@ export default function ChurnSurveyForm() {
       await fetch("/api/pmf/churn", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason, comment, channel: readChannel() }),
+        body: JSON.stringify({ reason, comment, channel: readChannel(), outcome: "proceed_to_cancel" }),
       });
     } catch {
       /* still continue to portal even if the survey fails */
@@ -46,6 +56,21 @@ export default function ChurnSurveyForm() {
 
   return (
     <div className="space-y-4">
+      {showSaveOffer ? (
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4">
+          <p className="text-sm font-semibold text-emerald-300">Before you cancel: compare lower-cost options</p>
+          <p className="mt-1 text-xs text-gray-300">
+            Many teams switch plans instead of canceling. Review the Solo and annual options before ending access.
+          </p>
+          <Link
+            href="/#pricing"
+            onClick={() => trackClientEvent("churn_save_offer_accepted", { surface: "cancel_page", offer: "pricing" })}
+            className="mt-3 inline-block rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500"
+          >
+            Compare lower-cost plans
+          </Link>
+        </div>
+      ) : null}
       <fieldset className="space-y-2">
         {CHURN_REASONS.map((r) => (
           <label

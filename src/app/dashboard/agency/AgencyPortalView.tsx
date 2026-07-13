@@ -555,7 +555,7 @@ function BrandingTab({
           <input
             value={supportEmail}
             onChange={(e) => setSupportEmail(e.target.value)}
-            placeholder="support@youragency.com"
+            placeholder="support@comply-quick.com"
             className="w-full px-3 py-2 rounded-lg bg-gray-950 border border-gray-700 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none"
           />
         </Field>
@@ -596,7 +596,7 @@ function BrandingTab({
             >
               Run scan
             </button>
-            <p className="text-xs text-gray-600 mt-4">Support: {supportEmail || "support@youragency.com"}</p>
+            <p className="text-xs text-gray-600 mt-4">Support: {supportEmail || "support@comply-quick.com"}</p>
           </div>
         </div>
       </section>

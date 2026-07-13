@@ -7,6 +7,13 @@ import { LANDING_FAQ } from "@/lib/landing/faq";
 // from the on-page content.
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://comply-quick.com";
+const SITE_ORIGIN = SITE_URL.endsWith("/") ? SITE_URL.slice(0, -1) : SITE_URL;
+const ORGANIZATION_PROFILES = [
+  "https://twitter.com/complyquick",
+  "https://www.linkedin.com/company/complyquick",
+  "https://www.reddit.com/r/complyquick",
+  "https://www.producthunt.com/products/comply-quick",
+];
 
 export function StructuredData() {
   const graph = {
@@ -14,25 +21,41 @@ export function StructuredData() {
     "@graph": [
       {
         "@type": "Organization",
-        "@id": `${SITE_URL}/#organization`,
+        "@id": `${SITE_ORIGIN}/#organization`,
         name: "Comply-Quick",
-        url: SITE_URL,
+        url: `${SITE_ORIGIN}/`,
+        logo: `${SITE_ORIGIN}/icon.png`,
+        sameAs: ORGANIZATION_PROFILES,
         description:
           "Compliance platform that scans a website's tech stack and auto-generates the privacy policy, liability waivers, and pre-launch checklist it needs.",
       },
       {
         "@type": "WebSite",
-        "@id": `${SITE_URL}/#website`,
-        url: SITE_URL,
+        "@id": `${SITE_ORIGIN}/#website`,
+        url: `${SITE_ORIGIN}/`,
         name: "Comply-Quick",
-        publisher: { "@id": `${SITE_URL}/#organization` },
+        publisher: { "@id": `${SITE_ORIGIN}/#organization` },
+      },
+      {
+        "@type": "WebPage",
+        "@id": `${SITE_ORIGIN}/#webpage`,
+        url: `${SITE_ORIGIN}/`,
+        name: "Comply-Quick — White-Label Compliance for Agencies",
+        isPartOf: { "@id": `${SITE_ORIGIN}/#website` },
+        about: { "@id": `${SITE_ORIGIN}/#organization` },
+        inLanguage: "en-US",
+        description:
+          "White-label compliance software for agencies: one-click website scan, stack-aware policy generation, and automated regulatory update monitoring.",
       },
       {
         "@type": "SoftwareApplication",
+        "@id": `${SITE_ORIGIN}/#application`,
         name: "Comply-Quick",
         applicationCategory: "BusinessApplication",
         operatingSystem: "Web",
-        url: SITE_URL,
+        url: `${SITE_ORIGIN}/`,
+        publisher: { "@id": `${SITE_ORIGIN}/#organization` },
+        brand: { "@id": `${SITE_ORIGIN}/#organization` },
         description:
           "Scan any website for GDPR, CCPA, and ADA risk and auto-generate stack-aware privacy policies, cookie disclosures, liability waivers, and a pre-launch compliance checklist in under a minute.",
         featureList: [
@@ -54,7 +77,7 @@ export function StructuredData() {
       },
       {
         "@type": "FAQPage",
-        "@id": `${SITE_URL}/#faq`,
+        "@id": `${SITE_ORIGIN}/#faq`,
         mainEntity: LANDING_FAQ.map((item) => ({
           "@type": "Question",
           name: item.q,
