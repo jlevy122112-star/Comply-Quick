@@ -77,7 +77,7 @@ export function ExitIntentCapture() {
           Required.
         </p>
         <div className="mt-5">
-          <LeadCaptureForm source="exit_intent" />
+          <LeadCaptureForm source="exit_intent" claimFreeScan />
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchPageHtml } from "@/lib/scanner/crawler";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { analyzeHtml, type Severity } from "@/lib/scanner/analyzer";
 import { ValidationError } from "@/services/errors";
 import { createRateLimiter, getClientKey, enforceRateLimit, errorResponse, logger } from "@/services";
@@ -40,6 +41,34 @@ export async function POST(request: Request) {
   const rawUrl = typeof body.url === "string" ? body.url : "";
   if (!rawUrl.trim()) {
     return NextResponse.json({ error: "Enter a website URL to scan." }, { status: 400, headers: rateHeaders });
+  }
+
+  const freeScanToken = typeof body.freeScanToken === "string" ? body.freeScanToken : null;
+  if (freeScanToken) {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json(
+        { error: "Free scans are temporarily unavailable." },
+        { status: 503, headers: rateHeaders }
+      );
+    }
+
+    const { data, error } = await createAdminClient()
+      .from("free_scan_claims")
+      .update({ used_at: new Date().toISOString() })
+      .eq("token", freeScanToken)
+      .is("used_at", null)
+      .select("id")
+      .maybeSingle();
+    if (error) {
+      log.error("free scan claim consumption failed", { reason: error.message });
+      return NextResponse.json({ error: "Could not verify your free scan." }, { status: 500, headers: rateHeaders });
+    }
+    if (!data) {
+      return NextResponse.json(
+        { error: "This free scan has already been used or is no longer valid." },
+        { status: 409, headers: rateHeaders }
+      );
+    }
   }
 
   try {

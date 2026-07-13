@@ -10,6 +10,7 @@ interface LeadResponse {
   founding?: boolean;
   couponCode?: string;
   error?: string;
+  token?: string;
 }
 
 /** Reads first-touch UTM params from the current URL, if present. */
@@ -24,7 +25,13 @@ function readUtm(): Record<string, string> {
   return out;
 }
 
-export function LeadCaptureForm({ source = "landing_hero" }: { source?: string }) {
+export function LeadCaptureForm({
+  source = "landing_hero",
+  claimFreeScan = false,
+}: {
+  source?: string;
+  claimFreeScan?: boolean;
+}) {
   const inputId = useId();
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<Status>("idle");
@@ -35,14 +42,19 @@ export function LeadCaptureForm({ source = "landing_hero" }: { source?: string }
     if (status === "submitting") return;
     setStatus("submitting");
     try {
-      const res = await fetch("/api/leads", {
+      const res = await fetch(claimFreeScan ? "/api/free-scan/claim" : "/api/leads", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ email, source, ...readUtm() }),
       });
       const data: LeadResponse = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) {
+        setResult(data);
         setStatus("error");
+        return;
+      }
+      if (claimFreeScan && data.token) {
+        window.location.assign(`/free-scan?token=${encodeURIComponent(data.token)}`);
         return;
       }
       setResult(data);
@@ -92,7 +104,9 @@ export function LeadCaptureForm({ source = "landing_hero" }: { source?: string }
       </div>
       {status === "error" && (
         <p className="mt-2 text-sm text-red-400" role="alert">
-          Something went wrong. Please check your email and try again.
+          {result?.error === "already_claimed"
+            ? "This email address has already used its complimentary scan."
+            : "Something went wrong. Please check your email and try again."}
         </p>
       )}
       <p className="mt-3 text-xs text-gray-400">

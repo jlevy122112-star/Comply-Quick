@@ -7,7 +7,7 @@ import { ScanResultCard } from "./ScanResultCard";
 
 type Status = "idle" | "scanning" | "done" | "error";
 
-export function HeroScan({ startHref }: { startHref: string }) {
+export function HeroScan({ startHref, freeScanToken }: { startHref: string; freeScanToken?: string }) {
   const [url, setUrl] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string>("");
@@ -22,7 +22,7 @@ export function HeroScan({ startHref }: { startHref: string }) {
       const res = await fetch("/api/public-scan", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, ...(freeScanToken ? { freeScanToken } : {}) }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -42,16 +42,18 @@ export function HeroScan({ startHref }: { startHref: string }) {
     return (
       <div className="mt-10">
         <ScanResultCard result={result} />
-        <button
-          onClick={() => {
-            setStatus("idle");
-            setResult(null);
-            setUrl("");
-          }}
-          className="mt-4 text-xs text-gray-400 hover:text-gray-200 transition-colors"
-        >
-          Scan another site
-        </button>
+        {!freeScanToken && (
+          <button
+            onClick={() => {
+              setStatus("idle");
+              setResult(null);
+              setUrl("");
+            }}
+            className="mt-4 text-xs text-gray-400 hover:text-gray-200 transition-colors"
+          >
+            Scan another site
+          </button>
+        )}
       </div>
     );
   }
