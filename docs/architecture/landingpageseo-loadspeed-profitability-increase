@@ -1,0 +1,87 @@
+Refactor Plan: Full Optimization Program (Profitability + Loading Speed + SEO Completion)
+Current State
+Comply-Quick already has strong foundations: Stripe subscriptions/metered usage, PMF/churn capture, paywall/funnel events, broad feature modules, and existing SEO metadata/structured data.
+Gaps are mostly in systematic optimization infrastructure: experimentation framework, expansion/dunning automation depth, CWV monitoring + budgets, strict third-party script governance, and final SEO hardening across all indexable routes.
+
+Target State
+A production-ready optimization system where:
+
+Profitability loops (pricing/paywall experiments, churn recovery, expansion nudges) run continuously and are measurable.
+Loading speed is protected by guardrails (CWV telemetry, budgets, CI enforcement, script loading policies).
+SEO is fully hardened post-performance/profitability rollout (route-level metadata/schema consistency, crawl/index quality, internal linking completeness).
+Affected Files
+File	Change Type	Dependencies
+src/services/analytics.ts	modify	blocks event taxonomy expansion
+src/lib/funnel/client.ts	modify	depends on analytics API contract
+src/app/api/analytics/track/route.ts	modify	depends on analytics event types
+src/lib/pricing.ts	modify	blocks pricing experiment variants
+src/components/landing/PricingPlans.tsx	modify	depends on experiment assignment
+src/app/dashboard/DashboardWizard.tsx	modify	depends on paywall experiment config
+src/app/dashboard/home/ScannerPanel.tsx	modify	depends on expansion/paywall triggers
+src/lib/pmf/service.ts	modify	depends on churn/retention instrumentation
+src/app/dashboard/cancel/ChurnSurveyForm.tsx	modify	depends on recovery offer logic
+src/app/api/pmf/churn/route.ts	modify	depends on new churn payload schema
+src/app/api/webhooks/stripe/route.ts	modify	depends on dunning/recovery events
+src/components/analytics/GoogleAnalytics.tsx	modify	depends on script-governance policy
+src/components/analytics/Clarity.tsx	modify	depends on script-governance policy
+src/app/layout.tsx	modify	depends on telemetry and loader strategy
+next.config.ts	modify	depends on performance header/cache policy
+src/instrumentation-client.ts	modify	depends on CWV telemetry shipping
+src/app/page.tsx	modify	final SEO/internal-link/metadata polish
+src/components/seo/StructuredData.tsx	modify	final schema completeness
+src/app/sitemap.ts	modify	depends on final indexable-route set
+src/app/robots.ts	modify	depends on crawl strategy
+src/__tests__/api-checkout.test.ts	modify/create	depends on pricing/paywall changes
+src/__tests__/billing.test.ts	modify/create	depends on dunning changes
+src/__tests__/pmf-metrics.test.ts	modify/create	depends on churn/expansion metrics
+src/__tests__/scanner.test.ts	modify/create	depends on paywall/expansion hooks
+src/__tests__/integration/checkout.test.ts	modify/create	depends on experiment variants
+package.json	modify (if needed)	CI perf-budget/check commands
+Execution Plan
+Phase 1: Types and Interfaces
+Step 1.1: Extend analytics event taxonomy for experiments, dunning lifecycle, expansion nudges, and CWV metrics in src/services/analytics.ts.
+Step 1.2: Define experiment contract (variant keys, assignment source, allowed surfaces) used by landing + wizard + scanner.
+Step 1.3: Define churn recovery payload shape (reason, offer_shown, offer_accepted, channel, outcome) in PMF service boundaries.
+Step 1.4: Define CWV telemetry event schema (LCP/INP/CLS/TTFB/FCP route attribution) in client instrumentation interfaces.
+Verify: Typecheck passes for the new contracts before touching behavior.
+Phase 2: Profitability Optimization (Highest Revenue Impact)
+Step 2.1: Implement paywall/pricing experiment assignment + event capture wiring (PricingPlans, DashboardWizard, ScannerPanel, analytics/track API).
+Step 2.2: Add conversion-optimized expansion triggers (usage threshold nudges and contextual upgrade CTAs) in scanner/wizard surfaces.
+Step 2.3: Implement churn save flow in ChurnSurveyForm + pmf/churn route (offer presentation + acceptance tracking before billing-portal handoff).
+Step 2.4: Improve Stripe webhook dunning hooks (invoice.payment_failed, retries, recovery-state transitions, analytics emissions).
+Step 2.5: Ensure PMF dashboard exposes new funnel + retention/recovery metrics (src/lib/pmf/service.ts, /dashboard/pmf).
+Verify: checkout, churn submit, dunning transitions, and PMF aggregate metrics all behave correctly in tests and manual route checks.
+Phase 3: Loading Speed Optimization (Highest UX/CVR Impact)
+Step 3.1: Finalize third-party script governance (lazy/idle loading, non-blocking init, no critical-path impact) across layout + analytics components.
+Step 3.2: Add route-level CWV telemetry from client instrumentation into analytics pipeline.
+Step 3.3: Add practical performance guardrails (cache/header improvements where safe, stricter no-store only where required).
+Step 3.4: Add CI performance budget check strategy (build artifact or Lighthouse/Web Vitals gate as supported by repo tooling).
+Verify: no regression in app functionality; telemetry events emitted; build/tests remain green.
+Phase 4: SEO Completion Pass (After Profitability + Speed)
+Step 4.1: Re-audit landing SEO and fill any remaining gaps (metadata consistency, canonical integrity, OG/Twitter completeness, section anchors).
+Step 4.2: Ensure structured data alignment with visible content and entity linking completeness in StructuredData.tsx.
+Step 4.3: Validate sitemap.ts and robots.ts against intended crawl/index strategy for all public pages.
+Step 4.4: Strengthen internal linking where relevant (landing → blog/compare/money pages) without over-linking.
+Verify: title/meta/schema/sitemap/robots outputs are correct and consistent with public route intent.
+Phase 5: Tests and End-to-End Validation
+Step 5.1: Update/add tests for analytics events, pricing/paywall behavior, churn recovery, dunning transitions, and scanner upsell paths.
+Step 5.2: Run full quality gate and fix regressions.
+Verify: Run npm run typecheck && npm run lint && npm run test && npm run build.
+Phase 6: Deployment Readiness
+Step 6.1: Confirm required env vars for experiments, Stripe/dunning, analytics, and telemetry are documented and validated.
+Step 6.2: Produce deployment checklist and run smoke checks on key routes (/, /dashboard, /dashboard/home, checkout/churn APIs).
+Step 6.3: Execute deployment through existing pipeline (or hand off exact release steps if deployment permissions are restricted).
+Verify: post-deploy smoke confirms no regression in conversion-critical and performance-critical paths.
+Rollback Plan
+If something fails:
+
+Revert Phase 2 profitability behavior behind feature flags/variant default fallback to current control behavior.
+Revert script-loading and telemetry changes in Phase 3 to previous stable loader strategy.
+Revert webhook/dunning behavior to prior entitlement update flow if billing state anomalies appear.
+Keep SEO-only improvements isolated so they can stay even if profitability/performance code is rolled back.
+Risks
+Billing-state regressions in Stripe webhook changes → Mitigate with idempotent handlers, narrow status transitions, and targeted tests.
+Experiment logic impacting conversion unintentionally → Mitigate with control-default fallback and explicit variant allowlist validation.
+Telemetry overhead harming performance → Mitigate with sampled, async, fire-and-forget client reporting.
+SEO/schema drift from on-page content → Mitigate by reusing shared data sources and adding tests for schema-visible content consistency.
+Deployment env mismatch → Mitigate with startup validation and pre-deploy env checklist.

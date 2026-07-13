@@ -171,6 +171,16 @@ function customerIdOf(customer: string | { id: string } | null | undefined): str
   return typeof customer === "string" ? customer : customer.id;
 }
 
+async function userIdForCustomer(customerId: string): Promise<string | undefined> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("subscriptions")
+    .select("user_id")
+    .eq("stripe_customer_id", customerId)
+    .maybeSingle();
+  return data?.user_id ?? undefined;
+}
+
 export async function POST(request: NextRequest) {
   const stripe = getStripe();
 
@@ -265,7 +275,28 @@ export async function POST(request: NextRequest) {
       }
 
       case "invoice.payment_succeeded": {
-        await accrueReferralCommission(event.data.object);
+        const invoice = event.data.object;
+        await accrueReferralCommission(invoice);
+        const customer = customerIdOf(invoice.customer);
+        if (customer) {
+          const admin = createAdminClient();
+          const { data: previous } = await admin
+            .from("subscriptions")
+            .select("status")
+            .eq("stripe_customer_id", customer)
+            .maybeSingle();
+          await admin
+            .from("subscriptions")
+            .update({ status: "active", updated_at: new Date().toISOString() })
+            .eq("stripe_customer_id", customer);
+          if (previous?.status === "past_due") {
+            analytics.track({
+              event: "dunning_payment_recovered",
+              userId: await userIdForCustomer(customer),
+              properties: { invoice: invoice.id ?? undefined },
+            });
+          }
+        }
         break;
       }
 
@@ -278,6 +309,11 @@ export async function POST(request: NextRequest) {
             .from("subscriptions")
             .update({ status: "past_due", updated_at: new Date().toISOString() })
             .eq("stripe_customer_id", customer);
+          analytics.track({
+            event: "dunning_payment_failed",
+            userId: await userIdForCustomer(customer),
+            properties: { invoice: invoice.id ?? undefined, attempt: invoice.attempt_count ?? 0 },
+          });
         }
         const amount = formatAmount(invoice.amount_due, invoice.currency);
         log.warn("Invoice payment failed", {

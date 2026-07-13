@@ -1,4 +1,5 @@
 import Script from "next/script";
+import { isSpeedOptimizationEnabled } from "@/lib/optimizations/flags";
 
 /**
  * Google Analytics 4 (gtag.js) loader.
@@ -13,6 +14,7 @@ import Script from "next/script";
 const GA4_ID_PATTERN = /^G-[A-Z0-9]{4,20}$/i;
 
 export function GoogleAnalytics() {
+  if (!isSpeedOptimizationEnabled()) return null;
   const measurementId = process.env.NEXT_PUBLIC_GA4_ID;
   if (!measurementId || !GA4_ID_PATTERN.test(measurementId)) return null;
 
@@ -21,12 +23,14 @@ export function GoogleAnalytics() {
     <>
       <Script
         id="ga4-src"
-        strategy="afterInteractive"
+        strategy="lazyOnload"
         src={`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`}
       />
-      <Script id="ga4-init" strategy="afterInteractive">
+      <Script id="ga4-init" strategy="lazyOnload">
         {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
-        gtag('js',new Date());gtag('config',${id});`}
+        var cqInitGa=function(){gtag('js',new Date());gtag('config',${id});};
+        if('requestIdleCallback' in window){requestIdleCallback(cqInitGa,{timeout:2000});}
+        else{setTimeout(cqInitGa,1200);}`}
       </Script>
     </>
   );

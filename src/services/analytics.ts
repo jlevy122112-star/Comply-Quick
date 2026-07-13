@@ -9,26 +9,10 @@
 // freemium, checkout, and retention surfaces.
 
 import { logger } from "./logger";
+import type { AnalyticsEvent } from "@/lib/analytics/canonical-events";
+export type { AnalyticsEvent } from "@/lib/analytics/canonical-events";
 
 const log = logger.child({ module: "analytics" });
-
-export type AnalyticsEvent =
-  // Acquisition / funnel
-  | "signup"
-  | "scan_run"
-  | "scan_limit_reached"
-  | "paywall_viewed"
-  | "upgrade_cta_clicked"
-  // Checkout / revenue
-  | "checkout_started"
-  | "checkout_completed"
-  | "subscription_canceled"
-  // Expansion / usage
-  | "api_call_metered"
-  | "extra_scan_metered"
-  | "scan_cache_hit"
-  // Retention
-  | "nps_submitted";
 
 export interface AnalyticsProperties {
   [key: string]: string | number | boolean | null | undefined;

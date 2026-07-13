@@ -89,7 +89,7 @@ services layer** beneath it and **feature modules** above it. Modules never call
 | `services/errors.ts` | `AppError` hierarchy (`ValidationError`, `Unauthorized`, `Forbidden`, `NotFound`, `RateLimit`, `ServiceUnavailable`, `Internal`) each with stable `code` + HTTP status; `serializeError` hides 5xx internals; `Result<T,E>` for non-throwing domain logic. |
 | `services/rate-limit.ts` | `RateLimiter` interface + `InMemoryRateLimiter` (fixed window, injectable clock). Swap for Upstash/Durable Objects when multi-instance. |
 | `services/api-response.ts` | Next glue: `errorResponse(err)`, `enforceRateLimit(result)`, `rateLimitHeaders(result)`. Kept separate so errors/rate-limit stay framework-agnostic (reusable in Edge Functions). |
-| `services/stripe/client.ts` | Memoized `getStripe()` (was duplicated across 3 routes). One place for API version + future Connect config. |
+| `services/stripe/client.ts` | Memorized `getStripe()` (was duplicated across 3 routes). One place for API version + future Connect config. |
 | `sentry.{server,edge}.config.ts` + `instrumentation*.ts` | Sentry error/perf monitoring, loaded via the Next instrumentation hook. Env-gated on `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` (inert without them). `errorResponse()` reports every API 5xx; webhook + checkout capture explicitly. Source maps upload only when `SENTRY_AUTH_TOKEN` is set. |
 
 Reference integration: `api/compliance` now rate-limits per client

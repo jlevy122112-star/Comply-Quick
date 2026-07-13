@@ -55,6 +55,7 @@ export interface SubmitChurnInput {
   reason: ChurnReason;
   comment?: string;
   channel?: string;
+  outcome?: "proceed_to_cancel" | "save_offer_clicked";
 }
 
 /** Records a cancellation exit-survey response for the signed-in user. */
@@ -76,7 +77,7 @@ export async function submitChurnSurvey(input: SubmitChurnInput): Promise<void> 
     event: "subscription_canceled",
     userId: user.id,
     channel: input.channel,
-    properties: { reason: input.reason },
+    properties: { reason: input.reason, outcome: input.outcome ?? "proceed_to_cancel" },
   });
 }
 

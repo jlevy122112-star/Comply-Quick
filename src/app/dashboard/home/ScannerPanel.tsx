@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { computePaywallTriggers } from "@/lib/funnel/triggers";
 import { computeImprovementPath } from "@/lib/score/improvement";
-import { trackFunnel } from "@/lib/funnel/client";
+import { trackClientEvent, trackFunnel } from "@/lib/funnel/client";
 import { alertsForRegions } from "@/lib/regulations/alerts";
 import type { Tier } from "@/lib/pricing";
 
@@ -134,8 +134,18 @@ export default function ScannerPanel({ tier }: { tier: Tier }) {
   useEffect(() => {
     if (triggers.length > 0) {
       trackFunnel("paywall_viewed", { surface: "scanner", triggers: triggers.map((t) => t.id).join(",") });
+      trackClientEvent("expansion_nudge_shown", {
+        surface: "scanner_findings",
+        triggerCount: triggers.length,
+      });
     }
   }, [triggers]);
+
+  useEffect(() => {
+    if (outOfQuota) {
+      trackClientEvent("expansion_nudge_shown", { surface: "scanner_quota_limit" });
+    }
+  }, [outOfQuota]);
 
   // Ordered remediation plan for the active scan (highest-impact fixes first).
   const improvement = useMemo(() => {
@@ -215,7 +225,11 @@ export default function ScannerPanel({ tier }: { tier: Tier }) {
         {outOfQuota && (
           <p className="mt-3 text-xs text-gray-400">
             You&apos;ve used your free scans this month.{" "}
-            <Link href="/#pricing" className="text-indigo-400 hover:text-indigo-300">
+            <Link
+              href="/#pricing"
+              onClick={() => trackClientEvent("expansion_nudge_clicked", { surface: "scanner_quota_limit" })}
+              className="text-indigo-400 hover:text-indigo-300"
+            >
               Upgrade for unlimited scans &rarr;
             </Link>
           </p>
@@ -277,7 +291,10 @@ export default function ScannerPanel({ tier }: { tier: Tier }) {
                 </div>
                 <Link
                   href="/#pricing"
-                  onClick={() => trackFunnel("upgrade_cta_clicked", { surface: "scanner" })}
+                  onClick={() => {
+                    trackFunnel("upgrade_cta_clicked", { surface: "scanner" });
+                    trackClientEvent("expansion_nudge_clicked", { surface: "scanner_findings" });
+                  }}
                   className="mt-3 inline-block px-4 py-2 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-500 transition-colors"
                 >
                   Upgrade to fix these &rarr;
@@ -360,7 +377,10 @@ export default function ScannerPanel({ tier }: { tier: Tier }) {
                     </p>
                     <Link
                       href="/#pricing"
-                      onClick={() => trackFunnel("upgrade_cta_clicked", { surface: "scanner_regwatch" })}
+                      onClick={() => {
+                        trackFunnel("upgrade_cta_clicked", { surface: "scanner_regwatch" });
+                        trackClientEvent("expansion_nudge_clicked", { surface: "scanner_regwatch" });
+                      }}
                       className="mt-2 inline-block text-xs font-semibold text-amber-300 hover:text-amber-200"
                     >
                       Upgrade to Enterprise &rarr;

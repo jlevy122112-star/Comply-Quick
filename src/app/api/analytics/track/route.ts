@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { createClient } from "@/lib/supabase/server";
-import { analytics, errorResponse, ValidationError, type AnalyticsEvent } from "@/services";
+import { analytics, errorResponse, logger, ValidationError, type AnalyticsEvent } from "@/services";
+import { CLIENT_EMITTABLE_EVENTS } from "@/lib/analytics/canonical-events";
 
-// Client-emitted funnel events. Only these are accepted from the browser — all
-// revenue/usage events are emitted server-side where they can't be spoofed.
-const CLIENT_EVENTS: readonly AnalyticsEvent[] = ["paywall_viewed", "upgrade_cta_clicked"];
+// Client-emitted events. Billing-critical events remain server-only so they
+// cannot be spoofed by a browser request.
+const CLIENT_EVENTS: readonly AnalyticsEvent[] = CLIENT_EMITTABLE_EVENTS;
 
 function isClientEvent(value: unknown): value is AnalyticsEvent {
   return typeof value === "string" && (CLIENT_EVENTS as readonly string[]).includes(value);
@@ -35,6 +37,22 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     analytics.track({ event, userId: user?.id, properties });
+    if (event === "web_vital_budget_failed") {
+      logger.child({ module: "web-vitals-alert" }).warn("Core Web Vitals budget failed", {
+        userId: user?.id,
+        metric: properties?.metric,
+        route: properties?.route,
+        value: properties?.value,
+      });
+      Sentry.captureMessage("Core Web Vitals budget failed", {
+        level: "warning",
+        tags: {
+          module: "web-vitals-alert",
+          metric: typeof properties?.metric === "string" ? properties.metric : "unknown",
+          route: typeof properties?.route === "string" ? properties.route : "unknown",
+        },
+      });
+    }
     return NextResponse.json({ success: true });
   } catch (err) {
     return errorResponse(err);
