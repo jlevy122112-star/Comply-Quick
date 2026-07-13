@@ -63,6 +63,15 @@ describe("detectRisks", () => {
     expect(evt!.severity).toBe("critical");
   });
 
+  it("raises a first-class alert when a required policy link disappears", () => {
+    const missingPrivacy: Finding = { ...criticalFinding, id: "missing_privacy_policy" };
+    const event = detectRisks(snapshot({}), snapshot({ findings: [missingPrivacy] })).find(
+      (risk) => risk.type === "requirement_lost"
+    );
+    expect(event?.severity).toBe("critical");
+    expect(event?.detail.requirements).toEqual([expect.objectContaining({ id: "missing_privacy_policy" })]);
+  });
+
   it("does not re-alert for a critical finding present in the previous scan", () => {
     const prev = snapshot({ findings: [criticalFinding] });
     const cur = snapshot({ findings: [criticalFinding] });

@@ -11,7 +11,7 @@ import type { DetectedTool, Finding, Severity } from "@/lib/scanner/analyzer";
 /** Minimum score drop (points) between consecutive scans to raise an alert. */
 export const SCORE_DROP_THRESHOLD = 5;
 
-export type RiskType = "score_drop" | "new_tracker" | "new_critical";
+export type RiskType = "score_drop" | "new_tracker" | "new_critical" | "requirement_lost";
 
 export interface RiskEvent {
   type: RiskType;
@@ -31,6 +31,8 @@ export interface ScanSnapshot {
 function toolKey(t: DetectedTool): string {
   return t.id;
 }
+
+const REQUIREMENT_FINDING_IDS = new Set(["missing_privacy_policy", "missing_terms", "trackers_without_consent"]);
 
 /**
  * Compares two scans of the same URL and returns the risk events that the
@@ -69,9 +71,38 @@ export function detectRisks(previous: ScanSnapshot | null, current: ScanSnapshot
     });
   }
 
-  // 3. New critical findings (by finding id, present now, absent before).
+  // 3. A requirement present in the prior scan is now missing.
+  const previousFindingIds = new Set(previous.findings.map((finding) => finding.id));
+  const lostRequirements = current.findings.filter(
+    (finding) => REQUIREMENT_FINDING_IDS.has(finding.id) && !previousFindingIds.has(finding.id)
+  );
+  if (lostRequirements.length > 0) {
+    events.push({
+      type: "requirement_lost",
+      severity: lostRequirements.some((finding) => finding.severity === "critical") ? "critical" : "warning",
+      title:
+        lostRequirements.length +
+        " compliance requirement" +
+        (lostRequirements.length > 1 ? "s" : "") +
+        " no longer detected",
+      body: lostRequirements.map((finding) => finding.title).join("; "),
+      detail: {
+        requirements: lostRequirements.map((finding) => ({
+          id: finding.id,
+          title: finding.title,
+          detail: finding.detail,
+          recommendation: finding.recommendation,
+        })),
+      },
+    });
+  }
+
+  // 4. Other new critical findings (by finding id, present now, absent before).
   const prevCritical = new Set(previous.findings.filter((f) => f.severity === "critical").map((f) => f.id));
-  const newCritical = current.findings.filter((f) => f.severity === "critical" && !prevCritical.has(f.id));
+  const newCritical = current.findings.filter(
+    (finding) =>
+      finding.severity === "critical" && !prevCritical.has(finding.id) && !REQUIREMENT_FINDING_IDS.has(finding.id)
+  );
   if (newCritical.length > 0) {
     events.push({
       type: "new_critical",

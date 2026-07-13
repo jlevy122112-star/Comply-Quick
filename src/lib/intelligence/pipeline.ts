@@ -40,6 +40,24 @@ function fallbackRecommendation(input: FixInput): string {
         `3. Ensure your consent banner blocks it until the visitor opts in — do not let it fire on page load.`,
       ].join("\n");
     }
+    case "requirement_lost": {
+      const requirements = Array.isArray(input.detail.requirements)
+        ? (input.detail.requirements as { recommendation?: string }[])
+        : [];
+      const actions = requirements
+        .map(
+          (requirement, index) =>
+            index +
+            1 +
+            ". " +
+            (requirement.recommendation ?? "Restore the missing requirement and verify it is publicly reachable.")
+        )
+        .slice(0, 3);
+      return [
+        ...actions,
+        actions.length + 1 + ". Re-scan the site after deployment to confirm the requirement is detected again.",
+      ].join("\n");
+    }
     case "new_critical":
       return [
         `1. Open the finding below and read its recommendation.`,

@@ -240,7 +240,7 @@ export async function getAlertFix(id: string): Promise<string | null> {
   return recommendation;
 }
 
-type FixType = "score_drop" | "new_tracker" | "new_critical" | "scan_failed" | "info";
+type FixType = "score_drop" | "new_tracker" | "new_critical" | "requirement_lost" | "scan_failed" | "info";
 
 // ─── Weekly cron run (service role) ──────────────────────────────────────────
 
