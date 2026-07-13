@@ -10,6 +10,7 @@
 
 import { logger } from "./logger";
 import type { AnalyticsEvent } from "@/lib/analytics/canonical-events";
+export type { AnalyticsEvent } from "@/lib/analytics/canonical-events";
 
 const log = logger.child({ module: "analytics" });
 
