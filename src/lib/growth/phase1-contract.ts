@@ -101,17 +101,15 @@ export const ATTRIBUTION_CONTRACT: AttributionContract = {
   piiPolicy: "no_raw_pii",
 };
 
-export const FEATURE_GATE_MATRIX: Record<
-  string,
-  { minimumTier: Tier; uiSurfaces: readonly string[]; owner: string }
-> = {
-  core_wizard: { minimumTier: "free", uiSurfaces: ["dashboard_wizard"], owner: "product" },
-  compliance_scanner: { minimumTier: "solo", uiSurfaces: ["dashboard_home_scanner"], owner: "product" },
-  integrations_center: { minimumTier: "solo", uiSurfaces: ["settings_integrations"], owner: "platform" },
-  continuous_alerts: { minimumTier: "enterprise", uiSurfaces: ["dashboard_alerts"], owner: "platform" },
-  evidence_pack: { minimumTier: "agency", uiSurfaces: ["dashboard_evidence"], owner: "compliance" },
-  approvals_queue: { minimumTier: "agency", uiSurfaces: ["dashboard_approvals"], owner: "compliance" },
-  audit_trail: { minimumTier: "agency", uiSurfaces: ["dashboard_audit"], owner: "compliance" },
-  legal_review_center: { minimumTier: "enterprise", uiSurfaces: ["dashboard_legal_review"], owner: "legal" },
-  partner_portal: { minimumTier: "agency", uiSurfaces: ["dashboard_partners"], owner: "growth" },
-};
+export const FEATURE_GATE_MATRIX: Record<string, { minimumTier: Tier; uiSurfaces: readonly string[]; owner: string }> =
+  {
+    core_wizard: { minimumTier: "free", uiSurfaces: ["dashboard_wizard"], owner: "product" },
+    compliance_scanner: { minimumTier: "solo", uiSurfaces: ["dashboard_home_scanner"], owner: "product" },
+    integrations_center: { minimumTier: "solo", uiSurfaces: ["settings_integrations"], owner: "platform" },
+    continuous_alerts: { minimumTier: "enterprise", uiSurfaces: ["dashboard_alerts"], owner: "platform" },
+    evidence_pack: { minimumTier: "agency", uiSurfaces: ["dashboard_evidence"], owner: "compliance" },
+    approvals_queue: { minimumTier: "agency", uiSurfaces: ["dashboard_approvals"], owner: "compliance" },
+    audit_trail: { minimumTier: "agency", uiSurfaces: ["dashboard_audit"], owner: "compliance" },
+    legal_review_center: { minimumTier: "enterprise", uiSurfaces: ["dashboard_legal_review"], owner: "legal" },
+    partner_portal: { minimumTier: "agency", uiSurfaces: ["dashboard_partners"], owner: "growth" },
+  };

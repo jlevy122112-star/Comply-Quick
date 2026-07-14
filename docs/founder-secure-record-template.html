@@ -12,12 +12,18 @@
         --line: #d0d5dd;
         --brand: #4f46e5;
       }
-      * { box-sizing: border-box; }
+      * {
+        box-sizing: border-box;
+      }
       body {
         margin: 0;
         background: var(--bg);
         color: var(--ink);
-        font: 14px/1.5 "Inter", "Segoe UI", Arial, sans-serif;
+        font:
+          14px/1.5 "Inter",
+          "Segoe UI",
+          Arial,
+          sans-serif;
       }
       .page {
         max-width: 980px;
@@ -35,7 +41,10 @@
         border-bottom: 2px solid var(--line);
         background: linear-gradient(90deg, #eef2ff 0%, #ffffff 62%);
       }
-      .logo-wrap img { max-height: 42px; width: auto; }
+      .logo-wrap img {
+        max-height: 42px;
+        width: auto;
+      }
       .letterhead h1 {
         margin: 10px 0 0;
         font-size: 19px;
@@ -53,8 +62,12 @@
         border-radius: 8px;
         font-size: 12px;
       }
-      .meta strong { color: #344054; }
-      .content { padding: 22px 28px 30px; }
+      .meta strong {
+        color: #344054;
+      }
+      .content {
+        padding: 22px 28px 30px;
+      }
       h2 {
         margin: 22px 0 8px;
         padding-bottom: 6px;
@@ -88,8 +101,13 @@
         height: 18px;
         margin-top: 3px;
       }
-      .list { margin: 8px 0 0; padding-left: 18px; }
-      .list li { margin: 4px 0; }
+      .list {
+        margin: 8px 0 0;
+        padding-left: 18px;
+      }
+      .list li {
+        margin: 4px 0;
+      }
       .signature {
         margin-top: 34px;
         display: grid;
@@ -111,8 +129,14 @@
         font-size: 11px;
       }
       @media print {
-        body { background: #fff; }
-        .page { border: 0; margin: 0; border-radius: 0; }
+        body {
+          background: #fff;
+        }
+        .page {
+          border: 0;
+          margin: 0;
+          border-radius: 0;
+        }
       }
     </style>
   </head>
@@ -140,42 +164,114 @@
 
         <h2>1) Legal & Corporate Identity</h2>
         <div class="grid">
-          <div class="field"><label>Legal Entity Name</label><div class="value"></div></div>
-          <div class="field"><label>State/Country of Incorporation</label><div class="value"></div></div>
-          <div class="field"><label>EIN/Tax ID</label><div class="value"></div></div>
-          <div class="field"><label>Registered Agent</label><div class="value"></div></div>
-          <div class="field"><label>Registered Address</label><div class="value"></div></div>
-          <div class="field"><label>Business Insurance Policy #</label><div class="value"></div></div>
+          <div class="field">
+            <label>Legal Entity Name</label>
+            <div class="value"></div>
+          </div>
+          <div class="field">
+            <label>State/Country of Incorporation</label>
+            <div class="value"></div>
+          </div>
+          <div class="field">
+            <label>EIN/Tax ID</label>
+            <div class="value"></div>
+          </div>
+          <div class="field">
+            <label>Registered Agent</label>
+            <div class="value"></div>
+          </div>
+          <div class="field">
+            <label>Registered Address</label>
+            <div class="value"></div>
+          </div>
+          <div class="field">
+            <label>Business Insurance Policy #</label>
+            <div class="value"></div>
+          </div>
         </div>
 
         <h2>2) Domain, DNS & Email Control</h2>
         <div class="grid">
-          <div class="field"><label>Primary Domain(s)</label><div class="value"></div></div>
-          <div class="field"><label>Registrar + Account Owner</label><div class="value"></div></div>
-          <div class="field"><label>DNS Provider + Zone Owner</label><div class="value"></div></div>
-          <div class="field"><label>Support Inbox (e.g., support@comply-quick.com)</label><div class="value"></div></div>
-          <div class="field"><label>Admin Email Accounts</label><div class="value"></div></div>
-          <div class="field"><label>MFA Recovery Method Location</label><div class="value"></div></div>
+          <div class="field">
+            <label>Primary Domain(s)</label>
+            <div class="value"></div>
+          </div>
+          <div class="field">
+            <label>Registrar + Account Owner</label>
+            <div class="value"></div>
+          </div>
+          <div class="field">
+            <label>DNS Provider + Zone Owner</label>
+            <div class="value"></div>
+          </div>
+          <div class="field">
+            <label>Support Inbox (e.g., support@comply-quick.com)</label>
+            <div class="value"></div>
+          </div>
+          <div class="field">
+            <label>Admin Email Accounts</label>
+            <div class="value"></div>
+          </div>
+          <div class="field">
+            <label>MFA Recovery Method Location</label>
+            <div class="value"></div>
+          </div>
         </div>
 
         <h2>3) Infrastructure, Source Code & Access</h2>
         <div class="grid">
-          <div class="field"><label>Git Host Organization + Backup Owner</label><div class="value"></div></div>
-          <div class="field"><label>Production Hosting Account</label><div class="value"></div></div>
-          <div class="field"><label>Database Project IDs</label><div class="value"></div></div>
-          <div class="field"><label>Cloud Root/Admin Accounts</label><div class="value"></div></div>
-          <div class="field"><label>Password Manager Vault + Emergency Access</label><div class="value"></div></div>
-          <div class="field"><label>Secret Rotation Owner + Schedule</label><div class="value"></div></div>
+          <div class="field">
+            <label>Git Host Organization + Backup Owner</label>
+            <div class="value"></div>
+          </div>
+          <div class="field">
+            <label>Production Hosting Account</label>
+            <div class="value"></div>
+          </div>
+          <div class="field">
+            <label>Database Project IDs</label>
+            <div class="value"></div>
+          </div>
+          <div class="field">
+            <label>Cloud Root/Admin Accounts</label>
+            <div class="value"></div>
+          </div>
+          <div class="field">
+            <label>Password Manager Vault + Emergency Access</label>
+            <div class="value"></div>
+          </div>
+          <div class="field">
+            <label>Secret Rotation Owner + Schedule</label>
+            <div class="value"></div>
+          </div>
         </div>
 
         <h2>4) Billing, Finance & Compliance Operations</h2>
         <div class="grid">
-          <div class="field"><label>Primary Bank + Last 4</label><div class="value"></div></div>
-          <div class="field"><label>Payment Processor Account Owner</label><div class="value"></div></div>
-          <div class="field"><label>Accounting Platform + Access Owner</label><div class="value"></div></div>
-          <div class="field"><label>Tax Filing Contact</label><div class="value"></div></div>
-          <div class="field"><label>Legal Counsel Contact</label><div class="value"></div></div>
-          <div class="field"><label>Incident Response Contact Chain</label><div class="value"></div></div>
+          <div class="field">
+            <label>Primary Bank + Last 4</label>
+            <div class="value"></div>
+          </div>
+          <div class="field">
+            <label>Payment Processor Account Owner</label>
+            <div class="value"></div>
+          </div>
+          <div class="field">
+            <label>Accounting Platform + Access Owner</label>
+            <div class="value"></div>
+          </div>
+          <div class="field">
+            <label>Tax Filing Contact</label>
+            <div class="value"></div>
+          </div>
+          <div class="field">
+            <label>Legal Counsel Contact</label>
+            <div class="value"></div>
+          </div>
+          <div class="field">
+            <label>Incident Response Contact Chain</label>
+            <div class="value"></div>
+          </div>
         </div>
 
         <h2>5) Critical Backup Locations</h2>
@@ -187,8 +283,14 @@
         </ul>
 
         <h2>6) Founder-Only Notes</h2>
-        <div class="field"><label>Private Instructions / Continuity Notes</label><div class="value"></div></div>
-        <div class="field"><label>Succession / Emergency Delegation</label><div class="value"></div></div>
+        <div class="field">
+          <label>Private Instructions / Continuity Notes</label>
+          <div class="value"></div>
+        </div>
+        <div class="field">
+          <label>Succession / Emergency Delegation</label>
+          <div class="value"></div>
+        </div>
 
         <div class="signature">
           <div>
@@ -201,9 +303,7 @@
           </div>
         </div>
 
-        <div class="footer">
-          Comply-Quick White-Label Record Template — Confidential Internal Use Only.
-        </div>
+        <div class="footer">Comply-Quick White-Label Record Template — Confidential Internal Use Only.</div>
       </section>
     </main>
   </body>
