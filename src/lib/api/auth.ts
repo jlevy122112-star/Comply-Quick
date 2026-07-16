@@ -1,13 +1,14 @@
 // Authentication + rate limiting for the metered public API (`/api/v1/*`).
 //
 // Requests present a bearer API key (`Authorization: Bearer cq_live_…`). We
-// resolve it to its owner, require a paid entitlement (Pro / Agency / Enterprise
+// resolve it to its owner, require a paid entitlement (Solo / Agency / Enterprise
 // integrations), and enforce a per-key fixed-window rate limit. The resolved
 // context is handed to the route so it can scope all work to the key's owner.
 
 import { NextRequest } from "next/server";
 import { resolveApiKey } from "@/lib/api/keys";
 import { getEntitlementForUser } from "@/lib/entitlements";
+import { paidPlansLabel } from "@/lib/tier-copy";
 import { createRateLimiter, enforceRateLimit } from "@/services";
 import { ForbiddenError, UnauthorizedError } from "@/services/errors";
 import type { Tier } from "@/lib/pricing";
@@ -48,7 +49,7 @@ export async function authenticateApiRequest(request: NextRequest): Promise<ApiC
 
   const entitlement = await getEntitlementForUser(resolved.userId);
   if (!entitlement.isPremium) {
-    throw new ForbiddenError("The API is available on paid plans (Pro, Agency, Enterprise).");
+    throw new ForbiddenError(`The API is available on paid plans (${paidPlansLabel()}).`);
   }
 
   return { userId: resolved.userId, keyId: resolved.keyId, tier: entitlement.tier, rateHeaders };

@@ -12,6 +12,7 @@ import {
 } from "@/lib/agency/service";
 import { getBillingSummary } from "@/lib/billing/usage";
 import { canonicalAppHost } from "@/lib/appHost";
+import { tierLabel, upgradeTargetFor } from "@/lib/tier-copy";
 import AgencyPortalView from "./AgencyPortalView";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +26,7 @@ export default async function AgencyPortalPage() {
 
   const entitlement = await getEntitlement();
   if (!(await canUseAgencyPortal())) {
+    const upgradeTarget = upgradeTargetFor(entitlement.tier, "agencyPortal");
     return (
       <div className="min-h-screen bg-gray-950 text-gray-100">
         <header className="border-b border-gray-800/50">
@@ -42,14 +44,14 @@ export default async function AgencyPortalPage() {
           <h1 className="text-2xl font-bold text-white mb-2">Agency Client Portal</h1>
           <p className="text-gray-400 mb-6">
             Manage unlimited client workspaces, white-label the dashboard with your brand, and put it on your own
-            domain. Available on the <strong className="text-indigo-300">Agency</strong> and{" "}
-            <strong className="text-amber-300">Enterprise</strong> plans.
+            domain. Available on the <strong className="text-indigo-300">{tierLabel("agency")}</strong> and{" "}
+            <strong className="text-amber-300">{tierLabel("enterprise")}</strong> plans.
           </p>
           <Link
             href="/#pricing"
             className="inline-block px-6 py-3 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-500 transition-colors"
           >
-            Upgrade to unlock the portal
+            {upgradeTarget ? `Upgrade to ${tierLabel(upgradeTarget)} to unlock the portal` : "View portal access"}
           </Link>
         </main>
       </div>

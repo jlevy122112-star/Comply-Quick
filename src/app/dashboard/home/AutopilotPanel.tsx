@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { paidPlansLabel } from "@/lib/tier-copy";
 
 interface Proposal {
   id: string;
@@ -17,7 +18,7 @@ interface Proposal {
 /**
  * Compliance Autopilot review queue. Lists proposed document updates the
  * autopilot generated when a tracked regulation changed; the user accepts
- * (applies to the project) or rejects. Pro-gated — free users see an upsell.
+ * (applies to the project) or rejects. Paid-plan gated - free users see an upsell.
  */
 export default function AutopilotPanel({ isPremium }: { isPremium: boolean }) {
   const [proposals, setProposals] = useState<Proposal[]>([]);
@@ -67,7 +68,7 @@ export default function AutopilotPanel({ isPremium }: { isPremium: boolean }) {
         <h2 className="text-lg font-semibold text-white">Compliance Autopilot</h2>
         {!isPremium && (
           <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-xs text-indigo-300">
-            Pro
+            Paid plan
           </span>
         )}
       </div>
@@ -76,7 +77,8 @@ export default function AutopilotPanel({ isPremium }: { isPremium: boolean }) {
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 text-center">
           <p className="text-2xl mb-2">🤖</p>
           <p className="text-xs text-gray-400 mb-2">
-            Autopilot watches regulations and proposes document updates automatically — available on Pro plans.
+            Autopilot watches regulations and proposes document updates automatically - available on {paidPlansLabel()}{" "}
+            plans.
           </p>
           <Link
             href="/#pricing"

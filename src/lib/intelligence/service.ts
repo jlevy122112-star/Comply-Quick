@@ -8,6 +8,7 @@ import * as Sentry from "@sentry/nextjs";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getEntitlement } from "@/lib/entitlements";
+import { paidPlansLabel } from "@/lib/tier-copy";
 import { getAiClient, type AiClient } from "@/services/ai";
 import { logger } from "@/services";
 import { UnauthorizedError } from "@/services/errors";
@@ -46,7 +47,7 @@ export interface AlertRecord {
   createdAt: string;
 }
 
-/** Whether the current user may use proactive monitoring (Pro-tier gate). */
+/** Whether the current user may use proactive monitoring (paid-plan gate). */
 export async function canUseIntelligence(): Promise<boolean> {
   const entitlement = await getEntitlement();
   return entitlement.isPremium;
@@ -101,12 +102,12 @@ export async function listMonitors(): Promise<MonitorRecord[]> {
 
 export class MonitorLimitError extends Error {
   constructor() {
-    super("Monitoring is a Pro-tier feature. Upgrade to watch sites over time.");
+    super(`Monitoring is available on the ${paidPlansLabel()} plans. Upgrade to watch sites over time.`);
     this.name = "MonitorLimitError";
   }
 }
 
-/** Registers a URL for weekly monitoring. Pro-gated. */
+/** Registers a URL for weekly monitoring. Paid-plan gated. */
 export async function createMonitor(url: string, label = ""): Promise<MonitorRecord> {
   const supabase = await createClient();
   const {
@@ -260,7 +261,7 @@ interface MonitorAdminRow {
  * Weekly intelligence pass (invoked by the scheduled Edge Function). Re-scans
  * every active, due monitor owned by a premium user, compares against the prior
  * scan, raises alerts on increased risk, and stamps the monitor. Non-premium
- * owners are skipped (monitoring is a Pro feature).
+ * owners are skipped (monitoring is a paid-plan feature).
  */
 export async function runIntelligence(ai: AiClient = getAiClient()): Promise<IntelligenceRunResult> {
   const admin = createAdminClient();

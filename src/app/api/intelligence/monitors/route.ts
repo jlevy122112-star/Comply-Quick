@@ -28,7 +28,7 @@ export async function GET() {
   }
 }
 
-/** Registers a URL for weekly monitoring (Pro-tier). Body: { url, label? }. */
+/** Registers a URL for weekly monitoring (paid-plan feature). Body: { url, label? }. */
 export async function POST(request: NextRequest) {
   try {
     const rateHeaders = enforceRateLimit(await limiter.check(getClientKey(request.headers)));

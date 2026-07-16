@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { resolveProposal, canUseAutopilot, type ResolveAction } from "@/lib/autopilot/service";
+import { paidPlansLabel } from "@/lib/tier-copy";
 import { UnauthorizedError, ForbiddenError, ValidationError, NotFoundError, errorResponse } from "@/services";
 
 /** Accepts or rejects a proposal: PATCH { action: "accept" | "reject" }. */
@@ -12,7 +13,7 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
     } = await supabase.auth.getUser();
     if (!user) throw new UnauthorizedError();
     if (!(await canUseAutopilot())) {
-      throw new ForbiddenError("Compliance Autopilot requires a Pro plan.");
+      throw new ForbiddenError(`Compliance Autopilot requires one of the ${paidPlansLabel()} plans.`);
     }
 
     const { id } = await ctx.params;

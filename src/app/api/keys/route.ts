@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createApiKey, listApiKeys } from "@/lib/api/keys";
 import { hasApiAccess } from "@/lib/api/usage";
+import { paidPlansLabel } from "@/lib/tier-copy";
 import {
   createRateLimiter,
   getClientKey,
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
     const rateHeaders = enforceRateLimit(await limiter.check(getClientKey(request.headers)));
     await requireUser();
     if (!(await hasApiAccess())) {
-      throw new ForbiddenError("The API is available on paid plans (Pro, Agency, Enterprise).");
+      throw new ForbiddenError(`The API is available on paid plans (${paidPlansLabel()}).`);
     }
 
     let body: Record<string, unknown>;

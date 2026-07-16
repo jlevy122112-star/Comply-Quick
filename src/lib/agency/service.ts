@@ -117,7 +117,7 @@ export function slugify(input: string): string {
 }
 
 /**
- * Returns the caller's agency workspace, creating it on first access. Pro-gated
+ * Returns the caller's agency workspace, creating it on first access. Paid-plan gated
  * (agency/enterprise). The owner is also inserted as an `owner` member row so
  * membership checks are uniform.
  *

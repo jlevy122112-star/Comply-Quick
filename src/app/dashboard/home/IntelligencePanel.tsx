@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { paidPlansLabel } from "@/lib/tier-copy";
 
 interface Monitor {
   id: string;
@@ -38,7 +39,7 @@ const SEVERITY_STYLES: Record<string, { border: string; icon: string; text: stri
  * Compliance Intelligence — proactive monitoring + real-time alerts (Phase 4).
  * Users register URLs to watch; a weekly cron re-scans them and raises alerts
  * on increased risk. Each alert has a "Fix It" button that returns an
- * AI-generated remediation plan. Pro-gated — free users see an upsell.
+ * AI-generated remediation plan. Paid-plan gated - free users see an upsell.
  */
 export default function IntelligencePanel({ isPremium }: { isPremium: boolean }) {
   const [monitors, setMonitors] = useState<Monitor[]>([]);
@@ -147,7 +148,7 @@ export default function IntelligencePanel({ isPremium }: { isPremium: boolean })
         <h2 className="text-lg font-semibold text-white">Compliance Intelligence</h2>
         {!isPremium && (
           <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-xs text-indigo-300">
-            Pro
+            Paid plan
           </span>
         )}
       </div>
@@ -157,7 +158,7 @@ export default function IntelligencePanel({ isPremium }: { isPremium: boolean })
           <p className="text-2xl mb-2">📡</p>
           <p className="text-xs text-gray-400 mb-2">
             Monitor client sites weekly and get real-time alerts when a new tracker appears or the compliance score
-            drops — available on Pro plans.
+            drops - available on {paidPlansLabel()} plans.
           </p>
           <Link
             href="/#pricing"
