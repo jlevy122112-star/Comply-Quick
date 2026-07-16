@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { uploadBrandLogo, validateLogoFile } from "@/lib/storage/brand";
 import type { Tier } from "@/lib/entitlements";
+import { tierLabel } from "@/lib/tier-copy";
 import type { Agency, AgencyClient, AgencyDomain, ClientStats, AgencyMember } from "@/lib/agency/service";
 import type { BillingSummary } from "@/lib/billing/usage";
 
@@ -66,7 +67,7 @@ export default function AgencyPortalView({
               Agency Portal
             </span>
             <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-800 text-gray-300">
-              {tier === "enterprise" ? "Enterprise" : "Agency"}
+              {tierLabel(tier)}
             </span>
           </div>
           <Link href="/dashboard/home" className="text-sm text-gray-400 hover:text-white transition-colors">

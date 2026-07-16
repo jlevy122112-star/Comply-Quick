@@ -6,6 +6,7 @@ import type { DbProject } from "@/lib/projects-db";
 import type { ComplianceScore } from "@/components/ClauseEngine";
 import type { Tier } from "@/lib/entitlements";
 import { getTierConfig } from "@/lib/pricing";
+import { tierLabel } from "@/lib/tier-copy";
 import { deleteProjectAction, signOutAction } from "@/app/dashboard/actions";
 import { Logo } from "@/components/brand/Logo";
 import CommandCenterInsights from "./CommandCenterInsights";
@@ -445,7 +446,7 @@ export default function CommandCenterView({
                 <h2 className="text-lg font-semibold text-white">Regulatory Alerts</h2>
                 {tier !== "enterprise" && (
                   <span className="px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300">
-                    Enterprise
+                    {tierLabel("enterprise")}
                   </span>
                 )}
               </div>
@@ -477,13 +478,13 @@ export default function CommandCenterView({
                   </div>
                   <div className="mt-4 text-center">
                     <p className="text-xs text-gray-400 mb-2">
-                      Regulatory alerts are available on the Enterprise plan.
+                      Regulatory alerts are available on the {tierLabel("enterprise")} plan.
                     </p>
                     <Link
                       href="/#pricing"
                       className="text-xs font-medium text-amber-400 hover:text-amber-300 transition-colors"
                     >
-                      Upgrade to Enterprise &rarr;
+                      Upgrade to {tierLabel("enterprise")} &rarr;
                     </Link>
                   </div>
                 </div>
