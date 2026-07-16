@@ -53,7 +53,7 @@ The current app serves on `http://localhost:3000` (older notes referenced :3001)
 - `/api/checkout` — POST endpoint for Stripe checkout sessions
 - `/sitemap.xml` — SEO sitemap
 - `/robots.txt` — SEO robots
-- `/legal` — public Legal Center index; each document lives at `/legal/<slug>` (terms, privacy, cookies, subscription, security, dpa, subprocessors, acceptable-use, sla, accessibility, notices, dmca, packet). These are public (no auth). Entity/jurisdiction/contact/date values come from `src/lib/company.ts`; Terms content lives in `src/lib/legal.ts`; all pages render via `src/components/legal/LegalDocumentLayout.tsx` (supports `body`, `orderedList`, `unorderedList`, and nested `subsections`).
+- `/legal` — public Legal Center index; each document lives at `/legal/<slug>` (terms, privacy, cookies, subscription, security, dpa, subprocessors, acceptable-use, sla, accessibility, notices, packet). These are public (no auth). Terms/version/date content lives in `src/lib/legal.ts`; centralized identity (`src/lib/company.ts`) and the `/legal/dmca` page are introduced by the legal-center work (PR #79). Legal pages render via `src/components/legal/LegalDocumentLayout.tsx` (supports `body`, `orderedList`, `unorderedList`, and nested `subsections`).
 
 ## Testing the Wizard Flow
 
@@ -142,11 +142,11 @@ curl -s http://localhost:3000 | grep -o '<title>[^<]*</title>'
 
 # Check sitemap
 curl -s http://localhost:3000/sitemap.xml
-# Expected: 3 URLs (/, /dashboard, /dashboard/home) with priorities 1.0/0.9/0.8
+# Expected: static entries for / (priority 1.0), /blog (0.8), and /legal/terms (0.3), plus dynamic /compare/<slug> (0.8) and /blog/<slug> (0.7) entries.
 
 # Check robots.txt
 curl -s http://localhost:3000/robots.txt
-# Expected: Allow /, Disallow /api/ and /dashboard/home
+# Expected: Allow /; Disallow /api/, /dashboard, and /auth; includes the sitemap URL and host.
 ```
 
 ## Known Gotchas
