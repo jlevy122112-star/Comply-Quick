@@ -174,7 +174,7 @@ export default function LandingPage() {
               href={START_HREF}
               className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-colors"
             >
-              Create Free Agency Account
+              Get Started Free
             </Link>
           </div>
         </div>
@@ -217,7 +217,7 @@ export default function LandingPage() {
                   href={START_HREF}
                   className="px-7 py-3.5 rounded-xl border border-gray-700 text-gray-200 font-medium text-center hover:border-gray-500 hover:text-white transition-colors"
                 >
-                  Create Free Agency Account
+                  Get Started Free
                 </Link>
               </div>
               {/* Purchase-risk reducers (all truthful: see pricing + FAQ) */}
@@ -720,7 +720,7 @@ export default function LandingPage() {
                 href={START_HREF}
                 className="w-full sm:w-auto px-8 py-4 rounded-xl border border-gray-700 text-gray-200 font-medium text-base hover:border-gray-500 hover:text-white transition-colors text-center"
               >
-                Create Free Agency Account
+                Get Started Free
               </Link>
             </div>
             <p className="mt-4 text-xs text-gray-300">No Credit Card Required.</p>

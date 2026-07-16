@@ -71,7 +71,7 @@ export function AgencyRevenueCalculator({ startHref }: { startHref: string }) {
           href={startHref}
           className="mt-8 block w-full py-3 px-4 rounded-xl bg-indigo-600 text-white text-center font-semibold hover:bg-indigo-500 transition-colors"
         >
-          Create Free Agency Account
+          Get Started Free
         </Link>
       </div>
     </div>

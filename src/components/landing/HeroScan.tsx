@@ -50,7 +50,7 @@ export function HeroScan({ startHref }: { startHref: string }) {
           }}
           className="mt-4 text-xs text-gray-400 hover:text-gray-200 transition-colors"
         >
-          Scan another site
+          Scan Another Site
         </button>
       </div>
     );
@@ -70,14 +70,14 @@ export function HeroScan({ startHref }: { startHref: string }) {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="yourwebsite.com"
-            className="flex-1 px-4 py-4 rounded-xl bg-gray-900 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+            className="flex-1 min-w-0 px-4 py-4 rounded-xl bg-gray-900 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
           />
           <button
             type="submit"
             disabled={status === "scanning"}
             className="px-8 py-4 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 disabled:opacity-60 transition-colors whitespace-nowrap"
           >
-            {status === "scanning" ? "Scanning\u2026" : "Scan my site free"}
+            {status === "scanning" ? "Scanning\u2026" : "Scan My Site Free"}
           </button>
         </div>
       </form>
@@ -89,7 +89,7 @@ export function HeroScan({ startHref }: { startHref: string }) {
       <p className="mt-4 text-xs text-gray-300">
         Instant score, no account needed.{" "}
         <Link href={startHref} className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2">
-          Or create a free account &rarr;
+          Or Create a Free Account &rarr;
         </Link>
       </p>
     </div>
