@@ -7,12 +7,44 @@ description: Test the Comply-Quick compliance wizard, paywall, and enterprise fe
 
 ## Prerequisites
 
-- Node.js and npm installed
-- Dev server running on port 3001: `cd /home/ubuntu/repos/comply-quick && PORT=3001 npm run dev`
+- Node.js and npm installed (prefer Node 22+; `@supabase/supabase-js` warns and CI/build noise increases on Node 20).
+- Supabase env configured in `.env.local` at repo root (see "Auth & Local Setup").
 
-## Dev Server
+## Auth & Local Setup (Supabase)
 
-The app runs on `http://localhost:3001`. Key routes:
+The dashboard is gated behind Supabase auth — unauthenticated `/dashboard/*` routes redirect to `/login`. You must configure `.env.local` (NOT `.env vars`, which Next.js ignores) with:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
+```
+
+Login/signup are Supabase **server actions** (`src/app/login/actions.ts`): password sign-in via `signInWithPassword`, signup via `signUp` (email confirmation may be ON — signup then shows a "Confirm your email" notice instead of logging in). Sign in with a confirmed test user to reach `/dashboard/home`.
+
+## IMPORTANT: Test against a PRODUCTION build, not `next dev`
+
+The local `next dev` server may serve HTML that **never hydrates** — the page looks right but is completely non-interactive (tab clicks do nothing, typing into inputs registers nothing). The tell is failed HMR websockets in the console (`ws://…/_next/webpack-hmr … ERR_INVALID_HTTP_RESPONSE`) and/or report-only CSP `unsafe-eval` warnings. When this happens, do NOT conclude the code is broken — it's a dev-server/environment artifact.
+
+Reliable approach for UI testing:
+```powershell
+# from repo root
+Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force   # clear stale dev server
+npm run build
+npm run start   # serves production build on :3000 (run in a persistent/background shell)
+```
+A production build has no HMR/eval dependency, so hydration works and interactions behave like the deployed app. Quick hydration check: type into any input; if the value doesn't appear, the page isn't interactive.
+
+## Browser (computer-tool) gotchas on this VM
+
+- **Typing drops shift-modified characters** (`@`, `!`, capital letters) — so emails/passwords typed directly get mangled (e.g. `TestPass123!` → `estass123`). Use the clipboard instead: `Set-Clipboard -Value "<text>"` in the shell, then click the field and `Ctrl+A`, `Delete`, `Ctrl+V`.
+- **Address bar `:` is also a shifted char** — type the host, then send `shift+semicolon` for the colon, then the rest (e.g. `127.0.0.1` + `shift+;` + `3000/login`).
+- **DevTools open narrows the viewport** and shifts element coordinates — close DevTools (F12) before clicking by coordinate, or account for the shift.
+- The dashboard header nav is horizontally scrollable; **Sign out** sits at the far right — scroll the header right to reveal it.
+
+## Key Routes
+
+The current app serves on `http://localhost:3000` (older notes referenced :3001). Key routes:
 - `/` — Landing page with pricing tiers
 - `/dashboard` — Interactive compliance wizard (5-step flow)
 - `/dashboard?status=success&plan=single` — Premium-unlocked state (bypasses paywall, sets tier)
@@ -21,6 +53,7 @@ The app runs on `http://localhost:3001`. Key routes:
 - `/api/checkout` — POST endpoint for Stripe checkout sessions
 - `/sitemap.xml` — SEO sitemap
 - `/robots.txt` — SEO robots
+- `/legal` — public Legal Center index; each document lives at `/legal/<slug>` (terms, privacy, cookies, subscription, security, dpa, subprocessors, acceptable-use, sla, accessibility, notices, dmca, packet). These are public (no auth). Entity/jurisdiction/contact/date values come from `src/lib/company.ts`; Terms content lives in `src/lib/legal.ts`; all pages render via `src/components/legal/LegalDocumentLayout.tsx` (supports `body`, `orderedList`, `unorderedList`, and nested `subsections`).
 
 ## Testing the Wizard Flow
 
@@ -68,22 +101,22 @@ To test with real Stripe, set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` en
 
 ```bash
 # Valid request
-curl -X POST http://localhost:3001/api/compliance \
+curl -X POST http://localhost:3000/api/compliance \
   -H "Content-Type: application/json" \
   -d '{"userType":"developer","framework":"wix","trackingPixels":["linkedin"],"targetRegions":["canada_pipeda"],"complianceModules":["hipaa"]}'
 
 # Invalid request (should return 422)
-curl -X POST http://localhost:3001/api/compliance \
+curl -X POST http://localhost:3000/api/compliance \
   -H "Content-Type: application/json" \
   -d '{"userType":"developer","framework":"angular","trackingPixels":["meta"],"targetRegions":["us_general"]}'
 
 # Markdown format
-curl -X POST http://localhost:3001/api/compliance \
+curl -X POST http://localhost:3000/api/compliance \
   -H "Content-Type: application/json" \
   -d '{"userType":"developer","framework":"shopify","trackingPixels":["meta","google"],"targetRegions":["us_general","eu_gdpr"],"format":"markdown"}'
 
 # Checkout API (dev mode — should return 503)
-curl -X POST http://localhost:3001/api/checkout \
+curl -X POST http://localhost:3000/api/checkout \
   -H "Content-Type: application/json" \
   -d '{"plan":"single"}'
 ```
@@ -104,15 +137,15 @@ curl -X POST http://localhost:3001/api/checkout \
 
 ```bash
 # Check metadata in HTML
-curl -s http://localhost:3001 | grep -o '<title>[^<]*</title>'
+curl -s http://localhost:3000 | grep -o '<title>[^<]*</title>'
 # Expected: <title>Comply-Quick — Compliance Package Generator for Web Agencies</title>
 
 # Check sitemap
-curl -s http://localhost:3001/sitemap.xml
+curl -s http://localhost:3000/sitemap.xml
 # Expected: 3 URLs (/, /dashboard, /dashboard/home) with priorities 1.0/0.9/0.8
 
 # Check robots.txt
-curl -s http://localhost:3001/robots.txt
+curl -s http://localhost:3000/robots.txt
 # Expected: Allow /, Disallow /api/ and /dashboard/home
 ```
 
@@ -123,13 +156,29 @@ curl -s http://localhost:3001/robots.txt
 - **Wizard state reset on URL change**: Navigating to `?status=success` resets the wizard to step 1. You must complete the wizard again to generate a package. This is by design — the URL change triggers a full page re-render.
 - **ESLint `set-state-in-effect` rule**: This project's ESLint config disallows `setState` inside `useEffect`. Use lazy `useState` initializers or `useSyncExternalStore` (with cached snapshots) instead.
 
-## Lint & Build
+## Lint, Types, Tests & Build
+
+Use the repo's own npm scripts (see `package.json`) rather than ad-hoc commands:
 
 ```bash
-npx eslint src/    # Should pass with 0 errors
-npm run build      # Should compile successfully
+npm run typecheck     # tsc --noEmit
+npm run lint          # eslint (flat config)
+npm run test          # vitest run (unit/integration)
+npm run test:e2e      # playwright test (end-to-end)
+npm run format:check  # prettier --check .
+npm run build         # next build (production build)
+npm run quality       # aggregate: typecheck + lint + test + format:check (mirrors CI)
 ```
+
+`npm run quality` is what the GitHub `quality` workflow runs — run it locally before pushing.
+
+**Known pre-existing `format:check` failures (as of 2026-07):** `docs/founder-secure-record-template.html` and `src/lib/growth/phase1-contract.ts` are un-formatted on `main`, so `format:check`/`quality` are red for them regardless of your change. Don't "fix" them unless asked — only ensure the files *you* touched are Prettier-clean (`npx prettier --check <your files>`).
+
+Note: on Windows/PowerShell, `next build` can print Supabase/Node stderr warnings that surface as a non-zero-looking `NativeCommandError` even on success — confirm success via `.next/BUILD_ID` and the printed route table rather than the shell exit code.
 
 ## Devin Secrets Needed
 
-None — the app has no external service dependencies for testing. All compliance generation is local/deterministic. Stripe checkout uses a dev-mode fallback when `STRIPE_SECRET_KEY` is not set.
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` — required to reach any authenticated `/dashboard/*` screen. Write them to `.env.local` at repo root.
+- A confirmed Supabase test user (email + password) to sign in. If email confirmation is ON, either pre-confirm the user via the service-role admin API or use an already-confirmed account. Never print or commit these values.
+
+The compliance wizard/API generation itself is local/deterministic; Stripe checkout uses a dev-mode fallback when `STRIPE_SECRET_KEY` is not set.
