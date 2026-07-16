@@ -117,8 +117,8 @@ export function LegalDocumentLayout({
                         ))}
                       </ol>
                     ) : null}
-                    {section.subsections?.map((subsection) => (
-                      <div key={subsection.heading} className="space-y-3 border-l border-gray-700 pl-4">
+                    {section.subsections?.map((subsection, index) => (
+                      <div key={index} className="space-y-3 border-l border-gray-700 pl-4">
                         <h3 className="text-base font-semibold text-gray-100">{subsection.heading}</h3>
                         {subsection.body?.map((paragraph, index) => (
                           <p key={index} className="text-sm leading-relaxed text-gray-300 sm:text-base">

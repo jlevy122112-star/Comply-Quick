@@ -5,6 +5,7 @@ import { COMPANY_LEGAL_NAME, LEGAL_EFFECTIVE_DATE, LEGAL_VERSION, PRIVACY_EMAIL 
 export const metadata: Metadata = {
   title: "Privacy Policy - Comply-Quick",
   description: "How Comply-Quick collects, uses, protects, and manages personal information.",
+  alternates: { canonical: "/legal/privacy" },
 };
 
 const sections: LegalSection[] = [
