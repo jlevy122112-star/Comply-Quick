@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { loginAction, signupAction } from "./actions";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/brand/Logo";
-import { uploadBrandLogo, validateLogoFile } from "@/lib/storage/brand";
+import { validateLogoFile } from "@/lib/storage/brand";
 
 type Mode = "signin" | "signup" | "forgot";
 
@@ -26,16 +28,21 @@ function AuthPage() {
   const searchParams = useSearchParams();
   const redirectTo = useMemo(() => safeInternalPath(searchParams.get("redirect")), [searchParams]);
   const initialMode: Mode = searchParams.get("mode") === "signup" ? "signup" : "signin";
+  const initialError = searchParams.get("error") ?? "";
+  const initialEmail = searchParams.get("email") ?? "";
+  const initialNotice = searchParams.get("notice");
 
   const [mode, setMode] = useState<Mode>(initialMode);
   // "confirm" = signup needs email verification; "reset" = password-reset email sent.
-  const [notice, setNotice] = useState<"none" | "magic" | "confirm" | "reset">("none");
+  const [notice, setNotice] = useState<"none" | "magic" | "confirm" | "reset">(
+    initialNotice === "magic" || initialNotice === "confirm" || initialNotice === "reset" ? initialNotice : "none"
+  );
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [noticeEmail, setNoticeEmail] = useState("");
+  const [error, setError] = useState(initialError);
+  const [noticeEmail, setNoticeEmail] = useState(initialEmail);
 
   // Shared fields.
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
@@ -43,7 +50,6 @@ function AuthPage() {
   const [fullName, setFullName] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoError, setLogoError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -66,8 +72,23 @@ function AuthPage() {
     (next: Mode) => {
       resetTransientState();
       setMode(next);
+      const params = new URLSearchParams(searchParams.toString());
+      if (next === "forgot") params.delete("mode");
+      else params.set("mode", next);
+      const query = params.toString();
+      window.history.replaceState(null, "", query ? `/login?${query}` : "/login");
     },
-    [resetTransientState]
+    [resetTransientState, searchParams]
+  );
+
+  const modeHref = useCallback(
+    (next: Exclude<Mode, "forgot">) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("mode", next === "signup" ? "signup" : "signin");
+      const query = params.toString();
+      return query ? `/login?${query}` : "/login";
+    },
+    [searchParams]
   );
 
   const oauth = useCallback(
@@ -94,7 +115,6 @@ function AuthPage() {
   const onPickLogo = useCallback((file: File | null) => {
     setLogoError("");
     if (!file) {
-      setLogoFile(null);
       setLogoPreview(null);
       return;
     }
@@ -103,86 +123,9 @@ function AuthPage() {
       setLogoError(err);
       return;
     }
-    setLogoFile(file);
     // The effect keyed on logoPreview revokes the prior URL when this changes.
     setLogoPreview(URL.createObjectURL(file));
   }, []);
-
-  const handleSignin = useCallback(async () => {
-    setBusy(true);
-    setError("");
-    try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        setError(error.message);
-        setBusy(false);
-        return;
-      }
-      // Keep busy true through the full-page navigation.
-      window.location.assign(redirectTo);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Sign-in failed. Please try again.");
-      setBusy(false);
-    }
-  }, [email, password, redirectTo]);
-
-  const handleSignup = useCallback(async () => {
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError("Passwords don't match.");
-      return;
-    }
-    setBusy(true);
-    setError("");
-
-    try {
-      const supabase = createClient();
-      const emailRedirectTo = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}&channel=signup`;
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo,
-          data: { full_name: fullName.trim() || null, company_name: companyName.trim() || null },
-        },
-      });
-
-      if (error) {
-        setError(error.message);
-        setBusy(false);
-        return;
-      }
-
-      // Autoconfirm on → we get a session immediately; upload the logo (if any)
-      // and land in the dashboard. Otherwise the user must verify by email first.
-      if (data.session && data.user) {
-        if (logoFile) {
-          try {
-            const up = await uploadBrandLogo(data.user.id, logoFile);
-            if (up.ok) {
-              await supabase.auth.updateUser({ data: { company_logo_url: up.url } });
-            }
-          } catch {
-            // Non-fatal: the account exists; the logo can be added later from Settings.
-          }
-        }
-        // Keep busy true through the full-page navigation.
-        window.location.assign(redirectTo);
-        return;
-      }
-
-      setNoticeEmail(email);
-      setNotice("confirm");
-      setBusy(false);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Sign-up failed. Please try again.");
-      setBusy(false);
-    }
-  }, [email, password, confirmPassword, fullName, companyName, logoFile, redirectTo]);
 
   const handleMagicLink = useCallback(async () => {
     setBusy(true);
@@ -259,16 +202,16 @@ function AuthPage() {
               {/* Mode tabs */}
               <div className="mb-6 grid grid-cols-2 gap-1 rounded-lg bg-gray-950 p-1">
                 {(["signin", "signup"] as const).map((m) => (
-                  <button
+                  <Link
                     key={m}
-                    type="button"
-                    onClick={() => switchMode(m)}
+                    href={modeHref(m)}
                     className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                       mode === m ? "bg-indigo-600 text-white" : "text-gray-400 hover:text-gray-200"
                     }`}
+                    onClick={resetTransientState}
                   >
                     {m === "signin" ? "Sign In" : "Create Account"}
-                  </button>
+                  </Link>
                 ))}
               </div>
 
@@ -280,19 +223,14 @@ function AuthPage() {
                 <span className="h-px flex-1 bg-gray-800" />
               </div>
 
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (mode === "signin") handleSignin();
-                  else handleSignup();
-                }}
-                className="space-y-4"
-              >
+              <form action={mode === "signin" ? loginAction : signupAction} className="space-y-4">
+                <input type="hidden" name="redirect" value={redirectTo} />
                 {mode === "signup" && (
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <FieldInput
                         label="Full name"
+                        name="fullName"
                         value={fullName}
                         onChange={setFullName}
                         placeholder="Jane Doe"
@@ -301,6 +239,7 @@ function AuthPage() {
                       <FieldInput
                         label="Company"
                         optional
+                        name="companyName"
                         value={companyName}
                         onChange={setCompanyName}
                         placeholder="Acme Agency"
@@ -318,6 +257,7 @@ function AuthPage() {
 
                 <FieldInput
                   label="Email address"
+                  name="email"
                   type="email"
                   required
                   value={email}
@@ -344,6 +284,7 @@ function AuthPage() {
                   <div className="relative">
                     <input
                       id="password"
+                      name="password"
                       type={showPassword ? "text" : "password"}
                       required
                       value={password}
@@ -366,6 +307,7 @@ function AuthPage() {
                 {mode === "signup" && (
                   <FieldInput
                     label="Confirm password"
+                    name="confirmPassword"
                     type={showPassword ? "text" : "password"}
                     required
                     value={confirmPassword}
@@ -472,6 +414,7 @@ function OAuthButtons({ busy, onOAuth }: { busy: boolean; onOAuth: (p: "google" 
 
 function FieldInput({
   label,
+  name,
   value,
   onChange,
   placeholder,
@@ -481,6 +424,7 @@ function FieldInput({
   autoComplete,
 }: {
   label: string;
+  name?: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
@@ -497,6 +441,7 @@ function FieldInput({
       </span>
       <input
         type={type}
+        name={name}
         required={required}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -555,6 +500,7 @@ function LogoUploadField({
       </div>
       <input
         ref={inputRef}
+        name="logo"
         type="file"
         accept="image/png,image/jpeg,image/webp"
         className="hidden"

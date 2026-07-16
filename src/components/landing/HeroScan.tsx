@@ -89,7 +89,7 @@ export function HeroScan({ startHref }: { startHref: string }) {
       <p className="mt-4 text-xs text-gray-300">
         Instant score, no account needed.{" "}
         <Link href={startHref} className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2">
-          Or Create a Free Account &rarr;
+          Or Get Started Free &rarr;
         </Link>
       </p>
     </div>
