@@ -59,13 +59,20 @@ export default function DmcaPage() {
           heading: "4. Counter-Notification",
           body: [
             "If material was removed or disabled by mistake or misidentification, the affected user may send a counter-notification containing the elements required by 17 U.S.C. § 512(g)(3):",
-            "We may restore access after the statutory process if the complaining party does not file a court action within the applicable period. We may decline restoration where law, safety, account status, or another valid basis requires a different result.",
           ],
           orderedList: [
             "Identification of the removed material and its former location.",
             "A statement under penalty of perjury that the user has a good-faith belief the material was removed because of mistake or misidentification.",
-            "The user’s name, address, telephone number, and a statement consenting to the jurisdiction of the applicable federal district court and accepting service of process from the original complaining party.",
+            "The user's name, address, telephone number, and a statement consenting to the jurisdiction of the applicable federal district court and accepting service of process from the original complaining party.",
             "A physical or electronic signature.",
+          ],
+          subsections: [
+            {
+              heading: "Restoration of Access",
+              body: [
+                "We may restore access after the statutory process if the complaining party does not file a court action within the applicable period. We may decline restoration where law, safety, account status, or another valid basis requires a different result.",
+              ],
+            },
           ],
         },
         {
