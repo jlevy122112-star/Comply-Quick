@@ -3,7 +3,17 @@ import Link from "next/link";
 export interface LegalSection {
   id: string;
   heading: string;
-  body: string[];
+  body?: string[];
+  orderedList?: string[];
+  unorderedList?: string[];
+  subsections?: LegalSubsection[];
+}
+
+export interface LegalSubsection {
+  heading: string;
+  body?: string[];
+  orderedList?: string[];
+  unorderedList?: string[];
 }
 
 interface LegalDocumentLayoutProps {
@@ -41,6 +51,7 @@ export function LegalDocumentLayout({
                 <span className="rounded-full border border-gray-700 px-3 py-1">Effective {effectiveDate}</span>
               ) : null}
             </div>
+            {effectiveDate ? <p className="mt-3 text-xs text-gray-500">Last updated {effectiveDate}</p> : null}
           </header>
 
           <div className="grid gap-8 px-6 py-8 sm:px-10 lg:grid-cols-[240px_1fr]">
@@ -87,10 +98,48 @@ export function LegalDocumentLayout({
                 >
                   <h2 className="text-lg font-semibold text-white sm:text-xl">{section.heading}</h2>
                   <div className="mt-3 space-y-3">
-                    {section.body.map((paragraph, index) => (
+                    {section.body?.map((paragraph, index) => (
                       <p key={index} className="text-sm leading-relaxed text-gray-300 sm:text-base">
                         {paragraph}
                       </p>
+                    ))}
+                    {section.unorderedList ? (
+                      <ul className="list-disc space-y-2 pl-5 text-sm leading-relaxed text-gray-300 sm:text-base">
+                        {section.unorderedList.map((item, index) => (
+                          <li key={index}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    {section.orderedList ? (
+                      <ol className="list-decimal space-y-2 pl-5 text-sm leading-relaxed text-gray-300 sm:text-base">
+                        {section.orderedList.map((item, index) => (
+                          <li key={index}>{item}</li>
+                        ))}
+                      </ol>
+                    ) : null}
+                    {section.subsections?.map((subsection) => (
+                      <div key={subsection.heading} className="space-y-3 border-l border-gray-700 pl-4">
+                        <h3 className="text-base font-semibold text-gray-100">{subsection.heading}</h3>
+                        {subsection.body?.map((paragraph, index) => (
+                          <p key={index} className="text-sm leading-relaxed text-gray-300 sm:text-base">
+                            {paragraph}
+                          </p>
+                        ))}
+                        {subsection.unorderedList ? (
+                          <ul className="list-disc space-y-2 pl-5 text-sm leading-relaxed text-gray-300 sm:text-base">
+                            {subsection.unorderedList.map((item, index) => (
+                              <li key={index}>{item}</li>
+                            ))}
+                          </ul>
+                        ) : null}
+                        {subsection.orderedList ? (
+                          <ol className="list-decimal space-y-2 pl-5 text-sm leading-relaxed text-gray-300 sm:text-base">
+                            {subsection.orderedList.map((item, index) => (
+                              <li key={index}>{item}</li>
+                            ))}
+                          </ol>
+                        ) : null}
+                      </div>
                     ))}
                   </div>
                 </section>
