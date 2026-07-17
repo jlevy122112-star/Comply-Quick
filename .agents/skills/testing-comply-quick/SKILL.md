@@ -172,7 +172,7 @@ npm run quality       # aggregate: typecheck + lint + test + format:check (mirro
 
 `npm run quality` is what the GitHub `quality` workflow runs — run it locally before pushing.
 
-**Known pre-existing `format:check` failures (as of 2026-07):** `docs/founder-secure-record-template.html` and `src/lib/growth/phase1-contract.ts` are un-formatted on `main`, so `format:check`/`quality` are red for them regardless of your change. Don't "fix" them unless asked — only ensure the files *you* touched are Prettier-clean (`npx prettier --check <your files>`).
+**`format:check` / `quality` note:** the two long-standing un-formatted files (`docs/founder-secure-record-template.html` and `src/lib/growth/phase1-contract.ts`) were removed as unused artifacts, so `quality` should be green on `main`. Still, only ensure the files *you* touched are Prettier-clean (`npx prettier --check <your files>`); if `quality` is red, run `npm run quality` locally to see which file is at fault before assuming it's yours.
 
 Note: on Windows/PowerShell, `next build` can print Supabase/Node stderr warnings that surface as a non-zero-looking `NativeCommandError` even on success — confirm success via `.next/BUILD_ID` and the printed route table rather than the shell exit code.
 
