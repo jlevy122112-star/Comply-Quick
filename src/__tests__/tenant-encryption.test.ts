@@ -96,6 +96,12 @@ describe("envelope encryption", () => {
     expect(await provider.unwrapDek(wrapped)).toEqual(dek);
   });
 
+  it("rejects KEK versions containing the wrapped-DEK delimiter", () => {
+    expect(() => new EnvKeyProvider({ version: "v1.2" })).toThrow(
+      "Tenant encryption KEK version contains unsupported characters."
+    );
+  });
+
   it("supports provider swapping through the common interface", async () => {
     const providerA = new EnvKeyProvider({ keyBase64: randomBytes(32).toString("base64"), version: "a" });
     const providerB = new EnvKeyProvider({ keyBase64: randomBytes(32).toString("base64"), version: "b" });

@@ -76,7 +76,7 @@ export class EnvKeyProvider implements KeyProvider {
     if (kek.length !== AES_KEY_BYTES) {
       throw new Error(`${TENANT_ENCRYPTION_KEK_ENV} must decode to exactly 32 bytes.`);
     }
-    if (!/^[A-Za-z0-9._-]+$/.test(version)) {
+    if (!/^[A-Za-z0-9_-]+$/.test(version)) {
       throw new Error("Tenant encryption KEK version contains unsupported characters.");
     }
 
