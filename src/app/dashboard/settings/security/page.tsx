@@ -2,7 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Factor } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { getEntitlement } from "@/lib/entitlements";
+import { getOrCreateOrganization } from "@/lib/organizations-db";
+import { getTenantEncryptionStatus, type TenantEncryptionStatus } from "@/lib/security/tenant-keys";
 import { SecurityPanel } from "./SecurityPanel";
+import { DataEncryptionPanel } from "./DataEncryptionPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +19,18 @@ export default async function SecurityPage() {
 
   const { data } = await supabase.auth.mfa.listFactors();
   const initialFactors: Factor[] = data?.all ?? [];
+  const entitlement = await getEntitlement();
+  let encryptionStatus: TenantEncryptionStatus | null = null;
+  if (entitlement.isEnterprise) {
+    const organization = await getOrCreateOrganization();
+    if (organization) {
+      try {
+        encryptionStatus = await getTenantEncryptionStatus(organization.id);
+      } catch {
+        encryptionStatus = null;
+      }
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
@@ -37,7 +53,10 @@ export default async function SecurityPage() {
             alone can&apos;t grant access.
           </p>
         </div>
-        <SecurityPanel initialFactors={initialFactors} />
+        <div className="space-y-6">
+          <SecurityPanel initialFactors={initialFactors} />
+          <DataEncryptionPanel isEnterprise={entitlement.isEnterprise} initialStatus={encryptionStatus} />
+        </div>
       </main>
     </div>
   );
