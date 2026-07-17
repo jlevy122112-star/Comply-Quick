@@ -4,9 +4,9 @@ import { managedClientLimit } from "@/lib/pricing";
 const state = {
   entitlement: { tier: "agency", isPremium: true },
   linkedOrganizationId: null as string | null,
-  agencyMemberLookups: 0,
   callerId: "owner-1",
   agencyRole: "admin",
+  agencyLookups: 0,
   lastInsert: null as Record<string, unknown> | null,
   clientCount: 0,
 };
@@ -30,13 +30,18 @@ function resultFor(table: string, operation: string): Record<string, unknown> {
     return { data: organization, error: null };
   }
   if (table === "agency_members" && operation === "maybeSingle") {
-    state.agencyMemberLookups += 1;
     return {
-      data: state.agencyMemberLookups === 1 ? { agency_id: agency.id } : { role: state.agencyRole },
+      data: state.agencyRole === "admin" ? { agency_id: agency.id, role: state.agencyRole } : null,
       error: null,
     };
   }
-  if (table === "agencies" && operation === "maybeSingle") return { data: agency, error: null };
+  if (table === "agencies" && operation === "maybeSingle") {
+    state.agencyLookups += 1;
+    return {
+      data: state.callerId === agency.owner_id || state.agencyLookups > 1 ? agency : null,
+      error: null,
+    };
+  }
   if (table === "agency_clients" && operation === "maybeSingle") {
     return {
       data: {
@@ -113,9 +118,9 @@ describe("agency client organizations", () => {
   beforeEach(() => {
     state.entitlement = { tier: "agency", isPremium: true };
     state.linkedOrganizationId = null;
-    state.agencyMemberLookups = 0;
     state.callerId = "owner-1";
     state.agencyRole = "admin";
+    state.agencyLookups = 0;
     state.lastInsert = null;
     state.clientCount = 0;
     vi.resetModules();

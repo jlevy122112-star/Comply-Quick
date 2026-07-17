@@ -155,21 +155,6 @@ export const getOrCreateAgency = cache(async (): Promise<Agency> => {
   const existing = await owned();
   if (existing.data) return mapAgency(existing.data);
 
-  const { data: membership } = await supabase
-    .from("agency_members")
-    .select("agency_id")
-    .eq("user_id", user.id)
-    .limit(1)
-    .maybeSingle();
-  if (membership?.agency_id) {
-    const { data: memberAgency } = await supabase
-      .from("agencies")
-      .select(AGENCY_COLS)
-      .eq("id", membership.agency_id)
-      .maybeSingle();
-    if (memberAgency) return mapAgency(memberAgency);
-  }
-
   // Derive a slug and create the workspace. Each user owns at most one agency
   // (unique owner_id), so a duplicate-key error means either a concurrent
   // create won the race (from another request/tab) or the slug clashed with a
@@ -197,6 +182,37 @@ export const getOrCreateAgency = cache(async (): Promise<Agency> => {
   }
   throw new Error(`Could not allocate a unique agency slug (seed: ${seed}).`);
 });
+
+/**
+ * Resolves an existing agency for provisioning only. Unlike getOrCreateAgency,
+ * this never creates an agency and only accepts an owner or an admin member.
+ */
+async function resolveActorAgency(): Promise<Agency | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data: owned } = await supabase.from("agencies").select(AGENCY_COLS).eq("owner_id", user.id).maybeSingle();
+  if (owned) return mapAgency(owned);
+
+  const { data: membership } = await supabase
+    .from("agency_members")
+    .select("agency_id, role")
+    .eq("user_id", user.id)
+    .eq("role", "admin")
+    .limit(1)
+    .maybeSingle();
+  if (!membership?.agency_id) return null;
+
+  const { data: agency } = await supabase
+    .from("agencies")
+    .select(AGENCY_COLS)
+    .eq("id", membership.agency_id)
+    .maybeSingle();
+  return agency ? mapAgency(agency) : null;
+}
 
 interface BrandingUpdate {
   name?: string;
@@ -315,7 +331,6 @@ export async function createClient_(input: ClientInput): Promise<AgencyClient> {
 
 /** Provisions the linked organization and default workspace for an agency client. */
 export async function provisionClientOrganization(clientId: string): Promise<Organization> {
-  const agency = await getOrCreateAgency();
   const supabase = await createClient();
   const {
     data: { user },
@@ -324,15 +339,8 @@ export async function provisionClientOrganization(clientId: string): Promise<Org
   if (!(await canUseAgencyPortal())) {
     throw new ForbiddenError("The client portal is available on the Agency and Enterprise plans.");
   }
-
-  const { data: member } = await supabase
-    .from("agency_members")
-    .select("role")
-    .eq("agency_id", agency.id)
-    .eq("user_id", user.id)
-    .maybeSingle();
-  const isAdmin = user.id === agency.ownerId || member?.role === "admin";
-  if (!isAdmin) throw new ForbiddenError("Only agency owners and admins can provision client workspaces.");
+  const agency = await resolveActorAgency();
+  if (!agency) throw new ForbiddenError("Only agency owners and admins can provision client workspaces.");
 
   const { data: client, error: clientError } = await supabase
     .from("agency_clients")
