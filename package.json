@@ -62,4 +62,11 @@
     "vitest": "^4.1.9",
     "@playwright/test": "1.61.1"
   }
+},
+{
+  "scripts": {
+    "docs:api": "typedoc",
+    "docs:build": "npm run docs:api",
+    "docs": "npm run docs:build"
+  }
 }
