@@ -71,6 +71,8 @@ describe.skipIf(!hasLiveSupabase)("org-scoped tenancy RLS (requires live Supabas
         )
         .select("id, user_id, organization_id");
       expect(projectRows.error).toBeNull();
+      const userBProject = projectRows.data?.find((row) => row.user_id === createdUserIds[1]);
+      expect(userBProject).not.toBeUndefined();
 
       const clients = await Promise.all(
         users.map(async (user) => {
@@ -86,7 +88,8 @@ describe.skipIf(!hasLiveSupabase)("org-scoped tenancy RLS (requires live Supabas
       const firstUserProjects = await clients[0].from("projects").select("id, user_id, organization_id");
       expect(firstUserProjects.error).toBeNull();
       expect(firstUserProjects.data).toHaveLength(1);
-      expect(firstUserProjects.data?.[0].organization_id).toBe(organizationIds[0]);
+      const firstUserProject = firstUserProjects.data?.find((row) => row.user_id === createdUserIds[0]);
+      expect(firstUserProject?.organization_id).toBe(organizationIds[0]);
 
       const crossTenantInsert = await clients[0].from("projects").insert({
         user_id: createdUserIds[1],
@@ -104,11 +107,11 @@ describe.skipIf(!hasLiveSupabase)("org-scoped tenancy RLS (requires live Supabas
       const crossTenantUpdate = await clients[0]
         .from("projects")
         .update({ name: "Should be rejected" })
-        .eq("id", projectRows.data?.[1]?.id)
+        .eq("id", userBProject!.id)
         .select("id");
       expect(crossTenantUpdate.error !== null || (crossTenantUpdate.data?.length ?? 0) === 0).toBe(true);
 
-      const targetProject = await admin.from("projects").select("name").eq("id", projectRows.data?.[1]?.id).single();
+      const targetProject = await admin.from("projects").select("name").eq("id", userBProject!.id).single();
       expect(targetProject.error).toBeNull();
       expect(targetProject.data?.name).toBe("RLS Project 1");
     } finally {
