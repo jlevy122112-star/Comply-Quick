@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { recordAlertImpact } from "@/lib/regulations/alert-impacts";
 import { addIntegration } from "@/lib/integrations-db";
+import { createProjectTask } from "@/lib/workspace/tasks";
 
 const { serverRows, mockServerClient } = vi.hoisted(() => ({
   serverRows: [] as Record<string, unknown>[],
@@ -9,19 +10,32 @@ const { serverRows, mockServerClient } = vi.hoisted(() => ({
     auth: {
       getUser: async () => ({ data: { user: { id: "user-a" } } }),
     },
-    from: () => ({
-      insert: (row: Record<string, unknown>) => {
-        serverRows.push(row);
+    from: (table: string) => {
+      if (table === "projects") {
         return {
           select: () => ({
-            single: async () => ({
-              data: { ...row, id: "integration-a", created_at: new Date().toISOString() },
-              error: null,
+            eq: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({ data: { id: "project-a" }, error: null }),
+              }),
             }),
           }),
         };
-      },
-    }),
+      }
+      return {
+        insert: (row: Record<string, unknown>) => {
+          serverRows.push(row);
+          return {
+            select: () => ({
+              single: async () => ({
+                data: { ...row, id: "integration-a", created_at: new Date().toISOString() },
+                error: null,
+              }),
+            }),
+          };
+        },
+      };
+    },
   },
 }));
 
@@ -49,6 +63,22 @@ describe("organization-scoped insert paths", () => {
     });
   });
 
+  it("tags project-task inserts with the active organization", async () => {
+    serverRows.length = 0;
+    const result = await createProjectTask({
+      projectId: "project-a",
+      title: "Review policy",
+      dueDate: "2030-01-15",
+    });
+
+    expect(result.projectId).toBe("project-a");
+    expect(serverRows[0]).toMatchObject({
+      user_id: "user-a",
+      organization_id: "org-a",
+      project_id: "project-a",
+    });
+  });
+
   it("includes organization_id in every requested insert path", () => {
     const paths = [
       "src/lib/projects-db.ts",
@@ -56,9 +86,11 @@ describe("organization-scoped insert paths", () => {
       "src/lib/findings-db.ts",
       "src/lib/evidence-db.ts",
       "src/lib/calendar/service.ts",
+      "src/lib/workspace/tasks.ts",
       "src/lib/integrations-db.ts",
       "src/lib/audit-log.ts",
       "src/lib/regulations/alert-impacts.ts",
+      "src/lib/intelligence/service.ts",
     ];
 
     for (const path of paths) {

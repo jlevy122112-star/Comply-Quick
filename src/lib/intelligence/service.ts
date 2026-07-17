@@ -308,10 +308,23 @@ export async function runIntelligence(ai: AiClient = getAiClient()): Promise<Int
       const outcome = await runScan({ url: monitor.url, ai });
       monitorsScanned += 1;
 
+      let organizationId: string | null = null;
+      try {
+        const { data: organization } = await admin
+          .from("organizations")
+          .select("id")
+          .eq("owner_id", monitor.user_id)
+          .maybeSingle();
+        organizationId = (organization as { id: string } | null)?.id ?? null;
+      } catch {
+        organizationId = null;
+      }
+
       const { data: scanRow } = await admin
         .from("scans")
         .insert({
           user_id: monitor.user_id,
+          organization_id: organizationId,
           monitor_id: monitor.id,
           url: outcome.url,
           status: "completed",

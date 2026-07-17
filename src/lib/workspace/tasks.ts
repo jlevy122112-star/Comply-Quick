@@ -5,6 +5,7 @@
 // returned here, and every read/write is RLS-scoped to the caller.
 
 import { createClient } from "@/lib/supabase/server";
+import { getActiveOrganizationId } from "@/lib/organizations-db";
 import { UnauthorizedError, ValidationError, NotFoundError } from "@/services/errors";
 import {
   toDayKey,
@@ -88,6 +89,7 @@ export async function listProjectTasks(projectId: string): Promise<ProjectTask[]
 /** Creates a manual task scoped to a project the caller owns. */
 export async function createProjectTask(input: NewProjectTaskInput): Promise<ProjectTask> {
   const { supabase, user } = await requireUser();
+  const organizationId = await getActiveOrganizationId();
 
   const title = input.title?.trim();
   if (!title) throw new ValidationError("A task title is required.");
@@ -111,6 +113,7 @@ export async function createProjectTask(input: NewProjectTaskInput): Promise<Pro
     .from("compliance_tasks")
     .insert({
       user_id: user.id,
+      organization_id: organizationId,
       project_id: input.projectId,
       title,
       description: input.description?.trim() ?? "",
