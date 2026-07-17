@@ -269,6 +269,15 @@ describe("agency client organizations", () => {
     ).toBe(true);
   });
 
+  it("keeps organization reuse available when migration retry fails", async () => {
+    state.linkedOrganizationId = "org-client-1";
+    state.failFindingRetagOnce = true;
+    const { provisionClientOrganization } = await import("@/lib/agency/service");
+
+    await expect(provisionClientOrganization("client-1")).resolves.toMatchObject({ id: "org-client-1" });
+    expect(state.taggedTables).toEqual(["projects"]);
+  });
+
   it("rejects a non-admin agency member", async () => {
     state.callerId = "member-1";
     state.agencyRole = "member";

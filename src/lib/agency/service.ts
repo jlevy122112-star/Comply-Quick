@@ -431,8 +431,20 @@ export async function provisionClientOrganization(clientId: string): Promise<Org
   if (clientError || !client) throw new NotFoundError("Client not found.");
   const admin = createAdminClient();
   if (client.organization_id) {
-    const personalOrganizationId = await resolveAgencyOwnerPersonalOrganization(admin, agency.ownerId);
-    await migrateClientHistoricalData(admin, agency.ownerId, client.id, client.organization_id, personalOrganizationId);
+    try {
+      const personalOrganizationId = await resolveAgencyOwnerPersonalOrganization(admin, agency.ownerId);
+      await migrateClientHistoricalData(
+        admin,
+        agency.ownerId,
+        client.id,
+        client.organization_id,
+        personalOrganizationId
+      );
+    } catch (error) {
+      log.error("Failed to complete historical client migration during organization reuse", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
     const { data: existing } = await createAdminClient()
       .from("organizations")
       .select("*")
@@ -520,6 +532,7 @@ export async function provisionClientOrganization(clientId: string): Promise<Org
         .eq("id", raced.organization_id)
         .maybeSingle();
       if (racedOrganization) return mapOrganization(racedOrganization);
+      return mapOrganization({ ...organization, id: raced.organization_id });
     }
     return mapOrganization(organization);
   }
