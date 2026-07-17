@@ -1,12 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { loginAction, signupAction } from "./actions";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/brand/Logo";
-import { validateLogoFile } from "@/lib/storage/brand";
 
 type Mode = "signin" | "signup" | "forgot";
 
@@ -50,18 +48,7 @@ function AuthPage() {
   const [fullName, setFullName] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [logoError, setLogoError] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   const strength = useMemo(() => passwordStrength(password), [password]);
-
-  // Revoke the preview blob URL when it changes (cleanup captures the prior value) and on unmount.
-  useEffect(() => {
-    return () => {
-      if (logoPreview) URL.revokeObjectURL(logoPreview);
-    };
-  }, [logoPreview]);
 
   const resetTransientState = useCallback(() => {
     setError("");
@@ -73,22 +60,15 @@ function AuthPage() {
       resetTransientState();
       setMode(next);
       const params = new URLSearchParams(searchParams.toString());
+      params.delete("error");
+      params.delete("notice");
+      params.delete("email");
       if (next === "forgot") params.delete("mode");
       else params.set("mode", next);
       const query = params.toString();
       window.history.replaceState(null, "", query ? `/login?${query}` : "/login");
     },
     [resetTransientState, searchParams]
-  );
-
-  const modeHref = useCallback(
-    (next: Exclude<Mode, "forgot">) => {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("mode", next === "signup" ? "signup" : "signin");
-      const query = params.toString();
-      return query ? `/login?${query}` : "/login";
-    },
-    [searchParams]
   );
 
   const oauth = useCallback(
@@ -111,21 +91,6 @@ function AuthPage() {
     },
     [redirectTo]
   );
-
-  const onPickLogo = useCallback((file: File | null) => {
-    setLogoError("");
-    if (!file) {
-      setLogoPreview(null);
-      return;
-    }
-    const err = validateLogoFile(file);
-    if (err) {
-      setLogoError(err);
-      return;
-    }
-    // The effect keyed on logoPreview revokes the prior URL when this changes.
-    setLogoPreview(URL.createObjectURL(file));
-  }, []);
 
   const handleMagicLink = useCallback(async () => {
     setBusy(true);
@@ -202,16 +167,16 @@ function AuthPage() {
               {/* Mode tabs */}
               <div className="mb-6 grid grid-cols-2 gap-1 rounded-lg bg-gray-950 p-1">
                 {(["signin", "signup"] as const).map((m) => (
-                  <Link
+                  <button
                     key={m}
-                    href={modeHref(m)}
+                    type="button"
+                    onClick={() => switchMode(m)}
                     className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                       mode === m ? "bg-indigo-600 text-white" : "text-gray-400 hover:text-gray-200"
                     }`}
-                    onClick={resetTransientState}
                   >
                     {m === "signin" ? "Sign In" : "Create Account"}
-                  </Link>
+                  </button>
                 ))}
               </div>
 
@@ -246,12 +211,6 @@ function AuthPage() {
                         autoComplete="organization"
                       />
                     </div>
-                    <LogoUploadField
-                      preview={logoPreview}
-                      error={logoError}
-                      inputRef={fileInputRef}
-                      onPick={onPickLogo}
-                    />
                   </>
                 )}
 
@@ -450,67 +409,6 @@ function FieldInput({
         className="w-full rounded-lg border border-gray-700 bg-gray-950 px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:border-indigo-500 focus:outline-none"
       />
     </label>
-  );
-}
-
-function LogoUploadField({
-  preview,
-  error,
-  inputRef,
-  onPick,
-}: {
-  preview: string | null;
-  error: string;
-  inputRef: React.RefObject<HTMLInputElement | null>;
-  onPick: (file: File | null) => void;
-}) {
-  return (
-    <div>
-      <span className="mb-1.5 block text-sm font-medium text-gray-300">
-        Company logo <span className="ml-1 text-xs font-normal text-gray-600">(optional)</span>
-      </span>
-      <div className="flex items-center gap-3">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-700 bg-gray-950">
-          {preview ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={preview} alt="Logo preview" className="h-full w-full object-contain" />
-          ) : (
-            <span className="text-xl text-gray-600">🏢</span>
-          )}
-        </div>
-        <div className="min-w-0">
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            className="rounded-lg border border-gray-700 px-3 py-1.5 text-sm text-gray-200 transition-colors hover:bg-gray-800"
-          >
-            {preview ? "Change logo" : "Upload logo"}
-          </button>
-          {preview && (
-            <button
-              type="button"
-              onClick={() => onPick(null)}
-              className="ml-2 text-xs text-gray-500 hover:text-red-400"
-            >
-              Remove
-            </button>
-          )}
-          <p className="mt-1 text-xs text-gray-600">PNG, JPG or WebP · up to 2 MB</p>
-        </div>
-      </div>
-      <input
-        ref={inputRef}
-        name="logo"
-        type="file"
-        accept="image/png,image/jpeg,image/webp"
-        className="hidden"
-        onChange={(e) => {
-          onPick(e.target.files?.[0] ?? null);
-          e.currentTarget.value = "";
-        }}
-      />
-      {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
-    </div>
   );
 }
 

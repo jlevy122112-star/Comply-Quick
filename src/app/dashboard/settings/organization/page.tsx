@@ -9,6 +9,7 @@ import { listSsoConnections, ssoEnabled } from "@/lib/sso-db";
 import { listScimTokens, scimEnabled } from "@/lib/scim/tokens";
 import { listScimUsers } from "@/lib/scim/provisioning";
 import { OrgProfilePanel } from "./OrgProfilePanel";
+import { BrandLogoPanel } from "./BrandLogoPanel";
 import { MembersPanel } from "./MembersPanel";
 import { WorkspacesPanel } from "./WorkspacesPanel";
 import { SsoPanel } from "./SsoPanel";
@@ -79,7 +80,12 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
 
         <TabNav items={tabs} active={tab} basePath={BASE} className="mb-6" />
 
-        {tab === "profile" && <OrgProfilePanel org={org} canManage={can(role, "org:update")} />}
+        {tab === "profile" && (
+          <div className="space-y-6">
+            <OrgProfilePanel org={org} canManage={can(role, "org:update")} />
+            <BrandLogoPanel />
+          </div>
+        )}
         {tab === "members" && <MembersPanel orgId={org.id} role={role} members={members} />}
         {tab === "workspaces" && <WorkspacesPanel orgId={org.id} role={role} workspaces={workspaces} />}
         {tab === "sso" && <SsoPanel orgId={org.id} role={role} connections={sso} live={ssoEnabled()} />}
