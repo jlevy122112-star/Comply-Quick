@@ -100,6 +100,16 @@ export const getOrCreateOrganization = cache(async (): Promise<Organization | nu
   return mapOrg(data as OrgRow);
 });
 
+/** Resolves the caller's active organization; currently the owned/default org. */
+export async function getActiveOrganizationId(): Promise<string | null> {
+  try {
+    const organization = await getOrCreateOrganization();
+    return organization?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Cheap head-count of members for tab badges (no email resolution). */
 export async function countOrgMembers(orgId: string): Promise<number> {
   const supabase = await createClient();

@@ -5,6 +5,7 @@ import type {
   ComplianceScore,
   ComplianceModule,
 } from "@/components/ClauseEngine";
+import { getActiveOrganizationId } from "@/lib/organizations-db";
 import { createClient } from "@/lib/supabase/server";
 
 export interface DbProject {
@@ -98,10 +99,12 @@ export async function createProject(input: NewProjectInput): Promise<DbProject |
   } = await supabase.auth.getUser();
   if (!user) return null;
 
+  const organizationId = await getActiveOrganizationId();
   const { data, error } = await supabase
     .from("projects")
     .insert({
       user_id: user.id,
+      organization_id: organizationId,
       name: input.name,
       framework: input.framework,
       tracking_pixels: input.trackingPixels,

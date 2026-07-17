@@ -4,6 +4,7 @@
 // notifications. All rows are owner-scoped by RLS.
 
 import { createClient } from "@/lib/supabase/server";
+import { getActiveOrganizationId } from "@/lib/organizations-db";
 
 export type IntegrationKind = "webhook";
 
@@ -66,9 +67,10 @@ export async function addIntegration(input: {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in." };
 
+  const organizationId = await getActiveOrganizationId();
   const { data, error } = await supabase
     .from("integrations")
-    .insert({ user_id: user.id, kind: input.kind, name, target_url: targetUrl })
+    .insert({ user_id: user.id, organization_id: organizationId, kind: input.kind, name, target_url: targetUrl })
     .select("*")
     .single();
   if (error || !data) return { ok: false, error: "Could not save integration." };

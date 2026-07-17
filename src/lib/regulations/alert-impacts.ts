@@ -73,8 +73,21 @@ export async function recordAlertImpact(
     riskLevel: RiskLevel;
   }
 ): Promise<void> {
+  let organizationId: string | null = null;
+  try {
+    const { data: organization } = await admin
+      .from("organizations")
+      .select("id")
+      .eq("owner_id", input.userId)
+      .maybeSingle();
+    organizationId = (organization as { id: string } | null)?.id ?? null;
+  } catch {
+    organizationId = null;
+  }
+
   await admin.from("alert_impacts").insert({
     user_id: input.userId,
+    organization_id: organizationId,
     project_id: input.projectId,
     version_id: input.versionId,
     regulation_id: input.regulationId,

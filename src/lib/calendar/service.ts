@@ -12,6 +12,7 @@
 // through the RLS-scoped server client, so a user only ever sees their own data.
 
 import { createClient } from "@/lib/supabase/server";
+import { getActiveOrganizationId } from "@/lib/organizations-db";
 import { logger } from "@/services";
 import { UnauthorizedError, ValidationError, NotFoundError } from "@/services/errors";
 import {
@@ -84,6 +85,7 @@ async function requireUser() {
 /** Creates a manual compliance task owned by the caller. */
 export async function createTask(input: CreateTaskInput): Promise<ComplianceTask> {
   const { supabase, user } = await requireUser();
+  const organizationId = await getActiveOrganizationId();
 
   const title = input.title?.trim();
   if (!title) throw new ValidationError("A task title is required.");
@@ -98,6 +100,7 @@ export async function createTask(input: CreateTaskInput): Promise<ComplianceTask
     .from("compliance_tasks")
     .insert({
       user_id: user.id,
+      organization_id: organizationId,
       agency_client_id: input.agencyClientId ?? null,
       title,
       description: input.description?.trim() ?? "",
