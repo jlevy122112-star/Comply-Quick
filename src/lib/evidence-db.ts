@@ -6,6 +6,7 @@
 // All reads/writes go through the RLS-scoped server client.
 
 import { createClient } from "@/lib/supabase/server";
+import { getActiveOrganizationId } from "@/lib/organizations-db";
 import type { AuditEvidencePack, EvidenceLedger, EvidenceStatus } from "@/lib/agents";
 import type { RegulationControl } from "@/lib/regulations/types";
 
@@ -73,9 +74,11 @@ export async function saveEvidencePack(pack: AuditEvidencePack, projectId: strin
   } = await supabase.auth.getUser();
   if (!user) return false;
 
+  const organizationId = await getActiveOrganizationId();
   const now = new Date().toISOString();
   const rows = pack.items.map((item) => ({
     user_id: user.id,
+    organization_id: organizationId,
     project_id: projectId,
     framework: pack.framework,
     control_id: item.controlId,

@@ -5,6 +5,7 @@
 // scans). Enforces a monthly free-tier quota; Agency and Enterprise are unlimited.
 
 import * as Sentry from "@sentry/nextjs";
+import { getActiveOrganizationId } from "@/lib/organizations-db";
 import { createClient } from "@/lib/supabase/server";
 import { getEntitlement } from "@/lib/entitlements";
 import { getAiClient } from "@/services/ai";
@@ -219,11 +220,13 @@ export async function createScan(
   }
 
   const outcome = await runScan({ url, ai: getAiClient() });
+  const organizationId = await getActiveOrganizationId();
 
   const { data, error } = await supabase
     .from("scans")
     .insert({
       user_id: user.id,
+      organization_id: organizationId,
       url: outcome.url,
       status: "completed",
       score: outcome.score,

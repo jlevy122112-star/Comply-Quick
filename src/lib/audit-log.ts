@@ -7,6 +7,7 @@
 // trail is tamper-evident by construction.
 
 import { createClient } from "@/lib/supabase/server";
+import { getActiveOrganizationId } from "@/lib/organizations-db";
 import { logger } from "@/services";
 import * as Sentry from "@sentry/nextjs";
 
@@ -44,8 +45,10 @@ export async function recordAuditLog(entry: AuditLogEntry): Promise<boolean> {
     } = await supabase.auth.getUser();
     if (!user) return false;
 
+    const organizationId = await getActiveOrganizationId();
     const { error } = await supabase.from("audit_logs").insert({
       user_id: user.id,
+      organization_id: organizationId,
       action: entry.action,
       entity_type: entry.entityType ?? "",
       entity_id: entry.entityId ?? null,

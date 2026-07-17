@@ -8,6 +8,7 @@
 // reopens. All reads/writes go through the RLS-scoped server client.
 
 import { createClient } from "@/lib/supabase/server";
+import { getActiveOrganizationId } from "@/lib/organizations-db";
 import { normalizeScanUrl } from "@/lib/scanner/crawler";
 import type { Finding as ScanFinding, Severity } from "@/lib/scanner/analyzer";
 
@@ -123,6 +124,7 @@ export async function materializeScanFindings(
   } = await supabase.auth.getUser();
   if (!user) return;
 
+  const organizationId = await getActiveOrganizationId();
   const site = siteKey(url);
   const now = new Date().toISOString();
 
@@ -157,7 +159,7 @@ export async function materializeScanFindings(
     if (!prior) {
       const { data: inserted } = await supabase
         .from("findings")
-        .insert({ user_id: user.id, finding_key: key, status: "open", ...common })
+        .insert({ user_id: user.id, organization_id: organizationId, finding_key: key, status: "open", ...common })
         .select("id")
         .single();
       if (inserted) {
