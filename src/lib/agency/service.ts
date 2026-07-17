@@ -8,7 +8,7 @@
 
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, isAdminClientConfigured } from "@/lib/supabase/admin";
 import { getEntitlement } from "@/lib/entitlements";
 import { logger } from "@/services";
 import { UnauthorizedError, ForbiddenError, NotFoundError, ValidationError } from "@/services/errors";
@@ -206,7 +206,7 @@ export async function updateBranding(patch: BrandingUpdate): Promise<Agency> {
   return mapAgency(data);
 }
 
-// ─── Clients ─────────────────────────────────────────────────────────────────
+// ─── Clients ────────���────────────────────────────────────────────────────────
 
 export async function listClients(): Promise<AgencyClient[]> {
   const agency = await getOrCreateAgency();
@@ -609,7 +609,7 @@ export async function deleteDomain(id: string): Promise<boolean> {
  */
 export async function getAgencyBySlug(slug: string): Promise<Agency | null> {
   const clean = slug.trim().toLowerCase();
-  if (!clean) return null;
+  if (!clean || !isAdminClientConfigured()) return null;
   const admin = createAdminClient();
   const { data } = await admin.from("agencies").select(AGENCY_COLS).eq("slug", clean).maybeSingle();
   return data ? mapAgency(data) : null;
@@ -623,7 +623,7 @@ export async function getAgencyBySlug(slug: string): Promise<Agency | null> {
  */
 export async function resolveAgencyByDomain(rawHost: string): Promise<Agency | null> {
   const host = normalizeDomain(rawHost);
-  if (!host) return null;
+  if (!host || !isAdminClientConfigured()) return null;
   const admin = createAdminClient();
   const { data: domainRow } = await admin
     .from("agency_domains")
