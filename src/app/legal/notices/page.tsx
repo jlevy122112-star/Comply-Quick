@@ -1,46 +1,75 @@
 import type { Metadata } from "next";
 import { LegalDocumentLayout } from "@/components/legal/LegalDocumentLayout";
+import {
+  COMPANY_LEGAL_NAME,
+  GOVERNING_LAW_CLAUSE,
+  LEGAL_EFFECTIVE_DATE,
+  LEGAL_VERSION,
+  SUPPORT_EMAIL,
+} from "@/lib/company";
 
 export const metadata: Metadata = {
-  title: "Legal Notices — Comply-Quick",
-  description: "Regulatory and jurisdictional legal notices for Comply-Quick operations.",
+  title: "Legal Notices - Comply-Quick",
+  description: "Legal notices, disclaimers, trademarks, jurisdictional context, and formal contact information.",
 };
 
 export default function LegalNoticesPage() {
   return (
     <LegalDocumentLayout
-      title="Legal Notices"
-      description="This page summarizes regulatory notices and jurisdiction coverage signals for Comply-Quick and directs formal legal correspondence."
-      effectiveDate="July 12, 2026"
-      version="2026-07-12"
+      title="Legal Notices and Disclaimers"
+      description="Important notices concerning Comply-Quick’s services, generated content, intellectual property, and legal communications."
+      effectiveDate={LEGAL_EFFECTIVE_DATE}
+      version={LEGAL_VERSION}
       sections={[
         {
-          id: "jurisdiction",
-          heading: "1. Jurisdiction and Regulatory Scope",
+          id: "no-advice",
+          heading: "1. No Legal Advice",
           body: [
-            "Comply-Quick is operated in the United States and serves customers across multiple jurisdictions. Legal requirements may vary based on customer location and data processing context.",
-            "State and federal requirements, including privacy, consumer, and breach notification obligations, are tracked as part of our ongoing compliance program.",
+            "Comply-Quick provides automated operational templates, compliance tooling, and technical workflow assistance. It is not a law firm, does not provide formal legal counsel, and does not create an attorney-client relationship.",
+            "Generated content is informational only. You are responsible for validating inputs, reviewing outputs with qualified counsel, and determining whether content is appropriate for your circumstances, industry, customers, and jurisdictions.",
           ],
         },
         {
-          id: "louisiana-context",
-          heading: "2. Louisiana Operational Context",
+          id: "intellectual-property",
+          heading: "2. Trademarks and Third-Party Marks",
           body: [
-            "For Louisiana operations, Comply-Quick tracks state-specific requirements including data breach response obligations and evolving privacy law applicability.",
-            "This notice is informational and does not replace legal advice; counsel review is required before final legal deployment.",
+            `${COMPANY_LEGAL_NAME} owns or licenses the Comply-Quick name, logos, interfaces, and related marks. You may not use our marks in a way that implies endorsement, sponsorship, or affiliation without written permission.`,
+            "Third-party names, logos, products, and marks are the property of their respective owners. Their appearance in generated or informational materials does not imply endorsement or partnership.",
           ],
         },
         {
-          id: "legal-contact",
-          heading: "3. Legal Contact",
+          id: "regulatory-scope",
+          heading: "3. Regulatory and Jurisdictional Scope",
           body: [
-            "Send legal notices, compliance requests, or counsel communications to support@comply-quick.com with the subject line LEGAL NOTICE.",
+            "Comply-Quick serves customers across multiple jurisdictions. Legal requirements vary based on customer location, audience, data, technology, and processing context. A regulatory reference or generated clause is not a guarantee that every applicable requirement has been identified.",
+            "We may track state, federal, and international developments as part of our product program, but customers must obtain current legal advice for consequential decisions.",
           ],
+        },
+        {
+          id: "louisiana",
+          heading: "4. Louisiana Operational Context",
+          body: [
+            "Comply-Quick is anchored in Louisiana, USA. We track Louisiana operational considerations, including data-breach response requirements such as La. R.S. 51:3071 et seq., when relevant to the service and our legal review process.",
+            "The Terms of Service contain the binding governing-law, arbitration, class-action waiver, and venue provisions. This notice does not replace those provisions.",
+          ],
+        },
+        {
+          id: "communications",
+          heading: "5. Formal Communications",
+          body: [
+            `Send legal notices, compliance requests, counsel communications, or requests for a signed enterprise document to ${SUPPORT_EMAIL} with a clear subject line and sufficient information for routing.`,
+            "Email delivery is not complete until received by an authorized recipient. Do not send highly sensitive information unless a secure channel has been arranged.",
+          ],
+        },
+        {
+          id: "governing-law",
+          heading: "6. Governing-Law Reference",
+          body: [GOVERNING_LAW_CLAUSE],
         },
       ]}
       relatedLinks={[
-        { href: "/legal/packet", label: "Counsel Review Packet" },
         { href: "/legal/terms", label: "Terms of Service" },
+        { href: "/legal/packet", label: "Counsel Review Packet" },
       ]}
     />
   );
