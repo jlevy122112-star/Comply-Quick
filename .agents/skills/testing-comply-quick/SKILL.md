@@ -53,6 +53,7 @@ The current app serves on `http://localhost:3000` (older notes referenced :3001)
 - `/api/checkout` — POST endpoint for Stripe checkout sessions
 - `/sitemap.xml` — SEO sitemap
 - `/robots.txt` — SEO robots
+- `/legal` — public Legal Center index; each document lives at `/legal/<slug>` (terms, privacy, cookies, subscription, security, dpa, subprocessors, acceptable-use, sla, accessibility, notices, packet). These are public (no auth). Terms/version/date content lives in `src/lib/legal.ts`; centralized identity (`src/lib/company.ts`) and the `/legal/dmca` page are introduced by the legal-center work (PR #79). Legal pages render via `src/components/legal/LegalDocumentLayout.tsx` (supports `body`, `orderedList`, `unorderedList`, and nested `subsections`).
 
 ## Testing the Wizard Flow
 
@@ -155,12 +156,25 @@ curl -s http://localhost:3000/robots.txt
 - **Wizard state reset on URL change**: Navigating to `?status=success` resets the wizard to step 1. You must complete the wizard again to generate a package. This is by design — the URL change triggers a full page re-render.
 - **ESLint `set-state-in-effect` rule**: This project's ESLint config disallows `setState` inside `useEffect`. Use lazy `useState` initializers or `useSyncExternalStore` (with cached snapshots) instead.
 
-## Lint & Build
+## Lint, Types, Tests & Build
+
+Use the repo's own npm scripts (see `package.json`) rather than ad-hoc commands:
 
 ```bash
-npx eslint src/    # Should pass with 0 errors
-npm run build      # Should compile successfully
+npm run typecheck     # tsc --noEmit
+npm run lint          # eslint (flat config)
+npm run test          # vitest run (unit/integration)
+npm run test:e2e      # playwright test (end-to-end)
+npm run format:check  # prettier --check .
+npm run build         # next build (production build)
+npm run quality       # aggregate: typecheck + lint + test + format:check (mirrors CI)
 ```
+
+`npm run quality` is what the GitHub `quality` workflow runs — run it locally before pushing.
+
+**Known pre-existing `format:check` failures (as of 2026-07):** `docs/founder-secure-record-template.html` and `src/lib/growth/phase1-contract.ts` are un-formatted on `main`, so `format:check`/`quality` are red for them regardless of your change. Don't "fix" them unless asked — only ensure the files *you* touched are Prettier-clean (`npx prettier --check <your files>`).
+
+Note: on Windows/PowerShell, `next build` can print Supabase/Node stderr warnings that surface as a non-zero-looking `NativeCommandError` even on success — confirm success via `.next/BUILD_ID` and the printed route table rather than the shell exit code.
 
 ## Devin Secrets Needed
 
