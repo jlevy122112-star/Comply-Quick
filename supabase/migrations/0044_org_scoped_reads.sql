@@ -8,41 +8,49 @@
 
 drop policy if exists projects_select_org_member on public.projects;
 create policy projects_select_org_member on public.projects
+  as permissive
   for select
   using (organization_id is not null and public.is_org_member(organization_id));
 
 drop policy if exists scans_select_org_member on public.scans;
 create policy scans_select_org_member on public.scans
+  as permissive
   for select
   using (organization_id is not null and public.is_org_member(organization_id));
 
 drop policy if exists findings_select_org_member on public.findings;
 create policy findings_select_org_member on public.findings
+  as permissive
   for select
   using (organization_id is not null and public.is_org_member(organization_id));
 
 drop policy if exists evidence_records_select_org_member on public.evidence_records;
 create policy evidence_records_select_org_member on public.evidence_records
+  as permissive
   for select
   using (organization_id is not null and public.is_org_member(organization_id));
 
 drop policy if exists compliance_tasks_select_org_member on public.compliance_tasks;
 create policy compliance_tasks_select_org_member on public.compliance_tasks
+  as permissive
   for select
   using (organization_id is not null and public.is_org_member(organization_id));
 
 drop policy if exists alert_impacts_select_org_member on public.alert_impacts;
 create policy alert_impacts_select_org_member on public.alert_impacts
+  as permissive
   for select
   using (organization_id is not null and public.is_org_member(organization_id));
 
 drop policy if exists audit_logs_select_org_member on public.audit_logs;
 create policy audit_logs_select_org_member on public.audit_logs
+  as permissive
   for select
   using (organization_id is not null and public.is_org_member(organization_id));
 
 drop policy if exists integrations_select_org_admin on public.integrations;
 create policy integrations_select_org_admin on public.integrations
+  as permissive
   for select
   using (organization_id is not null and public.is_org_admin(organization_id));
 
