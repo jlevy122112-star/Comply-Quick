@@ -114,7 +114,7 @@ export async function listMyOrganizations(): Promise<Organization[]> {
   }
 }
 
-const listMyOrganizationsCached = cache(async (): Promise<Organization[]> => listMyOrganizations());
+export const listMyOrganizationsCached = cache(async (): Promise<Organization[]> => listMyOrganizations());
 
 /**
  * Resolves the caller's selected organization from a validated cookie.

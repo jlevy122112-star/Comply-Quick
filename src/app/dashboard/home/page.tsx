@@ -4,7 +4,7 @@ import { getEntitlement } from "@/lib/entitlements";
 import { listProjects, getAggregateScore } from "@/lib/projects-db";
 import { listCompletedTools } from "@/lib/tools/usage";
 import { isEmailPolicyAllowed } from "@/lib/access-policy";
-import { listMyOrganizations, resolveActiveOrganizationId } from "@/lib/organizations-db";
+import { listMyOrganizationsCached, resolveActiveOrganizationId } from "@/lib/organizations-db";
 import CommandCenterView from "./CommandCenterView";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +23,7 @@ export default async function CommandCenterPage() {
     getEntitlement(),
     listProjects(),
     listCompletedTools(),
-    listMyOrganizations(),
+    listMyOrganizationsCached(),
     resolveActiveOrganizationId(),
   ]);
   const aggregateScore = getAggregateScore(projects);
