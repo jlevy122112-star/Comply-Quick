@@ -114,6 +114,8 @@ export async function listMyOrganizations(): Promise<Organization[]> {
   }
 }
 
+const listMyOrganizationsCached = cache(async (): Promise<Organization[]> => listMyOrganizations());
+
 /**
  * Resolves the caller's selected organization from a validated cookie.
  * Invalid or missing selections fall back to the caller's personal organization.
@@ -122,7 +124,7 @@ export async function resolveActiveOrganizationId(): Promise<string | null> {
   try {
     const cookieStore = await cookies();
     const storedId = cookieStore.get(ACTIVE_ORGANIZATION_COOKIE)?.value;
-    const organizations = await listMyOrganizations();
+    const organizations = await listMyOrganizationsCached();
     if (storedId && organizations.some((organization) => organization.id === storedId)) return storedId;
 
     const personal = await getOrCreateOrganization();
