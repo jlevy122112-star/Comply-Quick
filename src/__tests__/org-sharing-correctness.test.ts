@@ -60,6 +60,31 @@ describe("organization sharing correctness", () => {
     expect(insert).toHaveBeenCalledWith(expect.objectContaining({ organization_id: "org-1", user_id: "user-1" }));
   });
 
+  it("defers the integration gate when no active organization is resolved", async () => {
+    getActiveOrganizationId.mockResolvedValue(null);
+    insert.mockReturnValue({
+      select: () => ({
+        single: async () => ({
+          data: {
+            id: "integration-personal",
+            kind: "webhook",
+            name: "Personal hook",
+            target_url: "https://hooks.example.test/personal",
+            active: true,
+            created_at: "2026-01-01T00:00:00.000Z",
+          },
+          error: null,
+        }),
+      }),
+    });
+    const { addIntegration } = await import("@/lib/integrations-db");
+
+    await expect(
+      addIntegration({ kind: "webhook", name: "Personal hook", targetUrl: "https://hooks.example.test/personal" })
+    ).resolves.toMatchObject({ ok: true });
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({ organization_id: null }));
+  });
+
   it("tags alert impacts from the impacted project's organization", async () => {
     const projectMaybeSingle = vi.fn().mockResolvedValue({ data: { organization_id: "org-project" } });
     const projectQuery = {

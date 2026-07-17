@@ -162,7 +162,9 @@ export async function getActiveOrganizationId(): Promise<string | null> {
 
 /** Builds a PostgREST OR filter for active-organization rows plus own legacy rows. */
 export function organizationReadFilter(userId: string, organizationId: string | null): string {
-  return organizationId ? `organization_id.eq.${organizationId},user_id.eq.${userId}` : `user_id.eq.${userId}`;
+  return organizationId
+    ? `organization_id.eq.${organizationId},and(user_id.eq.${userId},organization_id.is.null)`
+    : `user_id.eq.${userId}`;
 }
 
 /** Cheap head-count of members for tab badges (no email resolution). */

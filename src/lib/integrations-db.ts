@@ -81,7 +81,7 @@ export async function addIntegration(input: {
 
   const organizationId = await getActiveOrganizationId();
   const role = organizationId ? await getMyOrgRole(organizationId) : null;
-  if (role !== "owner" && role !== "admin") {
+  if (organizationId && role !== "owner" && role !== "admin") {
     return { ok: false, error: "Only owners and admins can manage integrations." };
   }
   const { data, error } = await supabase

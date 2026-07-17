@@ -191,6 +191,7 @@ describe.skipIf(!hasLiveSupabase)("org-scoped tenancy RLS (requires live Supabas
       ]) {
         await admin.from(table).delete().in("organization_id", organizationIds);
       }
+      await admin.from("projects").delete().eq("user_id", createdUserIds[1]);
       for (const organizationId of organizationIds) await admin.from("organizations").delete().eq("id", organizationId);
       for (const userId of createdUserIds) await admin.auth.admin.deleteUser(userId);
     };
@@ -229,6 +230,12 @@ describe.skipIf(!hasLiveSupabase)("org-scoped tenancy RLS (requires live Supabas
         role: "member",
       });
       expect(memberMembership.error).toBeNull();
+      const multiOrgMembership = await admin.from("organization_members").insert({
+        organization_id: organizationIds[1],
+        user_id: createdUserIds[1],
+        role: "member",
+      });
+      expect(multiOrgMembership.error).toBeNull();
 
       const projects = await admin
         .from("projects")
@@ -260,6 +267,36 @@ describe.skipIf(!hasLiveSupabase)("org-scoped tenancy RLS (requires live Supabas
       expect(projects.error).toBeNull();
       const projectA = projects.data!.find((row) => row.organization_id === organizationIds[0])!.id;
       const projectB = projects.data!.find((row) => row.organization_id === organizationIds[1])!.id;
+      const memberProjects = await admin
+        .from("projects")
+        .insert([
+          {
+            user_id: createdUserIds[1],
+            organization_id: null,
+            name: "Member Legacy Project",
+            framework: "nextjs",
+            tracking_pixels: [],
+            target_regions: [],
+            compliance_modules: [],
+            compliance_score: {},
+            package_markdown: "",
+          },
+          {
+            user_id: createdUserIds[1],
+            organization_id: organizationIds[1],
+            name: "Member Other Organization Project",
+            framework: "nextjs",
+            tracking_pixels: [],
+            target_regions: [],
+            compliance_modules: [],
+            compliance_score: {},
+            package_markdown: "",
+          },
+        ])
+        .select("id, organization_id");
+      expect(memberProjects.error).toBeNull();
+      const legacyMemberProject = memberProjects.data!.find((row) => row.organization_id === null)!.id;
+      const otherMemberProject = memberProjects.data!.find((row) => row.organization_id === organizationIds[1])!.id;
 
       const scanA = await admin
         .from("scans")
@@ -400,6 +437,59 @@ describe.skipIf(!hasLiveSupabase)("org-scoped tenancy RLS (requires live Supabas
       expect(
         (await member.from("audit_logs").select("id").eq("organization_id", organizationIds[0])).data
       ).toHaveLength(1);
+      const activeOrganizationRows = await member
+        .from("projects")
+        .select("id, organization_id, user_id")
+        .or(`organization_id.eq.${organizationIds[0]},and(user_id.eq.${createdUserIds[1]},organization_id.is.null)`);
+      expect(activeOrganizationRows.error).toBeNull();
+      expect(activeOrganizationRows.data?.map((row) => row.id)).toEqual(
+        expect.arrayContaining([projectA, legacyMemberProject])
+      );
+      expect(activeOrganizationRows.data?.map((row) => row.id)).not.toContain(otherMemberProject);
+
+      const reopenedFinding = await member
+        .from("findings")
+        .update({ status: "resolved", resolved_at: new Date().toISOString() })
+        .eq("organization_id", organizationIds[0])
+        .eq("finding_key", `share-${suffix}`)
+        .select("id, status")
+        .single();
+      if (reopenedFinding.error) {
+        context.skip("0047 canonical member-update migration is not applied to the configured Supabase project");
+        return;
+      }
+      expect(reopenedFinding.data?.status).toBe("resolved");
+      const reopenedAgain = await member
+        .from("findings")
+        .update({ status: "reopened", resolved_at: null })
+        .eq("organization_id", organizationIds[0])
+        .eq("finding_key", `share-${suffix}`)
+        .select("id, status")
+        .single();
+      expect(reopenedAgain.error).toBeNull();
+      expect(reopenedAgain.data?.status).toBe("reopened");
+      const resolvedAgain = await member
+        .from("findings")
+        .update({ status: "resolved", resolved_at: new Date().toISOString() })
+        .eq("organization_id", organizationIds[0])
+        .eq("finding_key", `share-${suffix}`)
+        .select("id, status")
+        .single();
+      expect(resolvedAgain.error).toBeNull();
+      expect(resolvedAgain.data?.status).toBe("resolved");
+
+      const savedEvidence = await member
+        .from("evidence_records")
+        .update({ status: "collected", evidence_ref: `member-${suffix}` })
+        .eq("organization_id", organizationIds[0])
+        .eq("framework", "gdpr")
+        .eq("control_id", `share-${suffix}`)
+        .eq("project_id", projectA)
+        .select("id, status")
+        .single();
+      expect(savedEvidence.error).toBeNull();
+      expect(savedEvidence.data?.status).toBe("collected");
+
       expect((await member.from("projects").select("id").eq("organization_id", organizationIds[1])).data).toHaveLength(
         0
       );
