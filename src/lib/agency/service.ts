@@ -367,6 +367,7 @@ export async function provisionClientOrganization(clientId: string): Promise<Org
       name: client.name.trim().slice(0, 120),
       slug,
       plan: "team",
+      is_personal: false,
     })
     .select("*")
     .single();
@@ -406,6 +407,53 @@ export async function provisionClientOrganization(clientId: string): Promise<Org
   if (workspaceError) {
     log.error("Failed to provision client workspace", { error: workspaceError.message });
     throw new Error("Could not provision the client workspace.");
+  }
+
+  const { data: clientProjects, error: projectLookupError } = await admin
+    .from("projects")
+    .select("id")
+    .eq("user_id", agency.ownerId)
+    .eq("client_id", client.id)
+    .is("organization_id", null);
+  if (projectLookupError) {
+    log.error("Failed to find historical client projects", { error: projectLookupError.message });
+    throw new Error("Could not migrate the client's historical data.");
+  }
+  const projectIds = (clientProjects ?? []).map((project) => project.id as string);
+  if (projectIds.length > 0) {
+    const { error: projectTagError } = await admin
+      .from("projects")
+      .update({ organization_id: organization.id })
+      .in("id", projectIds)
+      .eq("user_id", agency.ownerId)
+      .eq("client_id", client.id)
+      .is("organization_id", null);
+    if (projectTagError) {
+      log.error("Failed to tag historical client projects", { error: projectTagError.message });
+      throw new Error("Could not migrate the client's historical data.");
+    }
+
+    const { error: findingTagError } = await admin
+      .from("findings")
+      .update({ organization_id: organization.id })
+      .in("project_id", projectIds)
+      .eq("user_id", agency.ownerId)
+      .is("organization_id", null);
+    if (findingTagError) {
+      log.error("Failed to tag historical client findings", { error: findingTagError.message });
+      throw new Error("Could not migrate the client's historical data.");
+    }
+
+    const { error: evidenceTagError } = await admin
+      .from("evidence_records")
+      .update({ organization_id: organization.id })
+      .in("project_id", projectIds)
+      .eq("user_id", agency.ownerId)
+      .is("organization_id", null);
+    if (evidenceTagError) {
+      log.error("Failed to tag historical client evidence", { error: evidenceTagError.message });
+      throw new Error("Could not migrate the client's historical data.");
+    }
   }
 
   const { data: linked, error: linkError } = await supabase

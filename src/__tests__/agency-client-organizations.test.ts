@@ -9,6 +9,8 @@ const state = {
   agencyLookups: 0,
   lastInsert: null as Record<string, unknown> | null,
   clientCount: 0,
+  historicalProjectIds: ["project-1"],
+  taggedTables: [] as string[],
 };
 
 const agency = {
@@ -64,6 +66,9 @@ function resultFor(table: string, operation: string): Record<string, unknown> {
     return { data: { organization_id: state.linkedOrganizationId }, error: null };
   }
   if (table === "organizations" && operation === "then") return { data: null, error: null };
+  if (table === "projects" && operation === "then") {
+    return { data: state.historicalProjectIds.map((id) => ({ id })), error: null };
+  }
   if (table === "organization_members" && operation === "then") return { data: null, error: null };
   if (table === "workspaces" && operation === "then") return { data: null, error: null };
   if (table === "agency_clients" && operation === "then") return { data: null, error: null };
@@ -73,12 +78,15 @@ function resultFor(table: string, operation: string): Record<string, unknown> {
 function makeBuilder(table: string) {
   const builder: Record<string, unknown> = {};
   let operation = "then";
-  for (const method of ["select", "eq", "limit", "insert", "upsert", "update", "is", "order"]) {
+  for (const method of ["select", "eq", "limit", "insert", "upsert", "update", "is", "in", "order"]) {
     builder[method] = (...args: unknown[]) => {
       if (method === "insert" || method === "upsert" || method === "update") {
         state.lastInsert = (args[0] ?? null) as Record<string, unknown> | null;
       }
       if (method === "update" && table === "agency_clients") operation = "linked";
+      if (method === "update" && ["projects", "findings", "evidence_records"].includes(table)) {
+        state.taggedTables.push(table);
+      }
       return builder;
     };
   }
@@ -123,6 +131,8 @@ describe("agency client organizations", () => {
     state.agencyLookups = 0;
     state.lastInsert = null;
     state.clientCount = 0;
+    state.historicalProjectIds = ["project-1"];
+    state.taggedTables = [];
     vi.resetModules();
   });
 
@@ -148,6 +158,7 @@ describe("agency client organizations", () => {
     expect(first.id).toBe("org-client-1");
     expect(second.id).toBe(first.id);
     expect(state.linkedOrganizationId).toBe(first.id);
+    expect(state.taggedTables).toEqual(["projects", "findings", "evidence_records"]);
   });
 
   it("rejects a non-admin agency member", async () => {

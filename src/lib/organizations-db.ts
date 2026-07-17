@@ -1,8 +1,9 @@
 // Organizations — server data layer (enterprise multi-tenancy).
 //
 // The top of the tenant hierarchy: organization → workspace → project. A user
-// owns at most one organization (created on first access) and can be a member of
-// others. Reads/writes go through the RLS-scoped server client; member email
+// owns one personal organization plus any additional organizations granted by
+// product features, and can be a member of others. Reads/writes go through the
+// RLS-scoped server client; member email
 // resolution uses the admin client (auth.users isn't readable via RLS). Role
 // gating in app code uses src/lib/rbac; the DB enforces owner/admin at the
 // policy layer as defense in depth.
@@ -82,14 +83,19 @@ export const getOrCreateOrganization = cache(async (): Promise<Organization | nu
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const existing = await supabase.from("organizations").select("*").eq("owner_id", user.id).maybeSingle();
+  const existing = await supabase
+    .from("organizations")
+    .select("*")
+    .eq("owner_id", user.id)
+    .eq("is_personal", true)
+    .maybeSingle();
   if (existing.data) return mapOrg(existing.data as OrgRow);
 
   const seed = slugify(user.email?.split("@")[0] ?? "org");
   const slug = `${seed}-${user.id.slice(0, 6)}`;
   const { data, error } = await supabase
     .from("organizations")
-    .insert({ owner_id: user.id, name: "My Organization", slug })
+    .insert({ owner_id: user.id, name: "My Organization", slug, is_personal: true })
     .select("*")
     .single();
   if (error || !data) return null;
