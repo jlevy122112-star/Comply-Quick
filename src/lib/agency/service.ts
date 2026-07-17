@@ -13,7 +13,9 @@ import { getEntitlement } from "@/lib/entitlements";
 import { logger } from "@/services";
 import { UnauthorizedError, ForbiddenError, NotFoundError, ValidationError } from "@/services/errors";
 import { getDomainProvider, type DomainVerification } from "./domain-provider";
-import { TIER_CONFIG, isUnlimited } from "@/lib/pricing";
+import { TIER_CONFIG, isUnlimited, managedClientLimit } from "@/lib/pricing";
+import { slugify as organizationSlugify } from "@/lib/organizations-db";
+import type { Organization } from "@/lib/organizations-db";
 
 const log = logger.child({ module: "agency" });
 
@@ -39,6 +41,7 @@ export interface AgencyClient {
   websiteUrl: string | null;
   notes: string;
   status: "active" | "archived";
+  organizationId: string | null;
   createdAt: string;
 }
 
@@ -55,7 +58,7 @@ export interface AgencyDomain {
 }
 
 const AGENCY_COLS = "id, owner_id, name, slug, logo_url, primary_color, support_email, created_at";
-const CLIENT_COLS = "id, agency_id, name, contact_email, website_url, notes, status, created_at";
+const CLIENT_COLS = "id, agency_id, name, contact_email, website_url, notes, status, organization_id, created_at";
 const DOMAIN_COLS = "id, agency_id, domain, status, verification_token, provider, dns, verified_at, created_at";
 
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
@@ -73,6 +76,17 @@ function mapAgency(row: Record<string, unknown>): Agency {
   };
 }
 
+function mapOrganization(row: Record<string, unknown>): Organization {
+  return {
+    id: row.id as string,
+    ownerId: row.owner_id as string,
+    name: row.name as string,
+    slug: row.slug as string,
+    plan: (row.plan as Organization["plan"]) ?? "team",
+    createdAt: row.created_at as string,
+  };
+}
+
 function mapClient(row: Record<string, unknown>): AgencyClient {
   return {
     id: row.id as string,
@@ -82,6 +96,7 @@ function mapClient(row: Record<string, unknown>): AgencyClient {
     websiteUrl: (row.website_url as string | null) ?? null,
     notes: (row.notes as string) ?? "",
     status: (row.status as AgencyClient["status"]) ?? "active",
+    organizationId: (row.organization_id as string | null) ?? null,
     createdAt: row.created_at as string,
   };
 }
@@ -168,6 +183,37 @@ export const getOrCreateAgency = cache(async (): Promise<Agency> => {
   throw new Error(`Could not allocate a unique agency slug (seed: ${seed}).`);
 });
 
+/**
+ * Resolves an existing agency for provisioning only. Unlike getOrCreateAgency,
+ * this never creates an agency and only accepts an owner or an admin member.
+ */
+async function resolveActorAgency(): Promise<Agency | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data: owned } = await supabase.from("agencies").select(AGENCY_COLS).eq("owner_id", user.id).maybeSingle();
+  if (owned) return mapAgency(owned);
+
+  const { data: membership } = await supabase
+    .from("agency_members")
+    .select("agency_id, role")
+    .eq("user_id", user.id)
+    .eq("role", "admin")
+    .limit(1)
+    .maybeSingle();
+  if (!membership?.agency_id) return null;
+
+  const { data: agency } = await supabase
+    .from("agencies")
+    .select(AGENCY_COLS)
+    .eq("id", membership.agency_id)
+    .maybeSingle();
+  return agency ? mapAgency(agency) : null;
+}
+
 interface BrandingUpdate {
   name?: string;
   logoUrl?: string | null;
@@ -246,6 +292,25 @@ export async function createClient_(input: ClientInput): Promise<AgencyClient> {
   const name = input.name.trim();
   if (name.length === 0 || name.length > 120) throw new ValidationError("Client name must be 1–120 characters.");
 
+  const entitlement = await getEntitlement();
+  const clientLimit = managedClientLimit(entitlement.tier);
+  if (clientLimit !== null && !isUnlimited(clientLimit)) {
+    const { count, error: countError } = await supabase
+      .from("agency_clients")
+      .select("id", { count: "exact", head: true })
+      .eq("agency_id", agency.id)
+      .eq("status", "active");
+    if (countError) {
+      log.error("Failed to count agency clients", { error: countError.message });
+      throw new Error("Could not verify the client limit.");
+    }
+    if ((count ?? 0) >= clientLimit) {
+      throw new ValidationError(
+        `Your ${TIER_CONFIG[entitlement.tier].label} plan includes ${clientLimit} managed clients. Archive a client or upgrade to add more.`
+      );
+    }
+  }
+
   const { data, error } = await supabase
     .from("agency_clients")
     .insert({
@@ -262,6 +327,165 @@ export async function createClient_(input: ClientInput): Promise<AgencyClient> {
     throw new Error("Could not create client.");
   }
   return mapClient(data);
+}
+
+/** Provisions the linked organization and default workspace for an agency client. */
+export async function provisionClientOrganization(clientId: string): Promise<Organization> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new UnauthorizedError();
+  if (!(await canUseAgencyPortal())) {
+    throw new ForbiddenError("The client portal is available on the Agency and Enterprise plans.");
+  }
+  const agency = await resolveActorAgency();
+  if (!agency) throw new ForbiddenError("Only agency owners and admins can provision client workspaces.");
+
+  const { data: client, error: clientError } = await supabase
+    .from("agency_clients")
+    .select(CLIENT_COLS)
+    .eq("id", clientId)
+    .eq("agency_id", agency.id)
+    .maybeSingle();
+  if (clientError || !client) throw new NotFoundError("Client not found.");
+  if (client.organization_id) {
+    const { data: existing } = await createAdminClient()
+      .from("organizations")
+      .select("*")
+      .eq("id", client.organization_id)
+      .maybeSingle();
+    if (existing) return mapOrganization(existing);
+  }
+
+  const admin = createAdminClient();
+  const slug = `${organizationSlugify(client.name)}-${client.id.slice(0, 6)}`;
+  let { data: organization, error: organizationError } = await admin
+    .from("organizations")
+    .insert({
+      owner_id: agency.ownerId,
+      name: client.name.trim().slice(0, 120),
+      slug,
+      plan: "team",
+      is_personal: false,
+    })
+    .select("*")
+    .single();
+
+  if (organizationError?.code === "23505") {
+    const existing = await admin.from("organizations").select("*").eq("slug", slug).maybeSingle();
+    organization = existing.data;
+    organizationError = existing.error;
+  }
+  if (organizationError || !organization) {
+    log.error("Failed to provision client organization", { error: organizationError?.message });
+    throw new Error("Could not provision the client workspace.");
+  }
+
+  await admin
+    .from("organization_members")
+    .upsert(
+      { organization_id: organization.id, user_id: agency.ownerId, role: "owner" },
+      { onConflict: "organization_id,user_id" }
+    );
+  if (user.id !== agency.ownerId) {
+    await admin
+      .from("organization_members")
+      .upsert(
+        { organization_id: organization.id, user_id: user.id, role: "admin" },
+        { onConflict: "organization_id,user_id" }
+      );
+  }
+  const { error: workspaceError } = await admin.from("workspaces").upsert(
+    {
+      organization_id: organization.id,
+      name: `${client.name.trim().slice(0, 100)} Workspace`,
+      slug: "default",
+    },
+    { onConflict: "organization_id,slug" }
+  );
+  if (workspaceError) {
+    log.error("Failed to provision client workspace", { error: workspaceError.message });
+    throw new Error("Could not provision the client workspace.");
+  }
+
+  const { data: clientProjects, error: projectLookupError } = await admin
+    .from("projects")
+    .select("id")
+    .eq("user_id", agency.ownerId)
+    .eq("client_id", client.id)
+    .is("organization_id", null);
+  if (projectLookupError) {
+    log.error("Failed to find historical client projects", { error: projectLookupError.message });
+    throw new Error("Could not migrate the client's historical data.");
+  }
+  const projectIds = (clientProjects ?? []).map((project) => project.id as string);
+  if (projectIds.length > 0) {
+    const { error: projectTagError } = await admin
+      .from("projects")
+      .update({ organization_id: organization.id })
+      .in("id", projectIds)
+      .eq("user_id", agency.ownerId)
+      .eq("client_id", client.id)
+      .is("organization_id", null);
+    if (projectTagError) {
+      log.error("Failed to tag historical client projects", { error: projectTagError.message });
+      throw new Error("Could not migrate the client's historical data.");
+    }
+
+    const { error: findingTagError } = await admin
+      .from("findings")
+      .update({ organization_id: organization.id })
+      .in("project_id", projectIds)
+      .eq("user_id", agency.ownerId)
+      .is("organization_id", null);
+    if (findingTagError) {
+      log.error("Failed to tag historical client findings", { error: findingTagError.message });
+      throw new Error("Could not migrate the client's historical data.");
+    }
+
+    const { error: evidenceTagError } = await admin
+      .from("evidence_records")
+      .update({ organization_id: organization.id })
+      .in("project_id", projectIds)
+      .eq("user_id", agency.ownerId)
+      .is("organization_id", null);
+    if (evidenceTagError) {
+      log.error("Failed to tag historical client evidence", { error: evidenceTagError.message });
+      throw new Error("Could not migrate the client's historical data.");
+    }
+  }
+
+  const { data: linked, error: linkError } = await supabase
+    .from("agency_clients")
+    .update({ organization_id: organization.id, updated_at: new Date().toISOString() })
+    .eq("id", client.id)
+    .eq("agency_id", agency.id)
+    .is("organization_id", null)
+    .select(CLIENT_COLS)
+    .maybeSingle();
+  if (linkError) {
+    log.error("Failed to link client organization", { error: linkError.message });
+    throw new Error("Could not link the client workspace.");
+  }
+  if (!linked) {
+    const { data: raced } = await supabase
+      .from("agency_clients")
+      .select("organization_id")
+      .eq("id", client.id)
+      .eq("agency_id", agency.id)
+      .maybeSingle();
+    if (raced?.organization_id && raced.organization_id !== organization.id) {
+      await admin.from("organizations").delete().eq("id", organization.id);
+      const { data: racedOrganization } = await admin
+        .from("organizations")
+        .select("*")
+        .eq("id", raced.organization_id)
+        .maybeSingle();
+      if (racedOrganization) return mapOrganization(racedOrganization);
+    }
+  }
+  return mapOrganization(organization);
 }
 
 export async function updateClient(
