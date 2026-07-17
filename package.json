@@ -29,6 +29,9 @@
       "prettier --write"
     ]
   },
+  "scripts": {
+  "docs": "typedoc"
+},
   "dependencies": {
     "@sentry/nextjs": "^10.62.0",
     "@supabase/ssr": "^0.12.0",
