@@ -9,8 +9,13 @@ const state = {
   agencyLookups: 0,
   lastInsert: null as Record<string, unknown> | null,
   clientCount: 0,
+  personalOrgId: "org-personal",
   historicalProjectIds: ["project-1"],
   taggedTables: [] as string[],
+  retagUpdates: [] as Array<{ table: string; organizationId: string; filters: unknown[] }>,
+  loseLinkRace: false,
+  racedOrganizationId: "org-raced",
+  deletedOrganizationId: null as string | null,
 };
 
 const agency = {
@@ -25,6 +30,9 @@ const agency = {
 };
 
 function resultFor(table: string, operation: string): Record<string, unknown> {
+  if (table === "organizations" && operation === "personal") {
+    return { data: { id: state.personalOrgId }, error: null };
+  }
   if (table === "organizations" && operation === "maybeSingle") {
     return { data: state.linkedOrganizationId ? organization : null, error: null };
   }
@@ -44,6 +52,9 @@ function resultFor(table: string, operation: string): Record<string, unknown> {
       error: null,
     };
   }
+  if (table === "agency_clients" && operation === "raced") {
+    return { data: { organization_id: state.racedOrganizationId }, error: null };
+  }
   if (table === "agency_clients" && operation === "maybeSingle") {
     return {
       data: {
@@ -62,6 +73,7 @@ function resultFor(table: string, operation: string): Record<string, unknown> {
   }
   if (table === "agency_clients" && operation === "count") return { count: state.clientCount, error: null };
   if (table === "agency_clients" && operation === "linked") {
+    if (state.loseLinkRace) return { data: null, error: null };
     state.linkedOrganizationId = state.lastInsert?.organization_id as string;
     return { data: { organization_id: state.linkedOrganizationId }, error: null };
   }
@@ -78,14 +90,29 @@ function resultFor(table: string, operation: string): Record<string, unknown> {
 function makeBuilder(table: string) {
   const builder: Record<string, unknown> = {};
   let operation = "then";
+  let deleting = false;
+  let activeRetag: { table: string; organizationId: string; filters: unknown[] } | null = null;
   for (const method of ["select", "eq", "limit", "insert", "upsert", "update", "is", "in", "order"]) {
     builder[method] = (...args: unknown[]) => {
       if (method === "insert" || method === "upsert" || method === "update") {
         state.lastInsert = (args[0] ?? null) as Record<string, unknown> | null;
       }
+      if (method === "select" && table === "agency_clients" && args[0] === "organization_id") operation = "raced";
+      if (method === "eq" && deleting && table === "organizations") {
+        state.deletedOrganizationId = args[1] as string;
+      }
+      if (method === "eq" && args[0] === "is_personal") operation = "personal";
       if (method === "update" && table === "agency_clients") operation = "linked";
       if (method === "update" && ["projects", "findings", "evidence_records"].includes(table)) {
         state.taggedTables.push(table);
+        activeRetag = {
+          table,
+          organizationId: (args[0] as { organization_id: string }).organization_id,
+          filters: [],
+        };
+        state.retagUpdates.push(activeRetag);
+      } else if (activeRetag && ["eq", "is", "or", "in"].includes(method)) {
+        activeRetag.filters.push([method, ...args]);
       }
       return builder;
     };
@@ -94,7 +121,14 @@ function makeBuilder(table: string) {
   builder.single = async () => resultFor(table, "single");
   builder.then = (resolve: (value: Record<string, unknown>) => unknown) =>
     Promise.resolve(resolve(resultFor(table, table === "agency_clients" ? "count" : "then")));
-  builder.delete = () => builder;
+  builder.delete = () => {
+    deleting = true;
+    return builder;
+  };
+  builder.or = (...args: unknown[]) => {
+    if (activeRetag) activeRetag.filters.push(["or", ...args]);
+    return builder;
+  };
   return builder;
 }
 
@@ -131,8 +165,12 @@ describe("agency client organizations", () => {
     state.agencyLookups = 0;
     state.lastInsert = null;
     state.clientCount = 0;
+    state.personalOrgId = "org-personal";
     state.historicalProjectIds = ["project-1"];
     state.taggedTables = [];
+    state.retagUpdates = [];
+    state.loseLinkRace = false;
+    state.deletedOrganizationId = null;
     vi.resetModules();
   });
 
@@ -159,6 +197,32 @@ describe("agency client organizations", () => {
     expect(second.id).toBe(first.id);
     expect(state.linkedOrganizationId).toBe(first.id);
     expect(state.taggedTables).toEqual(["projects", "findings", "evidence_records"]);
+    expect(state.retagUpdates).toHaveLength(3);
+    expect(state.retagUpdates.every((update) => update.organizationId === first.id)).toBe(true);
+    expect(
+      state.retagUpdates.every((update) => update.filters.some((filter) => Array.isArray(filter) && filter[0] === "or"))
+    ).toBe(true);
+    expect(
+      state.retagUpdates.every((update) =>
+        update.filters.some(
+          (filter) =>
+            Array.isArray(filter) &&
+            filter[0] === "or" &&
+            filter[1] === "organization_id.eq.org-personal,organization_id.is.null"
+        )
+      )
+    ).toBe(true);
+  });
+
+  it("does not retag data when this request loses the client-link race", async () => {
+    state.loseLinkRace = true;
+    const { provisionClientOrganization } = await import("@/lib/agency/service");
+
+    await provisionClientOrganization("client-1");
+
+    expect(state.taggedTables).toEqual([]);
+    expect(state.retagUpdates).toEqual([]);
+    expect(state.deletedOrganizationId).toBe("org-client-1");
   });
 
   it("rejects a non-admin agency member", async () => {
