@@ -17,6 +17,7 @@ const state = {
   racedOrganizationId: "org-raced",
   deletedOrganizationId: null as string | null,
   failFindingRetagOnce: false,
+  failPersonalLookupOnce: false,
   projectLookupFilters: [] as unknown[],
 };
 
@@ -33,6 +34,10 @@ const agency = {
 
 function resultFor(table: string, operation: string): Record<string, unknown> {
   if (table === "organizations" && operation === "personal") {
+    if (state.failPersonalLookupOnce) {
+      state.failPersonalLookupOnce = false;
+      return { data: null, error: { message: "simulated personal organization lookup failure" } };
+    }
     return { data: { id: state.personalOrgId }, error: null };
   }
   if (table === "organizations" && operation === "maybeSingle") {
@@ -182,6 +187,7 @@ describe("agency client organizations", () => {
     state.loseLinkRace = false;
     state.deletedOrganizationId = null;
     state.failFindingRetagOnce = false;
+    state.failPersonalLookupOnce = false;
     state.projectLookupFilters = [];
     vi.resetModules();
   });
@@ -276,6 +282,15 @@ describe("agency client organizations", () => {
 
     await expect(provisionClientOrganization("client-1")).resolves.toMatchObject({ id: "org-client-1" });
     expect(state.taggedTables).toEqual(["projects"]);
+  });
+
+  it("keeps organization reuse available when personal-org lookup fails", async () => {
+    state.linkedOrganizationId = "org-client-1";
+    state.failPersonalLookupOnce = true;
+    const { provisionClientOrganization } = await import("@/lib/agency/service");
+
+    await expect(provisionClientOrganization("client-1")).resolves.toMatchObject({ id: "org-client-1" });
+    expect(state.taggedTables).toEqual([]);
   });
 
   it("rejects a non-admin agency member", async () => {

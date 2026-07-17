@@ -430,7 +430,6 @@ export async function provisionClientOrganization(clientId: string): Promise<Org
     .maybeSingle();
   if (clientError || !client) throw new NotFoundError("Client not found.");
   const admin = createAdminClient();
-  const personalOrganizationId = await resolveAgencyOwnerPersonalOrganization(admin, agency.ownerId);
   if (client.organization_id) {
     const { data: existing } = await admin
       .from("organizations")
@@ -439,6 +438,7 @@ export async function provisionClientOrganization(clientId: string): Promise<Org
       .maybeSingle();
     if (existing) {
       try {
+        const personalOrganizationId = await resolveAgencyOwnerPersonalOrganization(admin, agency.ownerId);
         await migrateClientHistoricalData(
           admin,
           agency.ownerId,
@@ -455,6 +455,7 @@ export async function provisionClientOrganization(clientId: string): Promise<Org
     }
   }
 
+  const personalOrganizationId = await resolveAgencyOwnerPersonalOrganization(admin, agency.ownerId);
   const slug = `${organizationSlugify(client.name)}-${client.id.slice(0, 6)}`;
   let { data: organization, error: organizationError } = await admin
     .from("organizations")
