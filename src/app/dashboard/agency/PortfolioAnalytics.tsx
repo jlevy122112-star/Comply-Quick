@@ -11,10 +11,11 @@ const riskStyles: Record<PortfolioRisk, string> = {
   good: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
   warning: "bg-amber-500/15 text-amber-300 border-amber-500/30",
   critical: "bg-red-500/15 text-red-300 border-red-500/30",
+  none: "bg-gray-500/15 text-gray-300 border-gray-500/30",
 };
 
 function riskLabel(risk: PortfolioRisk): string {
-  return risk === "good" ? "Healthy" : risk === "warning" ? "Watch" : "Critical";
+  return risk === "good" ? "Healthy" : risk === "warning" ? "Watch" : risk === "critical" ? "Critical" : "No data";
 }
 
 function SummaryCard({ label, value, tone = "text-white" }: { label: string; value: string | number; tone?: string }) {
@@ -37,7 +38,16 @@ export default function PortfolioAnalytics({ analytics }: { analytics: AgencyPor
     return [...analytics.clients].sort((a, b) => {
       const left = sortKey === "name" ? a.name : a[sortKey];
       const right = sortKey === "name" ? b.name : b[sortKey];
-      const comparison = typeof left === "string" ? left.localeCompare(right as string) : left - (right as number);
+      const comparison =
+        typeof left === "string"
+          ? left.localeCompare(right as string)
+          : left === null
+            ? right === null
+              ? 0
+              : 1
+            : right === null
+              ? -1
+              : left - (right as number);
       return ascending ? comparison : -comparison;
     });
   }, [analytics.clients, ascending, sortKey]);
@@ -130,7 +140,9 @@ export default function PortfolioAnalytics({ analytics }: { analytics: AgencyPor
                             : "Unprovisioned"}
                       </div>
                     </th>
-                    <td className="px-4 py-4 font-semibold text-white">{client.score}</td>
+                    <td className="px-4 py-4 font-semibold text-white">
+                      {client.score === null ? <span aria-label="No compliance data">—</span> : client.score}
+                    </td>
                     <td className="px-4 py-4">{client.projects}</td>
                     <td className="px-4 py-4">{client.openFindings}</td>
                     <td className="px-4 py-4">

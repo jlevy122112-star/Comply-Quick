@@ -35,6 +35,28 @@ const state = vi.hoisted(() => ({
       organization_id: "org-b1",
       created_at: "2026-01-03T00:00:00.000Z",
     },
+    {
+      id: "client-a3",
+      agency_id: "agency-a",
+      name: "Gamma",
+      contact_email: null,
+      website_url: null,
+      notes: "",
+      status: "active",
+      organization_id: null,
+      created_at: "2026-01-04T00:00:00.000Z",
+    },
+    {
+      id: "client-a4",
+      agency_id: "agency-a",
+      name: "Archived",
+      contact_email: null,
+      website_url: null,
+      notes: "",
+      status: "archived",
+      organization_id: "org-archived",
+      created_at: "2026-01-05T00:00:00.000Z",
+    },
   ],
   projects: [
     {
@@ -58,11 +80,19 @@ const state = vi.hoisted(() => ({
       client_id: null,
       compliance_score: { overall: 10 },
     },
+    {
+      id: "project-archived",
+      organization_id: "org-archived",
+      user_id: "owner-a",
+      client_id: null,
+      compliance_score: { overall: 10 },
+    },
   ],
   findings: [
     { id: "finding-a1", organization_id: "org-a1", project_id: "project-a1", status: "open" },
     { id: "finding-b2", organization_id: null, project_id: "project-b2", status: "reopened" },
     { id: "finding-b1", organization_id: "org-b1", project_id: "project-b1", status: "open" },
+    { id: "finding-archived", organization_id: "org-archived", project_id: "project-archived", status: "open" },
   ],
 }));
 
@@ -136,26 +166,35 @@ describe("agency portfolio analytics", () => {
     const result = await getAgencyPortfolioAnalytics();
 
     expect(result.summary).toEqual({
-      clientCount: 2,
+      clientCount: 4,
       averageScore: 70,
       lowestScore: 60,
       totalOpenFindings: 2,
       clientsAtRisk: 1,
     });
-    expect(result.clients.map((client) => client.name)).toEqual(["Alpha", "Beta"]);
-    expect(result.clients[0]).toMatchObject({
+    expect(result.clients.map((client) => client.name)).toEqual(["Alpha", "Beta", "Gamma", "Archived"]);
+    expect(result.clients.find((client) => client.name === "Alpha")).toMatchObject({
       score: 80,
       projects: 1,
       openFindings: 1,
       provisioned: true,
       risk: "good",
     });
-    expect(result.clients[1]).toMatchObject({
+    expect(result.clients.find((client) => client.name === "Beta")).toMatchObject({
       score: 60,
       projects: 1,
       openFindings: 1,
       provisioned: false,
       risk: "warning",
+    });
+    expect(result.clients.find((client) => client.name === "Gamma")).toMatchObject({
+      score: null,
+      risk: "none",
+      atRisk: false,
+    });
+    expect(result.clients.find((client) => client.name === "Archived")).toMatchObject({
+      score: 10,
+      risk: "critical",
     });
   });
 

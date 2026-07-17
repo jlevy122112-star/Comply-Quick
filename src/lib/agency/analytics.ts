@@ -4,7 +4,7 @@ import { getAggregateScore, type DbProject } from "@/lib/projects-db";
 import { canUseAgencyPortal, getOrCreateAgency, type AgencyClient } from "./service";
 import { ForbiddenError } from "@/services/errors";
 
-export type PortfolioRisk = "good" | "warning" | "critical";
+export type PortfolioRisk = "good" | "warning" | "critical" | "none";
 
 export interface AgencyClientAnalytics {
   clientId: string;
@@ -12,7 +12,7 @@ export interface AgencyClientAnalytics {
   name: string;
   status: AgencyClient["status"];
   provisioned: boolean;
-  score: number;
+  score: number | null;
   projects: number;
   openFindings: number;
   risk: PortfolioRisk;
@@ -35,36 +35,39 @@ export interface AgencyPortfolioAnalytics {
 const AT_RISK_THRESHOLD = 70;
 const CRITICAL_THRESHOLD = 50;
 
-export function portfolioRisk(score: number): PortfolioRisk {
+export function portfolioRisk(score: number | null): PortfolioRisk {
+  if (score === null) return "none";
   if (score < CRITICAL_THRESHOLD) return "critical";
   if (score < AT_RISK_THRESHOLD) return "warning";
   return "good";
 }
 
 export function summarizePortfolio(clients: AgencyClientAnalytics[]): AgencyPortfolioSummary {
-  if (clients.length === 0) {
+  const activeClients = clients.filter((client) => client.status !== "archived");
+  const healthClients = activeClients.filter((client) => client.score !== null);
+  if (healthClients.length === 0) {
     return {
-      clientCount: 0,
+      clientCount: clients.length,
       averageScore: 0,
       lowestScore: 0,
-      totalOpenFindings: 0,
+      totalOpenFindings: activeClients.reduce((sum, client) => sum + client.openFindings, 0),
       clientsAtRisk: 0,
     };
   }
 
-  const totalScore = clients.reduce((sum, client) => sum + client.score, 0);
+  const totalScore = healthClients.reduce((sum, client) => sum + (client.score as number), 0);
   return {
     clientCount: clients.length,
-    averageScore: Math.round(totalScore / clients.length),
-    lowestScore: Math.min(...clients.map((client) => client.score)),
-    totalOpenFindings: clients.reduce((sum, client) => sum + client.openFindings, 0),
-    clientsAtRisk: clients.filter((client) => client.atRisk).length,
+    averageScore: Math.round(totalScore / healthClients.length),
+    lowestScore: Math.min(...healthClients.map((client) => client.score as number)),
+    totalOpenFindings: activeClients.reduce((sum, client) => sum + client.openFindings, 0),
+    clientsAtRisk: healthClients.filter((client) => client.atRisk).length,
   };
 }
 
-function projectScore(rows: Array<{ compliance_score: unknown }>): number {
+function projectScore(rows: Array<{ compliance_score: unknown }>): number | null {
   const projects = rows.map((row) => ({ complianceScore: row.compliance_score }) as DbProject);
-  return getAggregateScore(projects)?.overall ?? 0;
+  return getAggregateScore(projects)?.overall ?? null;
 }
 
 async function countOpenFindings(
@@ -117,7 +120,7 @@ async function aggregateClient(
     projects: projectRows.length,
     openFindings,
     risk: portfolioRisk(score),
-    atRisk: score < AT_RISK_THRESHOLD,
+    atRisk: score !== null && score < AT_RISK_THRESHOLD,
   };
 }
 
