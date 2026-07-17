@@ -75,10 +75,11 @@ export async function saveEvidencePack(pack: AuditEvidencePack, projectId: strin
   if (!user) return false;
 
   const organizationId = await getActiveOrganizationId();
+  const organizationFields = organizationId ? { organization_id: organizationId } : {};
   const now = new Date().toISOString();
   const rows = pack.items.map((item) => ({
     user_id: user.id,
-    organization_id: organizationId,
+    ...organizationFields,
     project_id: projectId,
     framework: pack.framework,
     control_id: item.controlId,
@@ -123,7 +124,7 @@ export async function saveEvidencePack(pack: AuditEvidencePack, projectId: strin
         continue;
       }
       if (updated && updated.length > 0) continue; // row existed → updated
-      const { error: insertError } = await supabase.from("evidence_records").insert(row);
+      const { error: insertError } = await supabase.from("evidence_records").insert(row as never);
       if (insertError) ok = false;
     }
     return ok;
@@ -131,7 +132,7 @@ export async function saveEvidencePack(pack: AuditEvidencePack, projectId: strin
 
   const { error } = await supabase
     .from("evidence_records")
-    .upsert(rows, { onConflict: "user_id,framework,control_id,project_id" });
+    .upsert(rows as never[], { onConflict: "user_id,framework,control_id,project_id" });
   return !error;
 }
 

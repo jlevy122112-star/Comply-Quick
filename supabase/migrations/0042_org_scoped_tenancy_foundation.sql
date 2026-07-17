@@ -1,8 +1,8 @@
 -- Organization-scoped tenancy foundation.
 --
--- This migration is additive and backward-compatible: organization_id remains
--- nullable, existing user/member write policies are preserved, and organization
--- membership adds read visibility only.
+-- This migration is additive and backward-compatible: it adds nullable columns,
+-- backfills organizations, and supports write-tagging only. Existing RLS and
+-- read behavior are unchanged; org-scoped read policies are deferred.
 
 alter table public.scans
   add column if not exists organization_id uuid references public.organizations (id) on delete set null;
@@ -19,7 +19,6 @@ alter table public.integrations
 alter table public.audit_logs
   add column if not exists organization_id uuid references public.organizations (id) on delete set null;
 
-create index if not exists projects_organization_idx on public.projects (organization_id);
 create index if not exists scans_organization_idx on public.scans (organization_id);
 create index if not exists findings_organization_idx on public.findings (organization_id);
 create index if not exists evidence_records_organization_idx on public.evidence_records (organization_id);
@@ -98,38 +97,3 @@ set organization_id = o.id
 from public.organizations o
 where a.organization_id is null
   and o.owner_id = a.user_id;
-
-drop policy if exists "scans_select_org_member" on public.scans;
-create policy "scans_select_org_member"
-  on public.scans for select
-  using (organization_id is not null and public.is_org_member(organization_id));
-
-drop policy if exists "findings_select_org_member" on public.findings;
-create policy "findings_select_org_member"
-  on public.findings for select
-  using (organization_id is not null and public.is_org_member(organization_id));
-
-drop policy if exists "evidence_records_select_org_member" on public.evidence_records;
-create policy "evidence_records_select_org_member"
-  on public.evidence_records for select
-  using (organization_id is not null and public.is_org_member(organization_id));
-
-drop policy if exists "alert_impacts_select_org_member" on public.alert_impacts;
-create policy "alert_impacts_select_org_member"
-  on public.alert_impacts for select
-  using (organization_id is not null and public.is_org_member(organization_id));
-
-drop policy if exists "compliance_tasks_select_org_member" on public.compliance_tasks;
-create policy "compliance_tasks_select_org_member"
-  on public.compliance_tasks for select
-  using (organization_id is not null and public.is_org_member(organization_id));
-
-drop policy if exists "integrations_select_org_member" on public.integrations;
-create policy "integrations_select_org_member"
-  on public.integrations for select
-  using (organization_id is not null and public.is_org_member(organization_id));
-
-drop policy if exists "audit_logs_select_org_member" on public.audit_logs;
-create policy "audit_logs_select_org_member"
-  on public.audit_logs for select
-  using (organization_id is not null and public.is_org_member(organization_id));
