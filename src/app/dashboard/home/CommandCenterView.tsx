@@ -16,6 +16,8 @@ import IntelligencePanel from "./IntelligencePanel";
 import NpsSurvey from "./NpsSurvey";
 import { alertsForRegions, regionsFromProjects, type RegulatoryAlert } from "@/lib/regulations/alerts";
 import type { QuickToolKey } from "@/lib/tools/usage";
+import type { Organization } from "@/lib/organizations-db";
+import { OrganizationSwitcher } from "@/components/organizations/OrganizationSwitcher";
 
 // ─── Framework Display Map ──────────────────────────────────────────────────
 
@@ -124,6 +126,8 @@ interface CommandCenterViewProps {
   tier: Tier;
   aggregateScore: ComplianceScore | null;
   completedTools: QuickToolKey[];
+  organizations: Organization[];
+  activeOrganizationId: string | null;
   userEmail: string | null;
   isLegalAdmin?: boolean;
 }
@@ -133,6 +137,8 @@ export default function CommandCenterView({
   tier,
   aggregateScore,
   completedTools,
+  organizations,
+  activeOrganizationId,
   userEmail,
   isLegalAdmin,
 }: CommandCenterViewProps) {
@@ -184,6 +190,7 @@ export default function CommandCenterView({
             <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-xs font-medium text-indigo-300">
               Command Center
             </span>
+            <OrganizationSwitcher organizations={organizations} activeOrganizationId={activeOrganizationId} />
           </div>
           <div className="flex items-center gap-3">
             <span
