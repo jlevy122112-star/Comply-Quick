@@ -9,6 +9,8 @@ import { uploadBrandLogo, validateLogoFile } from "@/lib/storage/brand";
 import type { Tier } from "@/lib/entitlements";
 import { tierLabel } from "@/lib/tier-copy";
 import type { Agency, AgencyClient, AgencyDomain, ClientStats, AgencyMember } from "@/lib/agency/service";
+import type { AgencyPortfolioAnalytics } from "@/lib/agency/analytics";
+import PortfolioAnalytics from "./PortfolioAnalytics";
 import type { BillingSummary } from "@/lib/billing/usage";
 
 interface Props {
@@ -21,9 +23,10 @@ interface Props {
   members: AgencyMember[];
   billing: BillingSummary;
   managedClientLimit: number | null;
+  portfolioAnalytics: AgencyPortfolioAnalytics;
 }
 
-type Tab = "clients" | "team" | "branding" | "domains";
+type Tab = "clients" | "portfolio" | "team" | "branding" | "domains";
 
 /**
  * Only allow absolute http(s) image URLs. A pasted `javascript:`/`data:` value
@@ -51,6 +54,7 @@ export default function AgencyPortalView({
   members: initialMembers,
   billing,
   managedClientLimit,
+  portfolioAnalytics,
 }: Props) {
   const [tab, setTab] = useState<Tab>("clients");
   const [agency, setAgency] = useState(initialAgency);
@@ -102,17 +106,19 @@ export default function AgencyPortalView({
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 border-b border-gray-800">
-          {(["clients", "team", "branding", "domains"] as Tab[]).map((t) => (
+        <div className="flex gap-1 border-b border-gray-800" role="tablist" aria-label="Agency portal sections">
+          {(["clients", "portfolio", "team", "branding", "domains"] as Tab[]).map((t) => (
             <button
               key={t}
               type="button"
               onClick={() => setTab(t)}
+              role="tab"
+              aria-selected={tab === t}
               className={`px-4 py-2 text-sm font-medium capitalize transition-colors border-b-2 -mb-px ${
                 tab === t ? "border-indigo-500 text-white" : "border-transparent text-gray-400 hover:text-gray-200"
               }`}
             >
-              {t === "domains" ? "Custom Domains" : t}
+              {t === "domains" ? "Custom Domains" : t === "portfolio" ? "Analytics" : t}
             </button>
           ))}
         </div>
@@ -120,6 +126,7 @@ export default function AgencyPortalView({
         {tab === "clients" && (
           <ClientsTab clients={clients} setClients={setClients} stats={stats} managedClientLimit={managedClientLimit} />
         )}
+        {tab === "portfolio" && <PortfolioAnalytics analytics={portfolioAnalytics} />}
         {tab === "team" && (
           <TeamTab members={members} setMembers={setMembers} billing={billing} ownerId={agency.ownerId} />
         )}
