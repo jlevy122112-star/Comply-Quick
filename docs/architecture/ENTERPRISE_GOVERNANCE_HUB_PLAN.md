@@ -121,7 +121,14 @@ documented phases. The single most important architectural fact for this request
 
 ## 3. Cross-cutting architecture decisions (need owner sign-off)
 
-### 3.1 Tenancy model: **org-scoped RLS in the pooled schema** (recommended)
+> **DECISION (owner, confirmed):** Enterprise data isolation = **Option A — field-level
+> envelope encryption in the pooled DB** (per-tenant DEK wrapped by a KEK via AWS
+> KMS / secret vault), on top of strict org-scoped RLS. Physical isolation (Option
+> B) is future-proofed via a `tenant_id → dedicated connection string` env override,
+> but not built now. **Premium, enterprise-grade UI/UX is a standing requirement on
+> every user-facing surface produced by this plan (see §3.5).**
+
+### 3.1 Tenancy model: **org-scoped RLS in the pooled schema** (confirmed)
 Adopt organization-as-tenant using the existing `organizations`/`workspaces` tables
 and `org_role()` helpers. Migrate core tables (`projects`, `scans`, `findings`,
 `evidence_records`, `alert_impacts`, `compliance_tasks`, `integrations`,
@@ -129,13 +136,32 @@ and `org_role()` helpers. Migrate core tables (`projects`, `scans`, `findings`,
 alongside (then replacing) the user-scoped policies, via an **expand→backfill→contract**
 migration sequence so nothing breaks mid-deploy.
 
-> **Recommendation: do NOT pursue "cryptographically separated schemas per tenant"**
-> on Supabase/Postgres. Schema-per-tenant defeats connection pooling, multiplies
-> migration cost by tenant count, and is not supported by Supabase RLS tooling.
-> Strict org-scoped RLS + a per-tenant encryption-key column (for field-level
-> encryption of sensitive blobs) delivers the security goal without the
-> operational blast radius. **Owner decision required if hard schema isolation is
-> a contractual must** — that would likely mean leaving Supabase for that tier.
+**Enterprise field-level envelope encryption (Option A, confirmed).** Sensitive
+columns/blobs for Enterprise tenants are encrypted **application-side** (AES-256-GCM)
+before they reach Postgres, so the DB only ever stores ciphertext and never sees the
+DEK — a stronger guarantee than `pgcrypto` (which would put keys/plaintext in SQL).
+Design:
+- **`tenant_encryption_keys`** table (keyed by `organization_id`) stores the
+  *wrapped* DEK + key metadata; plaintext DEKs are never persisted.
+- A pluggable **`KeyProvider`** interface wraps/unwraps the DEK with a KEK. Ship a
+  local env-KEK provider first; an **AWS KMS** provider slots in behind the same
+  interface once creds exist (no code churn).
+- An encrypted-field helper in the Supabase client wrapper transparently
+  encrypts on write / decrypts on read for designated columns.
+- A tenant→connection resolver checks an **env-var override** first (Option B
+  hook) before falling back to the pooled Supavisor connection.
+
+> Schema-per-tenant was rejected (defeats pooling, multiplies migration cost, not
+> supported by Supabase RLS tooling). Option A meets the cryptographic-guarantee
+> requirement while keeping pooling.
+
+### 3.5 Premium UI/UX (cross-cutting, standing requirement)
+Every user-facing surface this plan adds or touches must be enterprise-grade: built
+on the existing `src/components/ui` design system + Tailwind tokens, fully
+responsive, accessible (WCAG 2.2 AA — keyboard, focus, contrast, ARIA), with
+polished loading/empty/error states, optimistic feedback, and consistent
+typography/spacing. This applies to admin/back-office surfaces too (encryption &
+key status, hierarchy management, billing ops), not just customer-facing pages.
 
 ### 3.2 Background jobs
 Introduce a durable job table + worker (reusing the `scanner-worker` deployment
