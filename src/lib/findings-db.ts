@@ -8,7 +8,7 @@
 // reopens. All reads/writes go through the RLS-scoped server client.
 
 import { createClient } from "@/lib/supabase/server";
-import { getActiveOrganizationId } from "@/lib/organizations-db";
+import { getActiveOrganizationId, organizationReadFilter } from "@/lib/organizations-db";
 import { normalizeScanUrl } from "@/lib/scanner/crawler";
 import type { Finding as ScanFinding, Severity } from "@/lib/scanner/analyzer";
 
@@ -214,11 +214,12 @@ export async function listFindings(opts?: { projectId?: string; status?: Finding
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return [];
+  const organizationId = await getActiveOrganizationId();
 
   let query = supabase
     .from("findings")
     .select(FINDING_COLS)
-    .eq("user_id", user.id)
+    .or(organizationReadFilter(user.id, organizationId))
     .order("last_detected_at", { ascending: false });
   if (opts?.projectId) query = query.eq("project_id", opts.projectId);
   if (opts?.status) query = query.eq("status", opts.status);
@@ -236,11 +237,12 @@ export async function countFindings(status: FindingStatus, projectId?: string): 
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return 0;
+  const organizationId = await getActiveOrganizationId();
 
   let query = supabase
     .from("findings")
     .select("id", { count: "exact", head: true })
-    .eq("user_id", user.id)
+    .or(organizationReadFilter(user.id, organizationId))
     .eq("status", status);
   if (projectId) query = query.eq("project_id", projectId);
 

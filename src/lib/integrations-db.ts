@@ -4,7 +4,7 @@
 // notifications. All rows are owner-scoped by RLS.
 
 import { createClient } from "@/lib/supabase/server";
-import { getActiveOrganizationId } from "@/lib/organizations-db";
+import { getActiveOrganizationId, getMyOrgRole, organizationReadFilter } from "@/lib/organizations-db";
 
 export type IntegrationKind = "webhook";
 
@@ -39,13 +39,25 @@ function rowToIntegration(row: IntegrationRow): Integration {
 
 export async function listIntegrations(): Promise<Integration[]> {
   const supabase = await createClient();
+  const organizationId = await getActiveOrganizationId();
+  const role = organizationId ? await getMyOrgRole(organizationId) : null;
   // Filter to supported kinds so any legacy row (e.g. removed `slack`) that
   // predates the cleanup migration never leaks a value outside IntegrationKind.
-  const { data, error } = await supabase
-    .from("integrations")
-    .select("*")
-    .eq("kind", "webhook")
-    .order("created_at", { ascending: false });
+  let query = supabase.from("integrations").select("*").eq("kind", "webhook");
+  if (role === "owner" || role === "admin") {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return [];
+    query = query.or(organizationReadFilter(user.id, organizationId));
+  } else {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return [];
+    query = query.eq("user_id", user.id);
+  }
+  const { data, error } = await query.order("created_at", { ascending: false });
   if (error || !data) return [];
   return (data as IntegrationRow[]).map(rowToIntegration);
 }

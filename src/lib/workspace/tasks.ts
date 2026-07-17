@@ -5,7 +5,7 @@
 // returned here, and every read/write is RLS-scoped to the caller.
 
 import { createClient } from "@/lib/supabase/server";
-import { getActiveOrganizationId } from "@/lib/organizations-db";
+import { getActiveOrganizationId, organizationReadFilter } from "@/lib/organizations-db";
 import { UnauthorizedError, ValidationError, NotFoundError } from "@/services/errors";
 import {
   toDayKey,
@@ -75,11 +75,12 @@ export async function listProjectTasks(projectId: string): Promise<ProjectTask[]
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return [];
+  const organizationId = await getActiveOrganizationId();
 
   const { data } = await supabase
     .from("compliance_tasks")
     .select(TASK_COLS)
-    .eq("user_id", user.id)
+    .or(organizationReadFilter(user.id, organizationId))
     .eq("project_id", projectId)
     .order("due_date", { ascending: true });
 

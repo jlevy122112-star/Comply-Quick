@@ -7,7 +7,7 @@
 // trail is tamper-evident by construction.
 
 import { createClient } from "@/lib/supabase/server";
-import { getActiveOrganizationId } from "@/lib/organizations-db";
+import { getActiveOrganizationId, organizationReadFilter } from "@/lib/organizations-db";
 import { logger } from "@/services";
 import * as Sentry from "@sentry/nextjs";
 
@@ -75,11 +75,12 @@ export async function listAuditLogs(opts: { projectId?: string; limit?: number }
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return [];
+  const organizationId = await getActiveOrganizationId();
 
   let query = supabase
     .from("audit_logs")
     .select("id, action, entity_type, entity_id, project_id, summary, metadata, created_at")
-    .eq("user_id", user.id)
+    .or(organizationReadFilter(user.id, organizationId))
     .order("created_at", { ascending: false })
     .limit(opts.limit ?? 100);
   if (opts.projectId) query = query.eq("project_id", opts.projectId);

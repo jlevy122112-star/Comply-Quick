@@ -6,7 +6,7 @@
 // All reads/writes go through the RLS-scoped server client.
 
 import { createClient } from "@/lib/supabase/server";
-import { getActiveOrganizationId } from "@/lib/organizations-db";
+import { getActiveOrganizationId, organizationReadFilter } from "@/lib/organizations-db";
 import type { AuditEvidencePack, EvidenceLedger, EvidenceStatus } from "@/lib/agents";
 import type { RegulationControl } from "@/lib/regulations/types";
 
@@ -170,8 +170,13 @@ export async function listEvidenceRecords(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return [];
+  const organizationId = await getActiveOrganizationId();
 
-  let query = supabase.from("evidence_records").select(COLS).eq("user_id", user.id).eq("framework", framework);
+  let query = supabase
+    .from("evidence_records")
+    .select(COLS)
+    .or(organizationReadFilter(user.id, organizationId))
+    .eq("framework", framework);
   query = projectId ? query.eq("project_id", projectId) : query.is("project_id", null);
 
   const { data } = await query.order("control_id", { ascending: true });

@@ -12,7 +12,7 @@
 // through the RLS-scoped server client, so a user only ever sees their own data.
 
 import { createClient } from "@/lib/supabase/server";
-import { getActiveOrganizationId } from "@/lib/organizations-db";
+import { getActiveOrganizationId, organizationReadFilter } from "@/lib/organizations-db";
 import { logger } from "@/services";
 import { UnauthorizedError, ValidationError, NotFoundError } from "@/services/errors";
 import {
@@ -185,13 +185,14 @@ export async function getCalendarMonth(
 ): Promise<CalendarMonth> {
   const { supabase, user } = await requireUser();
   const range = monthRange(ref);
+  const organizationId = await getActiveOrganizationId();
 
   // Client view: only that client's persisted tasks (derived personal events omitted).
   if (opts.agencyClientId) {
     const { data: tasks } = await supabase
       .from("compliance_tasks")
       .select(TASK_COLS)
-      .eq("user_id", user.id)
+      .or(organizationReadFilter(user.id, organizationId))
       .eq("agency_client_id", opts.agencyClientId)
       .gte("due_date", range.gridStart)
       .lt("due_date", range.gridEnd)
@@ -199,7 +200,7 @@ export async function getCalendarMonth(
     return { ...range, events: (tasks ?? []).map((row) => taskToEvent(mapTask(row))) };
   }
 
-  const events = await collectPersonalEvents(supabase, user.id, range.gridStart, range.gridEnd);
+  const events = await collectPersonalEvents(supabase, user.id, range.gridStart, range.gridEnd, organizationId);
   return { ...range, events };
 }
 
@@ -220,7 +221,8 @@ export async function collectPersonalEvents(
   supabase: SupabaseLike,
   userId: string,
   startInclusive: string,
-  endExclusive: string
+  endExclusive: string,
+  organizationId: string | null = null
 ): Promise<CalendarEvent[]> {
   const events: CalendarEvent[] = [];
 
@@ -228,7 +230,7 @@ export async function collectPersonalEvents(
   const { data: tasks } = await supabase
     .from("compliance_tasks")
     .select(TASK_COLS)
-    .eq("user_id", userId)
+    .or(organizationReadFilter(userId, organizationId))
     .is("agency_client_id", null)
     .gte("due_date", startInclusive)
     .lt("due_date", endExclusive)

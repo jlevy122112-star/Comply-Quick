@@ -7,6 +7,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { getActiveOrganizationId, organizationReadFilter } from "@/lib/organizations-db";
 import type { PendingRegulatoryPressure } from "./score-impact";
 import { PENALTY_BY_RISK } from "./score-impact";
 
@@ -105,11 +106,13 @@ export async function listOpenImpacts(): Promise<AlertImpact[]> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return [];
+  const organizationId = await getActiveOrganizationId();
   const { data } = await supabase
     .from("alert_impacts")
     .select(
       "id, project_id, regulation_id, regulation_name, risk_level, score_penalty, status, created_at, resolved_at"
     )
+    .or(organizationReadFilter(user.id, organizationId))
     .eq("status", "open")
     .order("created_at", { ascending: false });
   return ((data as ImpactRow[] | null) ?? []).map(rowToImpact);
@@ -122,9 +125,11 @@ export async function pendingPressuresForProject(projectId: string): Promise<Pen
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return [];
+  const organizationId = await getActiveOrganizationId();
   const { data } = await supabase
     .from("alert_impacts")
     .select("regulation_id, regulation_name, risk_level")
+    .or(organizationReadFilter(user.id, organizationId))
     .eq("project_id", projectId)
     .eq("status", "open");
   return ((data as Pick<ImpactRow, "regulation_id" | "regulation_name" | "risk_level">[] | null) ?? []).map((r) => ({
