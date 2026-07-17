@@ -430,27 +430,29 @@ export async function provisionClientOrganization(clientId: string): Promise<Org
     .maybeSingle();
   if (clientError || !client) throw new NotFoundError("Client not found.");
   const admin = createAdminClient();
+  const personalOrganizationId = await resolveAgencyOwnerPersonalOrganization(admin, agency.ownerId);
   if (client.organization_id) {
-    try {
-      const personalOrganizationId = await resolveAgencyOwnerPersonalOrganization(admin, agency.ownerId);
-      await migrateClientHistoricalData(
-        admin,
-        agency.ownerId,
-        client.id,
-        client.organization_id,
-        personalOrganizationId
-      );
-    } catch (error) {
-      log.error("Failed to complete historical client migration during organization reuse", {
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-    const { data: existing } = await createAdminClient()
+    const { data: existing } = await admin
       .from("organizations")
       .select("*")
       .eq("id", client.organization_id)
       .maybeSingle();
-    if (existing) return mapOrganization(existing);
+    if (existing) {
+      try {
+        await migrateClientHistoricalData(
+          admin,
+          agency.ownerId,
+          client.id,
+          client.organization_id,
+          personalOrganizationId
+        );
+      } catch (error) {
+        log.error("Failed to complete historical client migration during organization reuse", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      return mapOrganization(existing);
+    }
   }
 
   const slug = `${organizationSlugify(client.name)}-${client.id.slice(0, 6)}`;
@@ -502,8 +504,6 @@ export async function provisionClientOrganization(clientId: string): Promise<Org
     log.error("Failed to provision client workspace", { error: workspaceError.message });
     throw new Error("Could not provision the client workspace.");
   }
-
-  const personalOrganizationId = await resolveAgencyOwnerPersonalOrganization(admin, agency.ownerId);
 
   const { data: linked, error: linkError } = await supabase
     .from("agency_clients")
