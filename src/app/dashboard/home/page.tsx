@@ -4,6 +4,7 @@ import { getEntitlement } from "@/lib/entitlements";
 import { listProjects, getAggregateScore } from "@/lib/projects-db";
 import { listCompletedTools } from "@/lib/tools/usage";
 import { isEmailPolicyAllowed } from "@/lib/access-policy";
+import { listMyOrganizations, resolveActiveOrganizationId } from "@/lib/organizations-db";
 import CommandCenterView from "./CommandCenterView";
 
 export const dynamic = "force-dynamic";
@@ -18,10 +19,12 @@ export default async function CommandCenterPage() {
     redirect("/login?redirect=/dashboard/home");
   }
 
-  const [entitlement, projects, completedTools] = await Promise.all([
+  const [entitlement, projects, completedTools, organizations, activeOrganizationId] = await Promise.all([
     getEntitlement(),
     listProjects(),
     listCompletedTools(),
+    listMyOrganizations(),
+    resolveActiveOrganizationId(),
   ]);
   const aggregateScore = getAggregateScore(projects);
 
@@ -31,6 +34,8 @@ export default async function CommandCenterPage() {
       tier={entitlement.tier}
       aggregateScore={aggregateScore}
       completedTools={completedTools}
+      organizations={organizations}
+      activeOrganizationId={activeOrganizationId}
       userEmail={user.email ?? null}
       isLegalAdmin={isEmailPolicyAllowed("legalReview", user.email ?? null, process.env)}
     />

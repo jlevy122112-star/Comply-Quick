@@ -8,6 +8,7 @@
 // policy layer as defense in depth.
 
 import { cache } from "react";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isRole, type Role } from "@/lib/rbac";
@@ -45,6 +46,8 @@ interface MemberRow {
   role: string;
   created_at: string;
 }
+
+export const ACTIVE_ORGANIZATION_COOKIE = "cq-active-organization";
 
 function mapOrg(row: OrgRow): Organization {
   return {
@@ -100,14 +103,59 @@ export const getOrCreateOrganization = cache(async (): Promise<Organization | nu
   return mapOrg(data as OrgRow);
 });
 
-/** Resolves the caller's active organization; currently the owned/default org. */
-export async function getActiveOrganizationId(): Promise<string | null> {
+/** Lists organizations visible to the caller through organization membership. */
+export async function listMyOrganizations(): Promise<Organization[]> {
   try {
-    const organization = await getOrCreateOrganization();
-    return organization?.id ?? null;
+    const supabase = await createClient();
+    const { data } = await supabase.from("organizations").select("*").order("created_at", { ascending: true });
+    return ((data ?? []) as OrgRow[]).map(mapOrg);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Resolves the caller's selected organization from a validated cookie.
+ * Invalid or missing selections fall back to the caller's personal organization.
+ */
+export async function resolveActiveOrganizationId(): Promise<string | null> {
+  try {
+    const cookieStore = await cookies();
+    const storedId = cookieStore.get(ACTIVE_ORGANIZATION_COOKIE)?.value;
+    const organizations = await listMyOrganizations();
+    if (storedId && organizations.some((organization) => organization.id === storedId)) return storedId;
+
+    const personal = await getOrCreateOrganization();
+    if (personal) return personal.id;
+    return organizations[0]?.id ?? null;
   } catch {
     return null;
   }
+}
+
+/** Persists a selected organization after validating the caller's membership. */
+export async function setActiveOrganizationId(orgId: string): Promise<boolean> {
+  try {
+    const organizations = await listMyOrganizations();
+    if (!organizations.some((organization) => organization.id === orgId)) return false;
+
+    const cookieStore = await cookies();
+    cookieStore.set(ACTIVE_ORGANIZATION_COOKIE, orgId, {
+      httpOnly: true,
+      maxAge: 60 * 60 * 24 * 30,
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Resolves the caller's active organization, falling back to the owned org. */
+export async function getActiveOrganizationId(): Promise<string | null> {
+  return resolveActiveOrganizationId();
 }
 
 /** Cheap head-count of members for tab badges (no email resolution). */
