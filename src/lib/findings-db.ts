@@ -2,13 +2,14 @@
 //
 // Findings are scan-first: materialized from a scan's analysis the moment it
 // completes, so users who only run scans (no project) still get first-class,
-// trackable findings. Reconciliation is keyed on (user_id, finding_key) so
-// repeated scans of the same site update one row instead of duplicating, and a
-// finding that was resolved but re-detected by a later scan automatically
-// reopens. All reads/writes go through the RLS-scoped server client.
+// trackable findings. Organization-tagged rows reconcile on
+// (organization_id, finding_key), while legacy NULL-organization rows retain
+// their per-user identity. A finding that was resolved but re-detected by a
+// later scan automatically reopens. All reads/writes go through the
+// RLS-scoped server client.
 
 import { createClient } from "@/lib/supabase/server";
-import { getActiveOrganizationId } from "@/lib/organizations-db";
+import { getActiveOrganizationId, organizationReadFilter } from "@/lib/organizations-db";
 import { normalizeScanUrl } from "@/lib/scanner/crawler";
 import type { Finding as ScanFinding, Severity } from "@/lib/scanner/analyzer";
 
@@ -128,12 +129,14 @@ export async function materializeScanFindings(
   const site = siteKey(url);
   const now = new Date().toISOString();
 
-  // Existing findings for this site (namespaced by the host prefix).
-  const { data: existingRows } = await supabase
-    .from("findings")
-    .select(FINDING_COLS)
-    .eq("user_id", user.id)
-    .like("finding_key", `${site}::%`);
+  // Existing findings for this site (namespaced by the host prefix). Shared
+  // rows are canonical to the active organization; legacy rows remain
+  // caller-scoped.
+  let existingQuery = supabase.from("findings").select(FINDING_COLS).like("finding_key", `${site}::%`);
+  existingQuery = organizationId
+    ? existingQuery.eq("organization_id", organizationId)
+    : existingQuery.eq("user_id", user.id);
+  const { data: existingRows } = await existingQuery;
   const existing = new Map<string, FindingRow>(
     (existingRows ?? []).map((r) => [(r as FindingRow).finding_key, r as FindingRow])
   );
@@ -143,7 +146,7 @@ export async function materializeScanFindings(
   for (const f of findings) {
     const key = findingKeyFor(url, f.id);
     seen.add(key);
-    const prior = existing.get(key);
+    let prior = existing.get(key);
     const common = {
       scan_id: scanId,
       category: categoryFor(f),
@@ -157,7 +160,7 @@ export async function materializeScanFindings(
     };
 
     if (!prior) {
-      const { data: inserted } = await supabase
+      const { data: inserted, error: insertError } = await supabase
         .from("findings")
         .insert({ user_id: user.id, organization_id: organizationId, finding_key: key, status: "open", ...common })
         .select("id")
@@ -169,8 +172,25 @@ export async function materializeScanFindings(
           type: "created",
           to_status: "open",
         });
+        continue;
       }
-      continue;
+
+      // A concurrent org scan may have inserted the canonical row after the
+      // snapshot above. Re-read it and continue through the normal update path
+      // instead of losing the latest scan or surfacing a duplicate.
+      if (organizationId && insertError) {
+        const { data: raced } = await supabase
+          .from("findings")
+          .select(FINDING_COLS)
+          .eq("organization_id", organizationId)
+          .eq("finding_key", key)
+          .maybeSingle();
+        if (raced) {
+          existing.set(key, raced as FindingRow);
+          prior = raced as FindingRow;
+        }
+      }
+      if (!prior) continue;
     }
 
     const reopening = prior.status === "resolved";
@@ -214,11 +234,12 @@ export async function listFindings(opts?: { projectId?: string; status?: Finding
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return [];
+  const organizationId = await getActiveOrganizationId();
 
   let query = supabase
     .from("findings")
     .select(FINDING_COLS)
-    .eq("user_id", user.id)
+    .or(organizationReadFilter(user.id, organizationId))
     .order("last_detected_at", { ascending: false });
   if (opts?.projectId) query = query.eq("project_id", opts.projectId);
   if (opts?.status) query = query.eq("status", opts.status);
@@ -236,11 +257,12 @@ export async function countFindings(status: FindingStatus, projectId?: string): 
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return 0;
+  const organizationId = await getActiveOrganizationId();
 
   let query = supabase
     .from("findings")
     .select("id", { count: "exact", head: true })
-    .eq("user_id", user.id)
+    .or(organizationReadFilter(user.id, organizationId))
     .eq("status", status);
   if (projectId) query = query.eq("project_id", projectId);
 

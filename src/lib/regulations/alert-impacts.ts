@@ -7,6 +7,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { getActiveOrganizationId, organizationReadFilter } from "@/lib/organizations-db";
 import type { PendingRegulatoryPressure } from "./score-impact";
 import { PENALTY_BY_RISK } from "./score-impact";
 
@@ -75,14 +76,27 @@ export async function recordAlertImpact(
 ): Promise<void> {
   let organizationId: string | null = null;
   try {
-    const { data: organization } = await admin
-      .from("organizations")
-      .select("id")
-      .eq("owner_id", input.userId)
+    const { data: project } = await admin
+      .from("projects")
+      .select("organization_id")
+      .eq("id", input.projectId)
       .maybeSingle();
-    organizationId = (organization as { id: string } | null)?.id ?? null;
+    organizationId = (project as { organization_id: string | null } | null)?.organization_id ?? null;
   } catch {
     organizationId = null;
+  }
+
+  if (!organizationId) {
+    try {
+      const { data: organization } = await admin
+        .from("organizations")
+        .select("id")
+        .eq("owner_id", input.userId)
+        .maybeSingle();
+      organizationId = (organization as { id: string } | null)?.id ?? null;
+    } catch {
+      organizationId = null;
+    }
   }
 
   await admin.from("alert_impacts").insert({
@@ -105,11 +119,13 @@ export async function listOpenImpacts(): Promise<AlertImpact[]> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return [];
+  const organizationId = await getActiveOrganizationId();
   const { data } = await supabase
     .from("alert_impacts")
     .select(
       "id, project_id, regulation_id, regulation_name, risk_level, score_penalty, status, created_at, resolved_at"
     )
+    .or(organizationReadFilter(user.id, organizationId))
     .eq("status", "open")
     .order("created_at", { ascending: false });
   return ((data as ImpactRow[] | null) ?? []).map(rowToImpact);
@@ -122,9 +138,11 @@ export async function pendingPressuresForProject(projectId: string): Promise<Pen
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return [];
+  const organizationId = await getActiveOrganizationId();
   const { data } = await supabase
     .from("alert_impacts")
     .select("regulation_id, regulation_name, risk_level")
+    .or(organizationReadFilter(user.id, organizationId))
     .eq("project_id", projectId)
     .eq("status", "open");
   return ((data as Pick<ImpactRow, "regulation_id" | "regulation_name" | "risk_level">[] | null) ?? []).map((r) => ({

@@ -41,6 +41,7 @@ const { serverRows, mockServerClient } = vi.hoisted(() => ({
 
 vi.mock("@/lib/organizations-db", () => ({
   getActiveOrganizationId: async () => "org-a",
+  getMyOrgRole: async () => "owner",
 }));
 
 vi.mock("@/lib/supabase/server", () => ({

@@ -5,7 +5,7 @@
 // scans). Enforces a monthly free-tier quota; Agency and Enterprise are unlimited.
 
 import * as Sentry from "@sentry/nextjs";
-import { getActiveOrganizationId } from "@/lib/organizations-db";
+import { getActiveOrganizationId, organizationReadFilter } from "@/lib/organizations-db";
 import { createClient } from "@/lib/supabase/server";
 import { getEntitlement } from "@/lib/entitlements";
 import { getAiClient } from "@/services/ai";
@@ -64,7 +64,6 @@ export async function getScanQuota(): Promise<ScanQuota> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new UnauthorizedError();
-
   const { count } = await supabase
     .from("scans")
     .select("id", { count: "exact", head: true })
@@ -97,13 +96,14 @@ function mapRow(row: Record<string, unknown>): ScanRecord {
 async function findRecentScan(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
-  normalizedUrl: string
+  normalizedUrl: string,
+  organizationId: string | null
 ): Promise<ScanRecord | null> {
   const since = new Date(Date.now() - SCAN_CACHE_TTL_DAYS * 86_400_000).toISOString();
   const { data } = await supabase
     .from("scans")
     .select("id, url, status, score, detected_tools, findings, summary, error, created_at")
-    .eq("user_id", userId)
+    .or(organizationReadFilter(userId, organizationId))
     .eq("url", normalizedUrl)
     .eq("status", "completed")
     .gte("created_at", since)
@@ -120,11 +120,12 @@ export async function listProjectScans(projectId: string, limit = 50): Promise<S
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return [];
+  const organizationId = await getActiveOrganizationId();
 
   const { data, error } = await supabase
     .from("scans")
     .select("id, url, status, score, detected_tools, findings, summary, error, created_at")
-    .eq("user_id", user.id)
+    .or(organizationReadFilter(user.id, organizationId))
     .eq("project_id", projectId)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -139,11 +140,12 @@ export async function listScans(limit = 50): Promise<ScanRecord[]> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return [];
+  const organizationId = await getActiveOrganizationId();
 
   const { data, error } = await supabase
     .from("scans")
     .select("id, url, status, score, detected_tools, findings, summary, error, created_at")
-    .eq("user_id", user.id)
+    .or(organizationReadFilter(user.id, organizationId))
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error || !data) return [];
@@ -156,12 +158,13 @@ export async function getScan(id: string): Promise<ScanRecord | null> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
+  const organizationId = await getActiveOrganizationId();
 
   const { data, error } = await supabase
     .from("scans")
     .select("id, url, status, score, detected_tools, findings, summary, error, created_at")
     .eq("id", id)
-    .eq("user_id", user.id)
+    .or(organizationReadFilter(user.id, organizationId))
     .maybeSingle();
   if (error || !data) return null;
   return mapRow(data);
@@ -188,6 +191,7 @@ export async function createScan(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new UnauthorizedError();
+  const organizationId = await getActiveOrganizationId();
   // Attribute the AI monitoring trace to this subscriber (id only, no PII).
   Sentry.setUser({ id: user.id });
 
@@ -201,7 +205,7 @@ export async function createScan(
       normalizedUrl = null;
     }
     if (normalizedUrl) {
-      const cached = await findRecentScan(supabase, user.id, normalizedUrl);
+      const cached = await findRecentScan(supabase, user.id, normalizedUrl, organizationId);
       if (cached) {
         analytics.track({ event: "scan_cache_hit", userId: user.id, properties: { url: normalizedUrl } });
         return cached;
@@ -220,7 +224,6 @@ export async function createScan(
   }
 
   const outcome = await runScan({ url, ai: getAiClient() });
-  const organizationId = await getActiveOrganizationId();
 
   const { data, error } = await supabase
     .from("scans")

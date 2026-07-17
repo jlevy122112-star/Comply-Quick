@@ -5,7 +5,7 @@ import type {
   ComplianceScore,
   ComplianceModule,
 } from "@/components/ClauseEngine";
-import { getActiveOrganizationId } from "@/lib/organizations-db";
+import { getActiveOrganizationId, organizationReadFilter } from "@/lib/organizations-db";
 import { createClient } from "@/lib/supabase/server";
 
 export interface DbProject {
@@ -68,11 +68,12 @@ export async function listProjects(): Promise<DbProject[]> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return [];
+  const organizationId = await getActiveOrganizationId();
 
   const { data, error } = await supabase
     .from("projects")
     .select("*")
-    .eq("user_id", user.id)
+    .or(organizationReadFilter(user.id, organizationId))
     .order("created_at", { ascending: false });
 
   if (error || !data) return [];
@@ -85,8 +86,14 @@ export async function getProjectById(id: string): Promise<DbProject | null> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
+  const organizationId = await getActiveOrganizationId();
 
-  const { data, error } = await supabase.from("projects").select("*").eq("id", id).eq("user_id", user.id).maybeSingle();
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("id", id)
+    .or(organizationReadFilter(user.id, organizationId))
+    .maybeSingle();
 
   if (error || !data) return null;
   return rowToProject(data as ProjectRow);
