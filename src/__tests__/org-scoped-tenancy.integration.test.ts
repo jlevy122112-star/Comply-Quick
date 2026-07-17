@@ -341,6 +341,29 @@ describe.skipIf(!hasLiveSupabase)("org-scoped tenancy RLS (requires live Supabas
       ]);
       for (const result of seededRows) expect(result.error).toBeNull();
 
+      const duplicateFinding = await admin.from("findings").insert({
+        user_id: createdUserIds[1],
+        organization_id: organizationIds[0],
+        scan_id: scanA.data!.id,
+        project_id: projectA,
+        finding_key: `share-${suffix}`,
+        category: "privacy",
+        severity: "warning",
+        title: "Duplicate shared finding",
+      });
+      const duplicateEvidence = await admin.from("evidence_records").insert({
+        user_id: createdUserIds[1],
+        organization_id: organizationIds[0],
+        project_id: projectA,
+        framework: "gdpr",
+        control_id: `share-${suffix}`,
+        control_title: "Duplicate shared evidence",
+      });
+      if (!duplicateFinding.error || !duplicateEvidence.error) {
+        context.skip("0046 canonical finding/evidence migration is not applied to the configured Supabase project");
+        return;
+      }
+
       const clients = await Promise.all(
         [users[0], users[1], users[2]].map(async (user) => {
           const client = createSupabaseClient(url, anonKey, {
@@ -415,6 +438,28 @@ describe.skipIf(!hasLiveSupabase)("org-scoped tenancy RLS (requires live Supabas
         .select("id")
         .single();
       expect(ownerIntegration.error).toBeNull();
+      const teammateIntegration = await admin
+        .from("integrations")
+        .insert({
+          user_id: createdUserIds[1],
+          organization_id: organizationIds[0],
+          kind: "webhook",
+          name: "Teammate webhook",
+          target_url: "https://hooks.example/teammate",
+        })
+        .select("id")
+        .single();
+      expect(teammateIntegration.error).toBeNull();
+      const toggled = await owner
+        .from("integrations")
+        .update({ active: false })
+        .eq("id", teammateIntegration.data!.id)
+        .select("id, active")
+        .single();
+      expect(toggled.error).toBeNull();
+      expect(toggled.data?.active).toBe(false);
+      const deleted = await owner.from("integrations").delete().eq("id", teammateIntegration.data!.id);
+      expect(deleted.error).toBeNull();
       void scanB;
     } finally {
       await cleanup();

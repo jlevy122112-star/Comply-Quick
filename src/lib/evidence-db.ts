@@ -61,11 +61,13 @@ const COLS =
   "id, framework, project_id, control_id, control_title, risk_level, status, required_evidence, evidence_ref, source_url, generated_at, updated_at";
 
 /**
- * Persists a compiled evidence pack: upserts one row per control keyed on
- * (user_id, framework, control_id, project_id). Existing collected/N-A statuses
- * set by the user are preserved by the ledger the pack was compiled with, so a
- * re-compile never silently discards prior evidence state. Best-effort — returns
- * false on failure rather than throwing, so it never breaks the agent run.
+ * Persists a compiled evidence pack: organization-tagged rows are keyed on
+ * (organization_id, framework, control_id, project_id), while legacy
+ * NULL-organization rows retain the user-scoped key. Existing collected/N-A
+ * statuses set by the user are preserved by the ledger the pack was compiled
+ * with, so a re-compile never silently discards prior evidence state.
+ * Best-effort - returns false on failure rather than throwing, so it never
+ * breaks the agent run.
  */
 export async function saveEvidencePack(pack: AuditEvidencePack, projectId: string | null = null): Promise<boolean> {
   const supabase = await createClient();
@@ -93,13 +95,43 @@ export async function saveEvidencePack(pack: AuditEvidencePack, projectId: strin
   }));
   if (rows.length === 0) return true;
 
-  // NULL project_id can't be a PostgREST `onConflict` upsert target — the
+  // NULL project_id can't be a PostgREST `onConflict` upsert target - the
   // partial unique index from 0026 (…WHERE project_id IS NULL) needs an
   // ON CONFLICT WHERE predicate PostgREST can't express. So upsert each row
   // manually: update the existing (user, framework, control, no-project) row if
   // present, else insert. Crucially this never deletes first, so a mid-run
   // failure can only leave some rows un-refreshed — it can never wipe the
   // user's evidence, unlike the previous delete-then-insert.
+  if (organizationId) {
+    let ok = true;
+    for (const row of rows) {
+      let query = supabase
+        .from("evidence_records")
+        .update({
+          control_title: row.control_title,
+          risk_level: row.risk_level,
+          status: row.status,
+          required_evidence: row.required_evidence,
+          source_url: row.source_url,
+          generated_at: row.generated_at,
+          updated_at: row.updated_at,
+        })
+        .eq("organization_id", organizationId)
+        .eq("framework", row.framework)
+        .eq("control_id", row.control_id);
+      query = projectId === null ? query.is("project_id", null) : query.eq("project_id", projectId);
+      const { data: updated, error: updateError } = await query.select("id");
+      if (updateError) {
+        ok = false;
+        continue;
+      }
+      if (updated && updated.length > 0) continue;
+      const { error: insertError } = await supabase.from("evidence_records").insert(row as never);
+      if (insertError) ok = false;
+    }
+    return ok;
+  }
+
   if (projectId === null) {
     let ok = true;
     for (const row of rows) {

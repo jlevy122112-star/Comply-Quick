@@ -76,14 +76,27 @@ export async function recordAlertImpact(
 ): Promise<void> {
   let organizationId: string | null = null;
   try {
-    const { data: organization } = await admin
-      .from("organizations")
-      .select("id")
-      .eq("owner_id", input.userId)
+    const { data: project } = await admin
+      .from("projects")
+      .select("organization_id")
+      .eq("id", input.projectId)
       .maybeSingle();
-    organizationId = (organization as { id: string } | null)?.id ?? null;
+    organizationId = (project as { organization_id: string | null } | null)?.organization_id ?? null;
   } catch {
     organizationId = null;
+  }
+
+  if (!organizationId) {
+    try {
+      const { data: organization } = await admin
+        .from("organizations")
+        .select("id")
+        .eq("owner_id", input.userId)
+        .maybeSingle();
+      organizationId = (organization as { id: string } | null)?.id ?? null;
+    } catch {
+      organizationId = null;
+    }
   }
 
   await admin.from("alert_impacts").insert({

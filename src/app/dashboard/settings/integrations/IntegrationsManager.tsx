@@ -17,7 +17,7 @@ function kindLabel(kind: string): string {
   return KIND_LABEL[kind as IntegrationKind] ?? kind;
 }
 
-export function IntegrationsManager({ integrations }: { integrations: Integration[] }) {
+export function IntegrationsManager({ integrations, canManage }: { integrations: Integration[]; canManage: boolean }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -73,49 +73,63 @@ export function IntegrationsManager({ integrations }: { integrations: Integratio
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardBody>
-          <h2 className="text-sm font-semibold text-white">Connect an endpoint</h2>
-          <p className="mt-1 text-sm text-gray-400">
-            Deliver Comply-Quick events (new alerts, approvals, findings) to an external system.
-          </p>
-          <form onSubmit={submit} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
-            <label className="text-sm">
-              <span className="mb-1 block text-gray-400">Type</span>
-              <select
-                value={kind}
-                onChange={(e) => setKind(e.target.value as IntegrationKind)}
-                className="rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
-              >
-                <option value="webhook">Generic webhook</option>
-              </select>
-            </label>
-            <label className="text-sm">
-              <span className="mb-1 block text-gray-400">Name</span>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                maxLength={80}
-                placeholder="e.g. Ops webhook"
-                className="rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white placeholder:text-gray-600 focus:border-indigo-500 focus:outline-none"
-              />
-            </label>
-            <label className="flex-1 text-sm">
-              <span className="mb-1 block text-gray-400">Target URL (https)</span>
-              <input
-                value={targetUrl}
-                onChange={(e) => setTargetUrl(e.target.value)}
-                placeholder="https://hooks.example.com/…"
-                className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white placeholder:text-gray-600 focus:border-indigo-500 focus:outline-none"
-              />
-            </label>
-            <Button type="submit" size="sm" disabled={disabled}>
-              {busyId === "new" ? "Saving…" : "Add"}
-            </Button>
-          </form>
-          {error && <p className="mt-2 text-xs text-rose-400">{error}</p>}
-        </CardBody>
-      </Card>
+      {canManage && (
+        <Card>
+          <CardBody>
+            <h2 className="text-sm font-semibold text-white">Connect an endpoint</h2>
+            <p className="mt-1 text-sm text-gray-400">
+              Deliver Comply-Quick events (new alerts, approvals, findings) to an external system.
+            </p>
+            <form onSubmit={submit} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+              <label className="text-sm">
+                <span className="mb-1 block text-gray-400">Type</span>
+                <select
+                  value={kind}
+                  onChange={(e) => setKind(e.target.value as IntegrationKind)}
+                  className="rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
+                >
+                  <option value="webhook">Generic webhook</option>
+                </select>
+              </label>
+              <label className="text-sm">
+                <span className="mb-1 block text-gray-400">Name</span>
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  maxLength={80}
+                  placeholder="e.g. Ops webhook"
+                  className="rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white placeholder:text-gray-600 focus:border-indigo-500 focus:outline-none"
+                />
+              </label>
+              <label className="flex-1 text-sm">
+                <span className="mb-1 block text-gray-400">Target URL (https)</span>
+                <input
+                  value={targetUrl}
+                  onChange={(e) => setTargetUrl(e.target.value)}
+                  placeholder="https://hooks.example.com/…"
+                  className="w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white placeholder:text-gray-600 focus:border-indigo-500 focus:outline-none"
+                />
+              </label>
+              <Button type="submit" size="sm" disabled={disabled}>
+                {busyId === "new" ? "Saving…" : "Add"}
+              </Button>
+            </form>
+            {error && (
+              <p className="mt-2 text-xs text-rose-400" role="alert" aria-live="polite">
+                {error}
+              </p>
+            )}
+          </CardBody>
+        </Card>
+      )}
+      {!canManage && (
+        <p
+          className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200"
+          role="status"
+        >
+          Only owners and admins can manage integrations for this organization.
+        </p>
+      )}
 
       {integrations.length === 0 ? (
         <EmptyState
