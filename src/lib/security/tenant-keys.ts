@@ -44,7 +44,7 @@ function mapRow(row: TenantKeyRow): TenantEncryptionStatus {
   return {
     enabled: row.status === "active",
     provider: row.kek_id === "kms" ? "kms" : "env",
-    providerConfigured: true,
+    providerConfigured: getKeyProviderInfo().configured,
     keyVersion: row.kek_version,
     lastRotation: row.last_rotated_at ?? row.updated_at ?? row.created_at,
   };
@@ -93,12 +93,16 @@ async function createTenantKey(orgId: string, provider: KeyProvider): Promise<Te
   throw new Error(`Could not create tenant encryption key: ${error?.message ?? "unknown error"}`);
 }
 
-async function getDek(orgId: string, provider: KeyProvider): Promise<Buffer> {
+async function getDek(orgId: string, provider: KeyProvider, { create }: { create: boolean }): Promise<Buffer> {
   const cacheKey = providerCacheKey(provider);
   const cached = dekCache.get(orgId);
   if (cached && cached.providerKey === cacheKey && cached.expiresAt > Date.now()) return cached.dek;
 
-  const row = (await getActiveRow(orgId)) ?? (await createTenantKey(orgId, provider));
+  let row = await getActiveRow(orgId);
+  if (!row) {
+    if (!create) throw new Error("No tenant encryption key exists for this organization.");
+    row = await createTenantKey(orgId, provider);
+  }
   const dek = await provider.unwrapDek(row.wrapped_dek);
   if (dek.length !== DEK_BYTES) throw new Error("Unwrapped tenant DEK has an invalid length.");
   dekCache.set(orgId, { providerKey: cacheKey, dek, expiresAt: Date.now() + CACHE_TTL_MS });
@@ -166,14 +170,14 @@ async function requireEnterprise(): Promise<void> {
 export async function encryptField(orgId: string, plaintext: string): Promise<string> {
   await requireEnterprise();
   const provider = getKeyProvider();
-  const dek = await getDek(orgId, provider);
+  const dek = await getDek(orgId, provider, { create: true });
   return encryptWithDek(orgId, plaintext, dek);
 }
 
 export async function decryptField(orgId: string, payload: string): Promise<string> {
   await requireEnterprise();
   const provider = getKeyProvider();
-  const dek = await getDek(orgId, provider);
+  const dek = await getDek(orgId, provider, { create: false });
   return decryptWithDek(orgId, payload, dek);
 }
 
