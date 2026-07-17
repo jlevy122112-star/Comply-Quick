@@ -126,7 +126,7 @@ export const listMyOrganizationsCached = cache(async (): Promise<Organization[]>
  * Resolves the caller's selected organization from a validated cookie.
  * Invalid or missing selections fall back to the caller's personal organization.
  */
-export async function resolveActiveOrganizationId(): Promise<string | null> {
+export const resolveActiveOrganizationId = cache(async (): Promise<string | null> => {
   try {
     const cookieStore = await cookies();
     const storedId = cookieStore.get(ACTIVE_ORGANIZATION_COOKIE)?.value;
@@ -139,7 +139,7 @@ export async function resolveActiveOrganizationId(): Promise<string | null> {
   } catch {
     return null;
   }
-}
+});
 
 /** Persists a selected organization after validating the caller's membership. */
 export async function setActiveOrganizationId(orgId: string): Promise<boolean> {
