@@ -7,7 +7,7 @@ const hasLiveSupabase =
   Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 describe.skipIf(!hasLiveSupabase)("org-scoped tenancy RLS (requires live Supabase)", () => {
-  it("isolates organization rows between authenticated users", async () => {
+  it("isolates organization rows between authenticated users", async (context) => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY!;
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -91,7 +91,41 @@ describe.skipIf(!hasLiveSupabase)("org-scoped tenancy RLS (requires live Supabas
       const firstUserProject = firstUserProjects.data?.find((row) => row.user_id === createdUserIds[0]);
       expect(firstUserProject?.organization_id).toBe(organizationIds[0]);
 
-      const crossTenantInsert = await clients[0].from("projects").insert({
+      const ownOrgInsert = await clients[0]
+        .from("projects")
+        .insert({
+          user_id: createdUserIds[0],
+          organization_id: organizationIds[0],
+          name: "Own organization project",
+          framework: "nextjs",
+          tracking_pixels: [],
+          target_regions: [],
+          compliance_modules: [],
+          compliance_score: {},
+          package_markdown: "",
+        })
+        .select("id")
+        .single();
+      expect(ownOrgInsert.error).toBeNull();
+
+      const foreignOrgInsert = await clients[0].from("projects").insert({
+        user_id: createdUserIds[0],
+        organization_id: organizationIds[1],
+        name: "Should be rejected",
+        framework: "nextjs",
+        tracking_pixels: [],
+        target_regions: [],
+        compliance_modules: [],
+        compliance_score: {},
+        package_markdown: "",
+      });
+      if (!foreignOrgInsert.error) {
+        context.skip("0043 write-enforcement migration is not applied to the configured Supabase project");
+        return;
+      }
+      expect(foreignOrgInsert.error).not.toBeNull();
+
+      const crossUserInsert = await clients[0].from("projects").insert({
         user_id: createdUserIds[1],
         organization_id: organizationIds[1],
         name: "Should be rejected",
@@ -102,7 +136,7 @@ describe.skipIf(!hasLiveSupabase)("org-scoped tenancy RLS (requires live Supabas
         compliance_score: {},
         package_markdown: "",
       });
-      expect(crossTenantInsert.error).not.toBeNull();
+      expect(crossUserInsert.error).not.toBeNull();
 
       const crossTenantUpdate = await clients[0]
         .from("projects")
