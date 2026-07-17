@@ -19,14 +19,12 @@ vi.mock("@/lib/supabase/server", () => ({
     },
     from: (table: string) => {
       if (table !== "organizations") throw new Error(`Unexpected table: ${table}`);
-      return {
-        select: () => ({
-          order: async () => ({ data: state.organizations, error: null }),
-          eq: () => ({
-            maybeSingle: async () => ({ data: state.personal, error: null }),
-          }),
-        }),
+      const query = {
+        order: async () => ({ data: state.organizations, error: null }),
+        eq: () => query,
+        maybeSingle: async () => ({ data: state.personal, error: null }),
       };
+      return { select: () => query };
     },
   }),
 }));
