@@ -232,7 +232,7 @@ export async function runAutopilot(
   // the cron's per-proposal writes aren't serialized behind delivery latency.
   const notifyTasks: Promise<void>[] = [];
 
-  // Premium users only (Autopilot is a Pro-tier feature).
+  // Premium users only (Autopilot is a paid-plan feature).
   const { data: premium } = await admin
     .from("subscriptions")
     .select("user_id")
@@ -370,7 +370,7 @@ export async function runAutopilot(
   return { regulationsChanged, proposalsCreated };
 }
 
-/** Whether the current user may use Autopilot (Pro-tier gate). */
+/** Whether the current user may use Autopilot (paid-plan gate). */
 export async function canUseAutopilot(): Promise<boolean> {
   const entitlement = await getEntitlement();
   return entitlement.isPremium;

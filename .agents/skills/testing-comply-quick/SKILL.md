@@ -142,11 +142,11 @@ curl -s http://localhost:3000 | grep -o '<title>[^<]*</title>'
 
 # Check sitemap
 curl -s http://localhost:3000/sitemap.xml
-# Expected: static entries for / (priority 1.0), /blog (0.8), and /legal/terms (0.3), plus dynamic /compare/<slug> (0.8) and /blog/<slug> (0.7) entries.
+# Expected: URLs with priorities
 
 # Check robots.txt
 curl -s http://localhost:3000/robots.txt
-# Expected: Allow /; Disallow /api/, /dashboard, and /auth; includes the sitemap URL and host.
+# Expected: Allow /, Disallow /api/ and /dashboard/home
 ```
 
 ## Known Gotchas

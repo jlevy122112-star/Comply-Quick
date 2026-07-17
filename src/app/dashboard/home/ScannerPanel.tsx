@@ -7,6 +7,7 @@ import { computeImprovementPath } from "@/lib/score/improvement";
 import { trackClientEvent, trackFunnel } from "@/lib/funnel/client";
 import { alertsForRegions } from "@/lib/regulations/alerts";
 import type { Tier } from "@/lib/pricing";
+import { scanAllowanceShort, tierLabel, upgradeTargetFor } from "@/lib/tier-copy";
 
 interface DetectedTool {
   id: string;
@@ -52,8 +53,8 @@ function scoreColor(score: number): string {
 
 /**
  * Compliance Scanner. Runs a URL scan (tool fingerprinting + compliance
- * findings + score) and shows scan history. Free tier is quota-limited; Pro is
- * unlimited.
+ * findings + score) and shows scan history. Free and Solo are quota-limited;
+ * Agency and Enterprise are unlimited.
  */
 export default function ScannerPanel({ tier }: { tier: Tier }) {
   const [url, setUrl] = useState("");
@@ -65,6 +66,7 @@ export default function ScannerPanel({ tier }: { tier: Tier }) {
   const [published, setPublished] = useState<{ scanId: string; slug: string } | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const unlimitedScanTarget = upgradeTargetFor(tier, "unlimitedScans");
 
   useEffect(() => {
     let alive = true;
@@ -196,7 +198,9 @@ export default function ScannerPanel({ tier }: { tier: Tier }) {
         <h2 className="text-lg font-semibold text-white">Compliance Scanner</h2>
         {quota && (
           <span className="text-xs text-gray-500">
-            {quota.isPremium ? "Unlimited scans" : `${quota.remaining ?? 0} of ${quota.limit} scans left this month`}
+            {quota.isPremium
+              ? scanAllowanceShort(tier)
+              : `${quota.remaining ?? 0} of ${quota.limit} scans left this month`}
           </span>
         )}
       </div>
@@ -230,7 +234,10 @@ export default function ScannerPanel({ tier }: { tier: Tier }) {
               onClick={() => trackClientEvent("expansion_nudge_clicked", { surface: "scanner_quota_limit" })}
               className="text-indigo-400 hover:text-indigo-300"
             >
-              Upgrade for unlimited scans &rarr;
+              {unlimitedScanTarget
+                ? `Upgrade to ${tierLabel(unlimitedScanTarget)} for unlimited scans`
+                : "Unlimited scans available"}{" "}
+              &rarr;
             </Link>
           </p>
         )}
@@ -333,7 +340,7 @@ export default function ScannerPanel({ tier }: { tier: Tier }) {
                     <span className="text-[11px] text-gray-500">Current developments to stay ahead of</span>
                   ) : (
                     <span className="px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-300">
-                      Enterprise
+                      {tierLabel("enterprise")}
                     </span>
                   )}
                 </div>
@@ -383,7 +390,7 @@ export default function ScannerPanel({ tier }: { tier: Tier }) {
                       }}
                       className="mt-2 inline-block text-xs font-semibold text-amber-300 hover:text-amber-200"
                     >
-                      Upgrade to Enterprise &rarr;
+                      Upgrade to {tierLabel("enterprise")} &rarr;
                     </Link>
                   </div>
                 )}

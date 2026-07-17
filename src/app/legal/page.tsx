@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SUPPORT_EMAIL } from "@/lib/company";
 
 export const metadata: Metadata = {
   title: "Legal Center — Comply-Quick",
@@ -34,7 +35,7 @@ const LEGAL_DOCS = [
   },
   {
     href: "/legal/dpa",
-    title: "Data Processing Addendum Summary",
+    title: "Data Processing Addendum",
     body: "Controller/processor terms, subprocessor governance, and transfer safeguards.",
   },
   {
@@ -67,6 +68,11 @@ const LEGAL_DOCS = [
     title: "Counsel Review Packet",
     body: "Formal white-label packet index for legal counsel review and sign-off.",
   },
+  {
+    href: "/legal/dmca",
+    title: "DMCA / Copyright Policy",
+    body: "Copyright notice-and-takedown and counter-notification procedures.",
+  },
 ];
 
 export default function LegalCenterPage() {
@@ -78,7 +84,7 @@ export default function LegalCenterPage() {
           <h1 className="mt-3 text-3xl font-bold text-white sm:text-4xl">Legal and Compliance Center</h1>
           <p className="mt-4 max-w-3xl text-sm leading-relaxed text-gray-300 sm:text-base">
             Enterprise-grade legal documentation for customers, partners, and auditors. For legal requests or security
-            disclosures, contact support@comply-quick.com.
+            disclosures, contact {SUPPORT_EMAIL}.
           </p>
         </header>
 

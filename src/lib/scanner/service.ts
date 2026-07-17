@@ -2,7 +2,7 @@
 //
 // DB-touching glue between the pure scan pipeline and Supabase. All reads/writes
 // go through the RLS-scoped server client (a user only ever sees their own
-// scans). Enforces a monthly free-tier quota; Pro tiers are unlimited.
+// scans). Enforces a monthly free-tier quota; Agency and Enterprise are unlimited.
 
 import * as Sentry from "@sentry/nextjs";
 import { createClient } from "@/lib/supabase/server";
@@ -168,7 +168,7 @@ export async function getScan(id: string): Promise<ScanRecord | null> {
 
 export class QuotaExceededError extends Error {
   constructor() {
-    super("Free plan scan limit reached. Upgrade for unlimited scans.");
+    super("Free plan scan limit reached. Upgrade for more scans.");
     this.name = "QuotaExceededError";
   }
 }

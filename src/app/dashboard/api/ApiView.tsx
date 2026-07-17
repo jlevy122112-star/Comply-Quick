@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Tier } from "@/lib/entitlements";
 import type { ApiKeyRecord } from "@/lib/api/keys";
 import type { ApiUsageSummary } from "@/lib/api/usage";
+import { paidPlansLabel, tierLabel } from "@/lib/tier-copy";
 
 // ─── Display helpers ────────────────────────────────────────────────────────
 
@@ -135,8 +136,8 @@ function UpgradeGate({ tier }: { tier: Tier }) {
       <p className="text-2xl mb-2">⚡</p>
       <h2 className="text-lg font-semibold text-white mb-2">The API is a paid feature</h2>
       <p className="text-sm text-gray-400 mb-4">
-        You&rsquo;re on the <span className="font-medium capitalize">{tier}</span> plan. Upgrade to Pro, Agency, or
-        Enterprise to issue API keys and integrate Comply-Quick into your stack.
+        You&rsquo;re on the <span className="font-medium">{tierLabel(tier)}</span> plan. Upgrade to {paidPlansLabel()}{" "}
+        to issue API keys and integrate Comply-Quick into your stack.
       </p>
       <Link
         href="/#pricing"
