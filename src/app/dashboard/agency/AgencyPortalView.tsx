@@ -2,7 +2,9 @@
 
 import { useState, useCallback, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { switchActiveOrganizationAction } from "@/app/dashboard/actions";
 import { uploadBrandLogo, validateLogoFile } from "@/lib/storage/brand";
 import type { Tier } from "@/lib/entitlements";
 import { tierLabel } from "@/lib/tier-copy";
@@ -18,6 +20,7 @@ interface Props {
   appHost: string;
   members: AgencyMember[];
   billing: BillingSummary;
+  managedClientLimit: number | null;
 }
 
 type Tab = "clients" | "team" | "branding" | "domains";
@@ -47,6 +50,7 @@ export default function AgencyPortalView({
   appHost,
   members: initialMembers,
   billing,
+  managedClientLimit,
 }: Props) {
   const [tab, setTab] = useState<Tab>("clients");
   const [agency, setAgency] = useState(initialAgency);
@@ -113,7 +117,9 @@ export default function AgencyPortalView({
           ))}
         </div>
 
-        {tab === "clients" && <ClientsTab clients={clients} setClients={setClients} stats={stats} />}
+        {tab === "clients" && (
+          <ClientsTab clients={clients} setClients={setClients} stats={stats} managedClientLimit={managedClientLimit} />
+        )}
         {tab === "team" && (
           <TeamTab members={members} setMembers={setMembers} billing={billing} ownerId={agency.ownerId} />
         )}
@@ -287,16 +293,24 @@ function ClientsTab({
   clients,
   setClients,
   stats,
+  managedClientLimit,
 }: {
   clients: AgencyClient[];
   setClients: React.Dispatch<React.SetStateAction<AgencyClient[]>>;
   stats: Record<string, ClientStats>;
+  managedClientLimit: number | null;
 }) {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [website, setWebsite] = useState("");
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [provisioning, setProvisioning] = useState<Record<string, boolean>>({});
+  const [provisionError, setProvisionError] = useState<string | null>(null);
+  const [openingWorkspace, setOpeningWorkspace] = useState<string | null>(null);
+  const activeClientCount = clients.filter((client) => client.status === "active").length;
+  const clientCapReached = managedClientLimit !== null && activeClientCount >= managedClientLimit;
 
   const addClient = useCallback(async () => {
     if (name.trim().length === 0) return;
@@ -335,18 +349,21 @@ function ClientsTab({
         <h2 className="text-sm font-semibold text-white mb-3">Add a client</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <input
+            aria-label="Client name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Client name *"
             className="px-3 py-2 rounded-lg bg-gray-950 border border-gray-700 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none"
           />
           <input
+            aria-label="Client website"
             value={website}
             onChange={(e) => setWebsite(e.target.value)}
             placeholder="https://client-site.com"
             className="px-3 py-2 rounded-lg bg-gray-950 border border-gray-700 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none"
           />
           <input
+            aria-label="Client contact email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="contact@client.com"
@@ -357,13 +374,18 @@ function ClientsTab({
           <button
             type="button"
             onClick={addClient}
-            disabled={busy || name.trim().length === 0}
+            disabled={busy || clientCapReached || name.trim().length === 0}
             className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors disabled:opacity-40"
           >
             {busy ? "Adding…" : "Add client"}
           </button>
           {error && <span className="text-sm text-red-400">{error}</span>}
         </div>
+        {clientCapReached && (
+          <p className="mt-3 text-xs text-amber-300" role="status">
+            Your plan has reached its {managedClientLimit}-client limit. Archive a client or upgrade to add another.
+          </p>
+        )}
       </section>
 
       {clients.length === 0 ? (
@@ -374,6 +396,37 @@ function ClientsTab({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {clients.map((c) => {
             const s = stats[c.id] ?? { monitors: 0, projects: 0, lowestScore: null };
+            const isProvisioning = provisioning[c.id] ?? false;
+            const provision = async () => {
+              setProvisionError(null);
+              setProvisioning((current) => ({ ...current, [c.id]: true }));
+              try {
+                const res = await fetch(`/api/agency/clients/${c.id}/organization`, { method: "POST" });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.message ?? "Could not provision the workspace.");
+                setClients((current) =>
+                  current.map((client) =>
+                    client.id === c.id ? { ...client, organizationId: data.organization.id } : client
+                  )
+                );
+              } catch (e) {
+                setProvisionError(e instanceof Error ? e.message : "Could not provision the workspace.");
+              } finally {
+                setProvisioning((current) => ({ ...current, [c.id]: false }));
+              }
+            };
+            const openWorkspace = async () => {
+              if (!c.organizationId) return;
+              setProvisionError(null);
+              setOpeningWorkspace(c.id);
+              const result = await switchActiveOrganizationAction(c.organizationId);
+              if (result.ok) {
+                router.push("/dashboard/home");
+              } else {
+                setProvisionError(result.error);
+              }
+              setOpeningWorkspace(null);
+            };
             return (
               <div
                 key={c.id}
@@ -414,10 +467,45 @@ function ClientsTab({
                     Remove
                   </button>
                 </div>
+                <div className="mt-3 rounded-lg border border-gray-800 bg-gray-950/70 p-3">
+                  {c.organizationId ? (
+                    <>
+                      <p className="text-xs text-emerald-300" role="status">
+                        Workspace provisioned
+                      </p>
+                      <button
+                        type="button"
+                        onClick={openWorkspace}
+                        disabled={openingWorkspace === c.id}
+                        className="mt-2 text-xs font-medium text-indigo-400 hover:text-indigo-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:opacity-50"
+                      >
+                        {openingWorkspace === c.id ? "Opening…" : "Open workspace →"}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs text-gray-400">Workspace not provisioned</p>
+                      <button
+                        type="button"
+                        onClick={provision}
+                        disabled={isProvisioning}
+                        aria-label={`Provision workspace for ${c.name}`}
+                        className="mt-2 text-xs font-medium text-indigo-400 hover:text-indigo-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:opacity-50"
+                      >
+                        {isProvisioning ? "Provisioning…" : "Provision workspace"}
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             );
           })}
         </div>
+      )}
+      {provisionError && (
+        <p className="text-sm text-red-400" role="alert" aria-live="polite">
+          {provisionError}
+        </p>
       )}
     </div>
   );

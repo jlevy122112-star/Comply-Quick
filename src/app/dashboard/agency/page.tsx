@@ -13,6 +13,7 @@ import {
 import { getBillingSummary } from "@/lib/billing/usage";
 import { canonicalAppHost } from "@/lib/appHost";
 import { tierLabel, upgradeTargetFor } from "@/lib/tier-copy";
+import { managedClientLimit } from "@/lib/pricing";
 import AgencyPortalView from "./AgencyPortalView";
 
 export const dynamic = "force-dynamic";
@@ -77,6 +78,7 @@ export default async function AgencyPortalPage() {
       appHost={canonicalAppHost()}
       members={members}
       billing={billing}
+      managedClientLimit={managedClientLimit(entitlement.tier)}
     />
   );
 }

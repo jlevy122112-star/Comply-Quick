@@ -44,6 +44,8 @@ export interface TierConfig {
   annual: number;
   /** Included member seats. `Infinity` = unlimited (Enterprise). */
   seats: number;
+  /** Managed agency client accounts. `null` = not applicable. */
+  managedClients: number | null;
   /** Included compliance scans per calendar month. `Infinity` = unlimited. */
   scanLimit: number;
   /** Stripe checkout mode. Free has no checkout. */
@@ -62,6 +64,7 @@ export const TIER_CONFIG: Record<Tier, TierConfig> = {
     monthly: 0,
     annual: 0,
     seats: 1,
+    managedClients: null,
     scanLimit: 1,
     mode: "none",
   },
@@ -71,6 +74,7 @@ export const TIER_CONFIG: Record<Tier, TierConfig> = {
     monthly: 29,
     annual: 290,
     seats: 1,
+    managedClients: null,
     scanLimit: 20,
     mode: "subscription",
     priceEnv: { monthly: "STRIPE_PRICE_SOLO_MONTHLY", annual: "STRIPE_PRICE_SOLO_ANNUAL" },
@@ -81,6 +85,7 @@ export const TIER_CONFIG: Record<Tier, TierConfig> = {
     monthly: 99,
     annual: 990,
     seats: 5,
+    managedClients: 50,
     scanLimit: Infinity,
     mode: "subscription",
     priceEnv: { monthly: "STRIPE_PRICE_AGENCY", annual: "STRIPE_PRICE_AGENCY_ANNUAL" },
@@ -91,6 +96,7 @@ export const TIER_CONFIG: Record<Tier, TierConfig> = {
     monthly: 299,
     annual: 2990,
     seats: Infinity,
+    managedClients: Infinity,
     scanLimit: Infinity,
     mode: "subscription",
     priceEnv: { monthly: "STRIPE_PRICE_ENTERPRISE", annual: "STRIPE_PRICE_ENTERPRISE_ANNUAL" },
@@ -142,6 +148,11 @@ export function getTierConfig(tier: Tier): TierConfig {
 /** Included seats for a tier (`Infinity` for Enterprise). */
 export function seatLimit(tier: Tier): number {
   return TIER_CONFIG[tier].seats;
+}
+
+/** Managed agency client limit (`Infinity` for Enterprise, null for other tiers). */
+export function managedClientLimit(tier: Tier): number | null {
+  return TIER_CONFIG[tier].managedClients;
 }
 
 /** Included monthly scans for a tier (`Infinity` for Agency and Enterprise). */
