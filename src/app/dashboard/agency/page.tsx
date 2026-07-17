@@ -10,6 +10,7 @@ import {
   getClientStats,
   listMembers,
 } from "@/lib/agency/service";
+import { getAgencyPortfolioAnalytics } from "@/lib/agency/analytics";
 import { getBillingSummary } from "@/lib/billing/usage";
 import { canonicalAppHost } from "@/lib/appHost";
 import { tierLabel, upgradeTargetFor } from "@/lib/tier-copy";
@@ -59,13 +60,14 @@ export default async function AgencyPortalPage() {
     );
   }
 
-  const [agency, clients, domains, stats, members, billing] = await Promise.all([
+  const [agency, clients, domains, stats, members, billing, portfolioAnalytics] = await Promise.all([
     getOrCreateAgency(),
     listClients(),
     listDomains(),
     getClientStats(),
     listMembers(),
     getBillingSummary(),
+    getAgencyPortfolioAnalytics(),
   ]);
 
   return (
@@ -79,6 +81,7 @@ export default async function AgencyPortalPage() {
       members={members}
       billing={billing}
       managedClientLimit={managedClientLimit(entitlement.tier)}
+      portfolioAnalytics={portfolioAnalytics}
     />
   );
 }
