@@ -105,9 +105,12 @@ describe.skipIf(!hasLiveSupabase)("org-scoped tenancy RLS (requires live Supabas
         .from("projects")
         .update({ name: "Should be rejected" })
         .eq("id", projectRows.data?.[1]?.id)
-        .select("id")
-        .single();
-      expect(crossTenantUpdate.error).not.toBeNull();
+        .select("id");
+      expect(crossTenantUpdate.error !== null || (crossTenantUpdate.data?.length ?? 0) === 0).toBe(true);
+
+      const targetProject = await admin.from("projects").select("name").eq("id", projectRows.data?.[1]?.id).single();
+      expect(targetProject.error).toBeNull();
+      expect(targetProject.data?.name).toBe("RLS Project 1");
     } finally {
       for (const organizationId of organizationIds) {
         await admin.from("organizations").delete().eq("id", organizationId);
