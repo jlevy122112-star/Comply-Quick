@@ -9,7 +9,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getEntitlement } from "@/lib/entitlements";
+import { getEntitlementForUser } from "@/lib/entitlements";
 import { logger } from "@/services";
 import { UnauthorizedError, ForbiddenError, NotFoundError, ValidationError } from "@/services/errors";
 import { getDomainProvider, type DomainVerification } from "./domain-provider";
@@ -132,7 +132,35 @@ function mapDomain(row: Record<string, unknown>): AgencyDomain {
 
 /** Whether the current user may use the Agency portal (agency/enterprise tier). */
 export async function canUseAgencyPortal(): Promise<boolean> {
-  const entitlement = await getEntitlement();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { data: ownedAgency } = await supabase
+    .from("agencies")
+    .select("owner_id")
+    .eq("owner_id", user.id)
+    .maybeSingle();
+  let ownerId = (ownedAgency as { owner_id?: string } | null)?.owner_id;
+  if (!ownerId) {
+    const { data: membership } = await supabase
+      .from("agency_members")
+      .select("agency_id")
+      .eq("user_id", user.id)
+      .limit(1)
+      .maybeSingle();
+    if (membership?.agency_id) {
+      const { data: agency } = await supabase
+        .from("agencies")
+        .select("owner_id")
+        .eq("id", membership.agency_id)
+        .maybeSingle();
+      ownerId = (agency as { owner_id?: string } | null)?.owner_id;
+    }
+  }
+  const entitlement = await getEntitlementForUser(ownerId ?? user.id);
   return entitlement.isPremium && (entitlement.tier === "agency" || entitlement.tier === "enterprise");
 }
 
@@ -307,7 +335,7 @@ export async function createClient_(input: ClientInput): Promise<AgencyClient> {
   const name = input.name.trim();
   if (name.length === 0 || name.length > 120) throw new ValidationError("Client name must be 1–120 characters.");
 
-  const entitlement = await getEntitlement();
+  const entitlement = await getEntitlementForUser(agency.ownerId);
   const clientLimit = managedClientLimit(entitlement.tier);
   if (clientLimit !== null && !isUnlimited(clientLimit)) {
     const { count, error: countError } = await supabase
@@ -944,7 +972,7 @@ export async function addMember(email: string, requestedRole: AgencyRole = "clie
   if (!access.assignableRoles.includes(requestedRole)) {
     throw new ForbiddenError("You cannot assign a role above your own.");
   }
-  const entitlement = await getEntitlement();
+  const entitlement = await getEntitlementForUser(agency.ownerId);
   const supabase = await createClient();
 
   const normalized = email.trim().toLowerCase();
