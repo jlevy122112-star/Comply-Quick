@@ -2,7 +2,7 @@ import { cn } from "./cn";
 
 /** A single shimmering placeholder block for loading states. */
 export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-md bg-gray-800/70", className)} aria-hidden />;
+  return <div className={cn("animate-shimmer rounded-md bg-surface-elevated", className)} aria-hidden />;
 }
 
 /** A stack of skeleton lines — quick placeholder for text-heavy content. */

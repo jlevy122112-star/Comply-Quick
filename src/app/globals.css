@@ -1,28 +1,89 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --page-bg: #f7f9fc;
+  --surface-card: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-overlay: #ffffff;
+  --border-default: #dce3ef;
+  --border-strong: #b9c6d8;
+  --text-primary: #0a1a2f;
+  --text-secondary: #344765;
+  --text-muted: #6b7a90;
+  --text-inverse: #ffffff;
+  --accent-primary: #3a7bff;
+  --accent-primary-hover: #2f68dc;
+  --status-success: #2ecc71;
+  --status-warning: #f5a623;
+  --status-danger: #e05252;
+  --status-info: #3a7bff;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --color-page-bg: var(--page-bg);
+  --color-surface-card: var(--surface-card);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-overlay: var(--surface-overlay);
+  --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-inverse: var(--text-inverse);
+  --color-accent-primary: var(--accent-primary);
+  --color-accent-primary-hover: var(--accent-primary-hover);
+  --color-status-success: var(--status-success);
+  --color-status-warning: var(--status-warning);
+  --color-status-danger: var(--status-danger);
+  --color-status-info: var(--status-info);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.dark {
+  --page-bg: #081322;
+  --surface-card: #0f2035;
+  --surface-elevated: #142942;
+  --surface-overlay: #1a3452;
+  --border-default: #29415e;
+  --border-strong: #3d5a7a;
+  --text-primary: #f4f8ff;
+  --text-secondary: #c4d2e5;
+  --text-muted: #8ea3bd;
+  --text-inverse: #0a1a2f;
+  --accent-primary: #6d9cff;
+  --accent-primary-hover: #8ab1ff;
+  --status-success: #55dc8a;
+  --status-warning: #ffc45d;
+  --status-danger: #ff7a7a;
+  --status-info: #6d9cff;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--page-bg);
+  color: var(--text-primary);
+  font-family: var(--font-inter), sans-serif;
+}
+
+.type-h1 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+}
+
+.type-h2 {
+  font-size: clamp(1.5rem, 2.5vw, 2rem);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+.type-h3 {
+  font-size: 1.125rem;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  font-weight: 650;
 }
 
 /* Shared overlay/panel entrance animations (Drawer + Modal primitives). */
@@ -45,5 +106,49 @@ body {
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes progress-sweep {
+  from {
+    stroke-dasharray: 0 var(--score-circumference);
+  }
+  to {
+    stroke-dasharray: var(--score-dash) var(--score-circumference);
+  }
+}
+
+.animate-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--surface-elevated) 82%, transparent) 25%,
+    color-mix(in srgb, var(--text-muted) 18%, transparent) 50%,
+    color-mix(in srgb, var(--surface-elevated) 82%, transparent) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+.animate-progress-sweep {
+  animation: progress-sweep 900ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }

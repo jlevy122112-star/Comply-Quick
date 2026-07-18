@@ -1,14 +1,25 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "./cn";
 
-/** Surface container matching the app's gray-900 / gray-800 card language. */
-export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      className={cn("rounded-xl border border-gray-800 bg-gray-900 shadow-sm shadow-black/20", className)}
-      {...props}
-    />
-  );
+export type CardVariant = "default" | "glass" | "elevated";
+
+export interface CardProps extends HTMLAttributes<HTMLDivElement> {
+  /** Optional premium surface treatment for new dashboard sections. */
+  variant?: CardVariant;
+  /** Adds backdrop blur to glass/elevated surfaces. */
+  blur?: boolean;
+}
+
+const VARIANTS: Record<CardVariant, string> = {
+  default: "rounded-xl border border-gray-800 bg-gray-900 shadow-sm shadow-black/20",
+  glass:
+    "rounded-[10px] border border-border-default/70 bg-surface-card/80 shadow-lg shadow-text-primary/10 backdrop-blur-sm",
+  elevated: "rounded-[10px] border border-border-default bg-surface-elevated shadow-xl shadow-text-primary/15",
+};
+
+/** Surface container with backward-compatible default and premium variants. */
+export function Card({ variant = "default", blur = false, className, ...props }: CardProps) {
+  return <div className={cn(VARIANTS[variant], blur && "backdrop-blur-sm", className)} {...props} />;
 }
 
 export function CardHeader({
