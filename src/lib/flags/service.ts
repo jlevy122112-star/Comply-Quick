@@ -20,12 +20,16 @@ export interface FeatureFlagAuditEntry {
   createdAt: string;
 }
 
-function readBooleanEnv(value: string | undefined, defaultValue: boolean): boolean {
-  if (!value || value.trim() === "") return defaultValue;
+function parseBooleanEnv(value: string | undefined): boolean | null {
+  if (!value || value.trim() === "") return null;
   const normalized = value.trim().toLowerCase();
   if (["0", "false", "off", "no"].includes(normalized)) return false;
   if (["1", "true", "on", "yes"].includes(normalized)) return true;
-  return defaultValue;
+  return null;
+}
+
+function readBooleanEnv(value: string | undefined, defaultValue: boolean): boolean {
+  return parseBooleanEnv(value) ?? defaultValue;
 }
 
 function isFlagKey(key: string): key is FeatureFlagKey {
@@ -36,7 +40,7 @@ function fallback(key: FeatureFlagKey): ResolvedFlag {
   const definition = FLAG_REGISTRY[key];
   const envValue = process.env[definition.envVar];
   const enabled = readBooleanEnv(envValue, definition.defaultValue);
-  return { key, enabled, source: envValue?.trim() ? "env" : "default" };
+  return { key, enabled, source: parseBooleanEnv(envValue) === null ? "default" : "env" };
 }
 
 async function resolveFlagForOrganization(
@@ -76,11 +80,29 @@ export const listOrgFlags = cache(async (organizationId?: string): Promise<Resol
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  return Promise.all(
-    (Object.keys(FLAG_REGISTRY) as FeatureFlagKey[]).map((key) =>
-      resolveFlagForOrganization(key, orgId, user?.id ?? null)
-    )
-  );
+  const { data } = await supabase
+    .from("organization_feature_flags")
+    .select("flag_key, enabled, user_id")
+    .eq("organization_id", orgId);
+  const rowsByKey = new Map<FeatureFlagKey, Array<{ enabled: boolean; user_id: string | null }>>();
+  for (const row of (data ?? []) as Array<{
+    flag_key: string;
+    enabled: boolean;
+    user_id: string | null;
+  }>) {
+    if (!isFlagKey(row.flag_key)) continue;
+    const rows = rowsByKey.get(row.flag_key) ?? [];
+    rows.push({ enabled: row.enabled, user_id: row.user_id });
+    rowsByKey.set(row.flag_key, rows);
+  }
+  return (Object.keys(FLAG_REGISTRY) as FeatureFlagKey[]).map((key) => {
+    const rows = rowsByKey.get(key) ?? [];
+    const userOverride = user?.id ? rows.find((row) => row.user_id === user.id) : undefined;
+    if (userOverride) return { key, enabled: userOverride.enabled, source: "user" };
+    const organizationOverride = rows.find((row) => row.user_id === null);
+    if (organizationOverride) return { key, enabled: organizationOverride.enabled, source: "organization" };
+    return fallback(key);
+  });
 });
 
 export async function setOrgFlag(
@@ -135,10 +157,7 @@ export async function setOrgFlag(
   return { key, enabled, source: userId ? "user" : "organization" };
 }
 
-export async function listFlagAudit(
-  limit = 20,
-  organizationId?: string
-): Promise<FeatureFlagAuditEntry[]> {
+export async function listFlagAudit(limit = 20, organizationId?: string): Promise<FeatureFlagAuditEntry[]> {
   const orgId = organizationId ?? (await getActiveOrganizationId());
   if (!orgId) return [];
   const supabase = await createClient();
