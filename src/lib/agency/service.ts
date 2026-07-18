@@ -131,7 +131,7 @@ function mapDomain(row: Record<string, unknown>): AgencyDomain {
 }
 
 /** Whether the current user may use the Agency portal (agency/enterprise tier). */
-export async function canUseAgencyPortal(): Promise<boolean> {
+export const canUseAgencyPortal = cache(async (): Promise<boolean> => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -162,7 +162,7 @@ export async function canUseAgencyPortal(): Promise<boolean> {
   }
   const entitlement = await getEntitlementForUser(ownerId ?? user.id);
   return entitlement.isPremium && (entitlement.tier === "agency" || entitlement.tier === "enterprise");
-}
+});
 
 /** Turns an agency name into a URL-safe, reasonably-unique slug seed. */
 export function slugify(input: string): string {
