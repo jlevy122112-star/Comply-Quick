@@ -180,16 +180,32 @@ export async function setEvidenceStatus(
   } = await supabase.auth.getUser();
   if (!user) return false;
 
-  const { error } = await supabase
+  const { data: current } = await supabase
+    .from("evidence_records")
+    .select("organization_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (!current) return false;
+
+  const rowOrganizationId = (current as { organization_id: string | null }).organization_id;
+  const organizationId = await getActiveOrganizationId();
+  if (rowOrganizationId && !organizationId) return false;
+
+  let updateQuery = supabase
     .from("evidence_records")
     .update({
       status,
       ...(evidenceRef !== undefined ? { evidence_ref: evidenceRef } : {}),
       updated_at: new Date().toISOString(),
     })
-    .eq("id", id)
-    .eq("user_id", user.id);
-  return !error;
+    .eq("id", id);
+  if (rowOrganizationId) {
+    updateQuery = updateQuery.eq("organization_id", rowOrganizationId);
+  } else {
+    updateQuery = updateQuery.eq("user_id", user.id).is("organization_id", null);
+  }
+  const { data: updated, error } = await updateQuery.select("id");
+  return !error && !!updated && updated.length > 0;
 }
 
 /** Lists persisted evidence records for a framework (optionally project-scoped). */
