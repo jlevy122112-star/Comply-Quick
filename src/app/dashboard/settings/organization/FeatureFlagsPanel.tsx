@@ -1,16 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { FLAG_REGISTRY, type FeatureFlagKey, type FeatureFlagAuditEntry, type ResolvedFlag } from "@/lib/flags";
+import { FLAG_REGISTRY, type FeatureFlagKey } from "@/lib/flags/registry";
+import type { FeatureFlagAuditEntry, ResolvedFlag } from "@/lib/flags/service";
 import { setOrgFlagAction } from "./actions";
 
 export function FeatureFlagsPanel({
   organizationId,
+  organizationName,
   flags,
   audit,
   canManage,
 }: {
   organizationId: string;
+  organizationName: string;
   flags: ResolvedFlag[];
   audit: FeatureFlagAuditEntry[];
   canManage: boolean;
@@ -36,6 +39,7 @@ export function FeatureFlagsPanel({
     <section className="space-y-6 rounded-2xl border border-gray-800 bg-gray-900 p-5">
       <div>
         <h2 className="text-lg font-semibold text-white">Feature flags</h2>
+        <p className="mt-1 text-sm text-gray-300">Managing feature flags for {organizationName}</p>
         <p className="mt-1 text-sm text-gray-400">Organization overrides take precedence over environment defaults.</p>
       </div>
       {message && (

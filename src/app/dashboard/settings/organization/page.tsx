@@ -7,6 +7,7 @@ import {
   getOrCreateOrganization,
   getActiveOrganizationId,
   getMyOrgRole,
+  listMyOrganizationsCached,
   listOrgMembers,
   countOrgMembers,
 } from "@/lib/organizations-db";
@@ -36,11 +37,19 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
 
   const role = (await getMyOrgRole(org.id)) ?? "viewer";
   const { tab: tabParam } = await searchParams;
-  const tab: Tab = (["profile", "members", "workspaces", "sso", "scim", "hierarchy", "flags"] as const).includes(
-    tabParam as Tab
-  )
+  const requestedTab: Tab = (
+    ["profile", "members", "workspaces", "sso", "scim", "hierarchy", "flags"] as const
+  ).includes(tabParam as Tab)
     ? (tabParam as Tab)
     : "profile";
+
+  const activeOrgId = await getActiveOrganizationId();
+  const activeOrgRole = activeOrgId ? await getMyOrgRole(activeOrgId) : null;
+  const flagsAdmin = activeOrgRole === "owner" || activeOrgRole === "admin";
+  const tab: Tab = requestedTab === "flags" && !flagsAdmin ? "profile" : requestedTab;
+  const activeOrganization = activeOrgId
+    ? (await listMyOrganizationsCached()).find((organization) => organization.id === activeOrgId)
+    : null;
 
   // Cheap counts drive the tab badges on every load; the heavy list (member
   // email resolution, workspace project tallies, SSO rows) is fetched only for
@@ -53,14 +62,6 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
   const scimUsers = tab === "scim" ? (await listScimUsers(org.id, { limit: 200 })).users : [];
   const hierarchy = tab === "hierarchy" ? await listOrganizationSubtree(org.id) : null;
   const hierarchyAdmin = tab === "hierarchy" ? await isOrganizationHierarchyAdmin(org.id) : false;
-  // Feature flags are resolved at runtime against the caller's *active*
-  // organization (the org-switcher selection), so the flags tab scopes its
-  // data and admin gating to that org rather than the personal org used above.
-  // Resolved on every load (not just the flags tab) so the tab visibility stays
-  // consistent across tabs.
-  const activeOrgId = await getActiveOrganizationId();
-  const activeOrgRole = activeOrgId ? await getMyOrgRole(activeOrgId) : null;
-  const flagsAdmin = activeOrgRole === "owner" || activeOrgRole === "admin";
   const flags = tab === "flags" && activeOrgId && flagsAdmin ? await listOrgFlags(activeOrgId) : [];
   const flagAudit = tab === "flags" && activeOrgId && flagsAdmin ? await listFlagAudit(20, activeOrgId) : [];
 
@@ -126,8 +127,14 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
           />
         )}
         {tab === "hierarchy" && hierarchy && <HierarchyPanel root={hierarchy} canManage={hierarchyAdmin} />}
-        {tab === "flags" && flagsAdmin && activeOrgId && (
-          <FeatureFlagsPanel organizationId={activeOrgId} flags={flags} audit={flagAudit} canManage />
+        {tab === "flags" && flagsAdmin && activeOrgId && activeOrganization && (
+          <FeatureFlagsPanel
+            organizationId={activeOrgId}
+            organizationName={activeOrganization.name}
+            flags={flags}
+            audit={flagAudit}
+            canManage
+          />
         )}
       </main>
     </div>
