@@ -188,6 +188,26 @@ export async function materializeScanFindings(
         if (raced) {
           existing.set(key, raced as FindingRow);
           prior = raced as FindingRow;
+        } else {
+          // Before organization canonicalization, this user's legacy row may
+          // already own the same key. Adopt it into the active organization
+          // instead of losing the finding to the legacy unique index.
+          const { data: legacy } = await supabase
+            .from("findings")
+            .select(FINDING_COLS)
+            .eq("user_id", user.id)
+            .is("organization_id", null)
+            .eq("finding_key", key)
+            .maybeSingle();
+          if (legacy) {
+            prior = legacy as FindingRow;
+            await supabase
+              .from("findings")
+              .update({ organization_id: organizationId })
+              .eq("id", prior.id)
+              .eq("user_id", user.id)
+              .is("organization_id", null);
+          }
         }
       }
       if (!prior) continue;
@@ -278,26 +298,34 @@ export async function updateFindingStatus(id: string, status: FindingStatus): Pr
   } = await supabase.auth.getUser();
   if (!user) return false;
 
+  const organizationId = await getActiveOrganizationId();
   const { data: current } = await supabase
     .from("findings")
-    .select("status")
+    .select("status, organization_id")
     .eq("id", id)
-    .eq("user_id", user.id)
     .maybeSingle();
   if (!current) return false;
-  const from = (current as { status: FindingStatus }).status;
+  const currentRow = current as { status: FindingStatus; organization_id?: string | null };
+  const from = currentRow.status;
+  const isOrganizationRow = currentRow.organization_id !== null && currentRow.organization_id !== undefined;
+  if (isOrganizationRow && !organizationId) return false;
 
   const now = new Date().toISOString();
-  const { error } = await supabase
+  let updateQuery = supabase
     .from("findings")
     .update({
       status,
       updated_at: now,
       resolved_at: status === "resolved" ? now : null,
     })
-    .eq("id", id)
-    .eq("user_id", user.id);
-  if (error) return false;
+    .eq("id", id);
+  if (isOrganizationRow) {
+    updateQuery = updateQuery.eq("organization_id", organizationId as string);
+  } else {
+    updateQuery = updateQuery.eq("user_id", user.id).is("organization_id", null);
+  }
+  const { data: updated, error } = await updateQuery.select("id");
+  if (error || !updated || updated.length === 0) return false;
 
   await supabase.from("finding_events").insert({
     user_id: user.id,
@@ -317,12 +345,15 @@ export async function assignFinding(id: string, owner: string | null): Promise<b
   } = await supabase.auth.getUser();
   if (!user) return false;
 
-  const { error } = await supabase
-    .from("findings")
-    .update({ owner, updated_at: new Date().toISOString() })
-    .eq("id", id)
-    .eq("user_id", user.id);
-  if (error) return false;
+  const organizationId = await getActiveOrganizationId();
+  let updateQuery = supabase.from("findings").update({ owner, updated_at: new Date().toISOString() }).eq("id", id);
+  if (organizationId) {
+    updateQuery = updateQuery.eq("organization_id", organizationId);
+  } else {
+    updateQuery = updateQuery.eq("user_id", user.id).is("organization_id", null);
+  }
+  const { data: updated, error } = await updateQuery.select("id");
+  if (error || !updated || updated.length === 0) return false;
 
   await supabase.from("finding_events").insert({
     user_id: user.id,
