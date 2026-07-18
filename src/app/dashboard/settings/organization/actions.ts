@@ -13,6 +13,7 @@ import { createWorkspace, renameWorkspace, deleteWorkspace } from "@/lib/workspa
 import { createSsoConnection, setSsoEnabled, deleteSsoConnection, type SsoProtocol } from "@/lib/sso-db";
 import { createScimToken, revokeScimToken } from "@/lib/scim/tokens";
 import { createChildOrganization, reparentOrganization, type OrganizationKind } from "@/lib/org-hierarchy";
+import { setOrgFlag, type FeatureFlagKey } from "@/lib/flags";
 
 const PATH = "/dashboard/settings/organization";
 
@@ -36,6 +37,21 @@ export async function updateOrgAction(
   const ok = await updateOrganization(orgId, patch);
   revalidatePath(PATH);
   return ok ? { ok: true } : { ok: false, error: "Could not update the organization." };
+}
+
+export async function setOrgFlagAction(
+  organizationId: string,
+  key: FeatureFlagKey,
+  enabled: boolean,
+  userId?: string
+): Promise<{ ok: true } | Denied> {
+  try {
+    await setOrgFlag(key, enabled, { userId, organizationId });
+    revalidatePath(PATH);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Could not update the feature flag." };
+  }
 }
 
 export async function addMemberAction(orgId: string, email: string, role: string): Promise<{ ok: true } | Denied> {
