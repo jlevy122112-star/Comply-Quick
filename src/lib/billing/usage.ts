@@ -7,7 +7,7 @@
 // billing_overages ledger so it can be reported to Stripe idempotently.
 
 import { createClient } from "@/lib/supabase/server";
-import { getEntitlement } from "@/lib/entitlements";
+import { getEntitlement, getEntitlementForUser } from "@/lib/entitlements";
 import { getOrCreateAgency } from "@/lib/agency/service";
 import { analytics, logger } from "@/services";
 import { UnauthorizedError } from "@/services/errors";
@@ -72,10 +72,9 @@ export function computeOverage(used: number, limit: number): { over: number; ove
  * the tier's included seats. Enterprise is unlimited.
  */
 export async function getSeatUsage(): Promise<SeatUsage> {
-  const entitlement = await getEntitlement();
-  const limit = TIER_CONFIG[entitlement.tier].seats;
-
   const agency = await getOrCreateAgency();
+  const entitlement = await getEntitlementForUser(agency.ownerId);
+  const limit = TIER_CONFIG[entitlement.tier].seats;
   const supabase = await createClient();
   const { count } = await supabase
     .from("agency_members")
@@ -163,7 +162,8 @@ export async function recordScanUsage(now: Date = new Date()): Promise<void> {
 
 /** Combined seat + scan usage for the agency billing panel. */
 export async function getBillingSummary(): Promise<BillingSummary> {
-  const entitlement = await getEntitlement();
+  const agency = await getOrCreateAgency();
+  const entitlement = await getEntitlementForUser(agency.ownerId);
   const [seats, scans] = await Promise.all([getSeatUsage(), getScanUsage()]);
   return { tier: entitlement.tier, seats, scans };
 }
