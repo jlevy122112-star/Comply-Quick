@@ -3,7 +3,13 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Badge, TabNav, type TabItem } from "@/components/ui";
 import { ROLE_LABELS, can } from "@/lib/rbac";
-import { getOrCreateOrganization, getMyOrgRole, listOrgMembers, countOrgMembers } from "@/lib/organizations-db";
+import {
+  getOrCreateOrganization,
+  getActiveOrganizationId,
+  getMyOrgRole,
+  listOrgMembers,
+  countOrgMembers,
+} from "@/lib/organizations-db";
 import { listWorkspaces, countWorkspaces } from "@/lib/workspaces-db";
 import { listSsoConnections, ssoEnabled } from "@/lib/sso-db";
 import { listScimTokens, scimEnabled } from "@/lib/scim/tokens";
@@ -47,9 +53,16 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
   const scimUsers = tab === "scim" ? (await listScimUsers(org.id, { limit: 200 })).users : [];
   const hierarchy = tab === "hierarchy" ? await listOrganizationSubtree(org.id) : null;
   const hierarchyAdmin = tab === "hierarchy" ? await isOrganizationHierarchyAdmin(org.id) : false;
-  const orgAdmin = role === "owner" || role === "admin";
-  const flags = tab === "flags" && orgAdmin ? await listOrgFlags() : [];
-  const flagAudit = tab === "flags" && orgAdmin ? await listFlagAudit() : [];
+  // Feature flags are resolved at runtime against the caller's *active*
+  // organization (the org-switcher selection), so the flags tab scopes its
+  // data and admin gating to that org rather than the personal org used above.
+  // Resolved on every load (not just the flags tab) so the tab visibility stays
+  // consistent across tabs.
+  const activeOrgId = await getActiveOrganizationId();
+  const activeOrgRole = activeOrgId ? await getMyOrgRole(activeOrgId) : null;
+  const flagsAdmin = activeOrgRole === "owner" || activeOrgRole === "admin";
+  const flags = tab === "flags" && activeOrgId && flagsAdmin ? await listOrgFlags(activeOrgId) : [];
+  const flagAudit = tab === "flags" && activeOrgId && flagsAdmin ? await listFlagAudit(20, activeOrgId) : [];
 
   const tabs: TabItem[] = [
     { key: "profile", label: "Profile" },
@@ -58,7 +71,7 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
     { key: "sso", label: "SSO" },
     { key: "scim", label: "SCIM" },
     { key: "hierarchy", label: "Hierarchy" },
-    ...(orgAdmin ? [{ key: "flags", label: "Feature flags" } satisfies TabItem] : []),
+    ...(flagsAdmin ? [{ key: "flags", label: "Feature flags" } satisfies TabItem] : []),
   ];
 
   let scimBaseUrl = "/api/scim/v2";
@@ -113,7 +126,9 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
           />
         )}
         {tab === "hierarchy" && hierarchy && <HierarchyPanel root={hierarchy} canManage={hierarchyAdmin} />}
-        {tab === "flags" && orgAdmin && <FeatureFlagsPanel flags={flags} audit={flagAudit} canManage />}
+        {tab === "flags" && flagsAdmin && activeOrgId && (
+          <FeatureFlagsPanel organizationId={activeOrgId} flags={flags} audit={flagAudit} canManage />
+        )}
       </main>
     </div>
   );

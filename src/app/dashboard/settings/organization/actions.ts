@@ -40,12 +40,13 @@ export async function updateOrgAction(
 }
 
 export async function setOrgFlagAction(
+  organizationId: string,
   key: FeatureFlagKey,
   enabled: boolean,
   userId?: string
 ): Promise<{ ok: true } | Denied> {
   try {
-    await setOrgFlag(key, enabled, { userId });
+    await setOrgFlag(key, enabled, { userId, organizationId });
     revalidatePath(PATH);
     return { ok: true };
   } catch (error) {

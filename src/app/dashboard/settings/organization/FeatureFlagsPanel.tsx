@@ -5,10 +5,12 @@ import { FLAG_REGISTRY, type FeatureFlagKey, type FeatureFlagAuditEntry, type Re
 import { setOrgFlagAction } from "./actions";
 
 export function FeatureFlagsPanel({
+  organizationId,
   flags,
   audit,
   canManage,
 }: {
+  organizationId: string;
   flags: ResolvedFlag[];
   audit: FeatureFlagAuditEntry[];
   canManage: boolean;
@@ -20,7 +22,7 @@ export function FeatureFlagsPanel({
   const toggle = async (key: FeatureFlagKey, enabled: boolean) => {
     setSaving(key);
     setMessage(null);
-    const result = await setOrgFlagAction(key, enabled);
+    const result = await setOrgFlagAction(organizationId, key, enabled);
     if (result.ok) {
       setRows((current) => current.map((row) => (row.key === key ? { ...row, enabled, source: "organization" } : row)));
       setMessage("Feature flag updated.");

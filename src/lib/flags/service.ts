@@ -69,16 +69,16 @@ export const resolveFlag = cache(async (key: FeatureFlagKey): Promise<boolean> =
   return (await resolveFlagForOrganization(key, organizationId, user?.id ?? null)).enabled;
 });
 
-export const listOrgFlags = cache(async (): Promise<ResolvedFlag[]> => {
-  const organizationId = await getActiveOrganizationId();
-  if (!organizationId) return (Object.keys(FLAG_REGISTRY) as FeatureFlagKey[]).map(fallback);
+export const listOrgFlags = cache(async (organizationId?: string): Promise<ResolvedFlag[]> => {
+  const orgId = organizationId ?? (await getActiveOrganizationId());
+  if (!orgId) return (Object.keys(FLAG_REGISTRY) as FeatureFlagKey[]).map(fallback);
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   return Promise.all(
     (Object.keys(FLAG_REGISTRY) as FeatureFlagKey[]).map((key) =>
-      resolveFlagForOrganization(key, organizationId, user?.id ?? null)
+      resolveFlagForOrganization(key, orgId, user?.id ?? null)
     )
   );
 });
@@ -86,10 +86,10 @@ export const listOrgFlags = cache(async (): Promise<ResolvedFlag[]> => {
 export async function setOrgFlag(
   key: FeatureFlagKey,
   enabled: boolean,
-  options: { userId?: string } = {}
+  options: { userId?: string; organizationId?: string } = {}
 ): Promise<ResolvedFlag> {
   if (!isFlagKey(key)) throw new Error("Unknown feature flag.");
-  const organizationId = await getActiveOrganizationId();
+  const organizationId = options.organizationId ?? (await getActiveOrganizationId());
   if (!organizationId) throw new Error("No active organization.");
   const role = await getMyOrgRole(organizationId);
   if (!role || !["owner", "admin"].includes(role))
@@ -135,14 +135,17 @@ export async function setOrgFlag(
   return { key, enabled, source: userId ? "user" : "organization" };
 }
 
-export async function listFlagAudit(limit = 20): Promise<FeatureFlagAuditEntry[]> {
-  const organizationId = await getActiveOrganizationId();
-  if (!organizationId) return [];
+export async function listFlagAudit(
+  limit = 20,
+  organizationId?: string
+): Promise<FeatureFlagAuditEntry[]> {
+  const orgId = organizationId ?? (await getActiveOrganizationId());
+  if (!orgId) return [];
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("feature_flag_audit")
     .select("id, flag_key, previous_enabled, new_enabled, actor_user_id, created_at")
-    .eq("organization_id", organizationId)
+    .eq("organization_id", orgId)
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) return [];
