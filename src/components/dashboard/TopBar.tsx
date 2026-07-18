@@ -3,7 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, ChevronDown, Menu, Search, UserCircle } from "lucide-react";
+import { Bell, ChevronDown, Menu, Plus, Search, UserCircle } from "lucide-react";
 import { signOutAction } from "@/app/dashboard/actions";
 import type { Organization } from "@/lib/organizations-db";
 import type { Tier } from "@/lib/entitlements";
@@ -11,6 +11,7 @@ import { getTierConfig } from "@/lib/pricing";
 import { Logo } from "@/components/brand/Logo";
 import { OrganizationSwitcher } from "@/components/organizations/OrganizationSwitcher";
 import { cn } from "@/components/ui/cn";
+import { Button } from "@/components/ui/Button";
 import { DASHBOARD_NAV_GROUPS } from "./navigation";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -147,6 +148,16 @@ export function TopBar({
               </Link>
             </>
           )}
+          <Button
+            type="button"
+            size="sm"
+            className="shrink-0"
+            aria-label="Generate Package"
+            onClick={() => router.push("/dashboard")}
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden sm:inline">Generate Package</span>
+          </Button>
           <Link
             href="/dashboard/alerts"
             aria-label="View notifications and alerts"

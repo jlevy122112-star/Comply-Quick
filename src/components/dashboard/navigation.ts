@@ -13,9 +13,9 @@ import {
   LayoutDashboard,
   Lock,
   Network,
+  Rocket,
   Scale,
   ScanLine,
-  Settings,
   Shield,
   Store,
   Users,
@@ -39,6 +39,7 @@ export const DASHBOARD_NAV_GROUPS: DashboardNavGroup[] = [
     label: "Compliance Ops",
     items: [
       { label: "Command Center", href: "/dashboard/home", icon: LayoutDashboard },
+      { label: "Guided setup", href: "/dashboard/onboarding", icon: Rocket },
       { label: "Alerts", href: "/dashboard/alerts", icon: Bell },
       { label: "Approvals", href: "/dashboard/approvals", icon: CheckSquare },
       { label: "Audit Trail", href: "/dashboard/audit", icon: FileSearch },
@@ -84,7 +85,6 @@ export const DASHBOARD_NAV_GROUPS: DashboardNavGroup[] = [
       { label: "Privacy", href: "/dashboard/settings/privacy", icon: Shield },
       { label: "Consent", href: "/dashboard/settings/consent", icon: Cookie },
       { label: "Breaches", href: "/dashboard/settings/breaches", icon: CircleAlert },
-      { label: "Settings", href: "/dashboard/settings/organization", icon: Settings },
     ],
   },
 ];
