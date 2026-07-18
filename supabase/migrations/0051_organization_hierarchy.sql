@@ -104,17 +104,15 @@ create policy organizations_hierarchy_update_guard
   as restrictive
   using (public.is_org_hierarchy_admin(id))
   with check (
-    not coalesce(is_personal, false)
-    and (
-      parent_organization_id is null
-      or (
-        not exists (
-          select 1
-          from public.organizations parent
-          where parent.id = parent_organization_id
-            and parent.is_personal
-        )
-        and public.is_org_hierarchy_admin(parent_organization_id)
+    parent_organization_id is null
+    or (
+      not coalesce(is_personal, false)
+      and not exists (
+        select 1
+        from public.organizations parent
+        where parent.id = parent_organization_id
+          and parent.is_personal
       )
+      and public.is_org_hierarchy_admin(parent_organization_id)
     )
   );

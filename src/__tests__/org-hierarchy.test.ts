@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   buildOrganizationTree,
   collectOrganizationAncestors,
@@ -19,6 +21,8 @@ const organization = (id: string, parentOrganizationId: string | null): Organiza
 });
 
 describe("organization hierarchy", () => {
+  const migration = readFileSync(join(process.cwd(), "supabase/migrations/0051_organization_hierarchy.sql"), "utf8");
+
   it("builds a nested subtree from parent links", () => {
     const tree = buildOrganizationTree(
       [organization("root", null), organization("department", "root"), organization("region", "department")],
@@ -47,5 +51,17 @@ describe("organization hierarchy", () => {
       "department",
       "region",
     ]);
+  });
+
+  it("allows personal organization updates when they remain roots", () => {
+    expect(migration).toMatch(
+      /with check \([\s\S]*parent_organization_id is null\s*or\s*\([\s\S]*not coalesce\(is_personal, false\)/
+    );
+  });
+
+  it("rejects attaching a personal organization and permits a non-personal child under an administered parent", () => {
+    expect(migration).toContain("and parent.is_personal");
+    expect(migration).toContain("public.is_org_hierarchy_admin(parent_organization_id)");
+    expect(migration).toContain("not coalesce(is_personal, false)");
   });
 });
