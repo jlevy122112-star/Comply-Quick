@@ -19,6 +19,7 @@ const state = {
   failFindingRetagOnce: false,
   failPersonalLookupOnce: false,
   projectLookupFilters: [] as unknown[],
+  clientStatsMode: false,
 };
 
 const agency = {
@@ -33,6 +34,19 @@ const agency = {
 };
 
 function resultFor(table: string, operation: string): Record<string, unknown> {
+  if (state.clientStatsMode) {
+    if (table === "scan_monitors") {
+      return {
+        data: [
+          { client_id: "client-1", last_score: 80 },
+          { client_id: "client-1", last_score: 60 },
+        ],
+        error: null,
+      };
+    }
+    if (table === "projects") return { data: [{ client_id: "client-1" }], error: null };
+    if (table === "agency_clients") return { data: [{ id: "client-1" }], error: null };
+  }
   if (table === "organizations" && operation === "personal") {
     if (state.failPersonalLookupOnce) {
       state.failPersonalLookupOnce = false;
@@ -106,7 +120,7 @@ function makeBuilder(table: string) {
   let operation = "then";
   let deleting = false;
   let activeRetag: { table: string; organizationId: string; filters: unknown[] } | null = null;
-  for (const method of ["select", "eq", "limit", "insert", "upsert", "update", "is", "in", "order"]) {
+  for (const method of ["select", "eq", "limit", "insert", "upsert", "update", "is", "in", "order", "not"]) {
     builder[method] = (...args: unknown[]) => {
       if (method === "insert" || method === "upsert" || method === "update") {
         state.lastInsert = (args[0] ?? null) as Record<string, unknown> | null;
@@ -189,6 +203,7 @@ describe("agency client organizations", () => {
     state.failFindingRetagOnce = false;
     state.failPersonalLookupOnce = false;
     state.projectLookupFilters = [];
+    state.clientStatsMode = false;
     vi.resetModules();
   });
 
@@ -299,6 +314,17 @@ describe("agency client organizations", () => {
     const { provisionClientOrganization } = await import("@/lib/agency/service");
 
     await expect(provisionClientOrganization("client-1")).rejects.toThrow(/owners and admins/);
+  });
+
+  it("uses the agency owner for non-owner per-client rollups", async () => {
+    state.callerId = "member-1";
+    state.agencyRole = "member";
+    state.clientStatsMode = true;
+    const { getClientStats } = await import("@/lib/agency/service");
+
+    await expect(getClientStats()).resolves.toEqual({
+      "client-1": { monitors: 2, projects: 1, lowestScore: 60 },
+    });
   });
 });
 

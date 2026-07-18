@@ -588,23 +588,19 @@ export interface ClientStats {
 /**
  * Per-client rollup of the agency owner's monitors/projects. Client data is just
  * a filtered view of the owner's own rows (they remain owned by the agency user),
- * so a plain owner-scoped read suffices.
+ * so use the admin client just like portfolio analytics does.
  */
 export async function getClientStats(): Promise<Record<string, ClientStats>> {
   const agency = await getOrCreateAgency();
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return {};
+  const admin = createAdminClient();
 
   const stats: Record<string, ClientStats> = {};
   const ensure = (id: string) => (stats[id] ??= { monitors: 0, projects: 0, lowestScore: null });
 
-  const { data: monitors } = await supabase
+  const { data: monitors } = await admin
     .from("scan_monitors")
     .select("client_id, last_score")
-    .eq("user_id", user.id)
+    .eq("user_id", agency.ownerId)
     .not("client_id", "is", null);
   for (const row of monitors ?? []) {
     const cid = row.client_id as string;
@@ -614,15 +610,15 @@ export async function getClientStats(): Promise<Record<string, ClientStats>> {
     if (score !== null && (s.lowestScore === null || score < s.lowestScore)) s.lowestScore = score;
   }
 
-  const { data: projects } = await supabase
+  const { data: projects } = await admin
     .from("projects")
     .select("client_id")
-    .eq("user_id", user.id)
+    .eq("user_id", agency.ownerId)
     .not("client_id", "is", null);
   for (const row of projects ?? []) ensure(row.client_id as string).projects += 1;
 
   // Only surface stats for clients that belong to this agency.
-  const { data: clientIds } = await supabase.from("agency_clients").select("id").eq("agency_id", agency.id);
+  const { data: clientIds } = await admin.from("agency_clients").select("id").eq("agency_id", agency.id);
   const valid = new Set((clientIds ?? []).map((c) => c.id as string));
   for (const id of Object.keys(stats)) if (!valid.has(id)) delete stats[id];
 
