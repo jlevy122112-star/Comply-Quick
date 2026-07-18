@@ -21,6 +21,9 @@ export interface Organization {
   slug: string;
   plan: "free" | "team" | "enterprise";
   createdAt: string;
+  parentOrganizationId?: string | null;
+  kind?: "organization" | "department" | "region" | null;
+  isPersonal?: boolean;
 }
 
 export interface OrgMember {
@@ -39,6 +42,9 @@ interface OrgRow {
   slug: string;
   plan: Organization["plan"];
   created_at: string;
+  parent_organization_id?: string | null;
+  kind?: "organization" | "department" | "region" | null;
+  is_personal?: boolean;
 }
 
 interface MemberRow {
@@ -58,6 +64,9 @@ function mapOrg(row: OrgRow): Organization {
     slug: row.slug,
     plan: row.plan,
     createdAt: row.created_at,
+    parentOrganizationId: row.parent_organization_id ?? null,
+    kind: row.kind ?? null,
+    isPersonal: row.is_personal ?? false,
   };
 }
 
@@ -113,8 +122,21 @@ export const getOrCreateOrganization = cache(async (): Promise<Organization | nu
 export async function listMyOrganizations(): Promise<Organization[]> {
   try {
     const supabase = await createClient();
-    const { data } = await supabase.from("organizations").select("*").order("created_at", { ascending: true });
-    return ((data ?? []) as OrgRow[]).map(mapOrg);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return [];
+    const [{ data: owned }, { data: memberships }] = await Promise.all([
+      supabase.from("organizations").select("*").eq("owner_id", user.id),
+      supabase.from("organization_members").select("organization_id").eq("user_id", user.id),
+    ]);
+    const ids = [...new Set((memberships ?? []).map((row) => row.organization_id as string))];
+    const { data: memberOrganizations } = ids.length
+      ? await supabase.from("organizations").select("*").in("id", ids)
+      : { data: [] };
+    const byId = new Map<string, OrgRow>();
+    for (const row of [...(owned ?? []), ...(memberOrganizations ?? [])] as OrgRow[]) byId.set(row.id, row);
+    return [...byId.values()].sort((a, b) => a.created_at.localeCompare(b.created_at)).map(mapOrg);
   } catch {
     return [];
   }
