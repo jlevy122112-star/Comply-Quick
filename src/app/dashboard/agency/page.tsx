@@ -8,7 +8,7 @@ import {
   listClients,
   listDomains,
   getClientStats,
-  listClientAssignments,
+  listAgencyClientAssignments,
   listMembers,
   getAgencyAccess,
 } from "@/lib/agency/service";
@@ -72,9 +72,10 @@ export default async function AgencyPortalPage() {
     getAgencyPortfolioAnalytics(),
     getAgencyAccess(),
   ]);
-  const assignments = Object.fromEntries(
-    await Promise.all(clients.map(async (client) => [client.id, await listClientAssignments(client.id)] as const))
-  );
+  const assignments =
+    access.role === "owner" || access.role === "admin"
+      ? await listAgencyClientAssignments(clients.map((client) => client.id))
+      : {};
 
   return (
     <AgencyPortalView

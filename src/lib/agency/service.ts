@@ -279,7 +279,10 @@ export async function listClients(): Promise<AgencyClient[]> {
 /** Fetches one client owned by the caller's agency, or null if not found. */
 export async function getClient(id: string): Promise<AgencyClient | null> {
   const access = await getAgencyAccess();
-  if (access.role === "account_manager") await assertAssignedClient(id, access);
+  if (access.role === "account_manager") {
+    const assigned = await assignedClientIds(access);
+    if (!assigned?.has(id)) return null;
+  }
   const supabase = await createClient();
   const { data } = await supabase
     .from("agency_clients")
@@ -347,6 +350,14 @@ export async function createClient_(input: ClientInput): Promise<AgencyClient> {
       assigned_by: access.userId,
     });
     if (assignmentError) {
+      const { error: cleanupError } = await createAdminClient()
+        .from("agency_clients")
+        .delete()
+        .eq("id", client.id)
+        .eq("agency_id", agency.id);
+      if (cleanupError) {
+        log.error("Failed to clean up client after assignment failure", { error: cleanupError.message });
+      }
       log.error("Failed to assign new client to account manager", { error: assignmentError.message });
       throw new Error("Could not assign the new client.");
     }
@@ -755,7 +766,7 @@ async function assertAssignedClient(clientId: string, access: AgencyAccess): Pro
 }
 
 export async function listClientAssignments(clientId: string): Promise<AgencyClientAssignment[]> {
-  const access = await getAgencyAccess();
+  const access = await requireAgencyCapability("manage_agency");
   const supabase = await createClient();
   const { data: client } = await supabase
     .from("agency_clients")
@@ -785,6 +796,47 @@ export async function listClientAssignments(clientId: string): Promise<AgencyCli
   return assignments;
 }
 
+export async function listAgencyClientAssignments(
+  clientIds: string[]
+): Promise<Record<string, AgencyClientAssignment[]>> {
+  const { agency } = await requireAgencyCapability("manage_agency");
+  if (clientIds.length === 0) return {};
+  const supabase = await createClient();
+  const { data: clients } = await supabase
+    .from("agency_clients")
+    .select("id")
+    .eq("agency_id", agency.id)
+    .in("id", clientIds);
+  const validClientIds = (clients ?? []).map((client) => client.id as string);
+  const assignmentsByClient: Record<string, AgencyClientAssignment[]> = Object.fromEntries(
+    validClientIds.map((clientId) => [clientId, []])
+  );
+  if (validClientIds.length === 0) return assignmentsByClient;
+  const { data, error } = await supabase
+    .from("agency_client_account_managers")
+    .select("client_id, user_id, created_at")
+    .eq("agency_id", agency.id)
+    .in("client_id", validClientIds)
+    .order("created_at", { ascending: true });
+  if (error || !data) return assignmentsByClient;
+  const admin = createAdminClient();
+  const emailById = new Map<string, string | null>();
+  await Promise.all(
+    [...new Set(data.map((row) => row.user_id as string))].map(async (userId) => {
+      const { data: user } = await admin.auth.admin.getUserById(userId);
+      emailById.set(userId, user.user?.email ?? null);
+    })
+  );
+  for (const row of data) {
+    assignmentsByClient[row.client_id as string]?.push({
+      userId: row.user_id as string,
+      email: emailById.get(row.user_id as string) ?? null,
+      createdAt: row.created_at as string,
+    });
+  }
+  return assignmentsByClient;
+}
+
 export async function assignAccountManager(clientId: string, userId: string): Promise<AgencyClientAssignment> {
   const { agency, userId: actorId } = await requireAgencyCapability("manage_agency");
   const supabase = await createClient();
@@ -804,12 +856,25 @@ export async function assignAccountManager(clientId: string, userId: string): Pr
   if (!member || member.role !== "account_manager") {
     throw new ValidationError("Only agency Account Managers can be assigned to clients.");
   }
+  const { data: existing } = await supabase
+    .from("agency_client_account_managers")
+    .select("user_id, created_at")
+    .eq("agency_id", agency.id)
+    .eq("client_id", clientId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (existing) {
+    const admin = createAdminClient();
+    const { data: user } = await admin.auth.admin.getUserById(userId);
+    return {
+      userId: existing.user_id as string,
+      email: user.user?.email ?? null,
+      createdAt: existing.created_at as string,
+    };
+  }
   const { data, error } = await supabase
     .from("agency_client_account_managers")
-    .upsert(
-      { agency_id: agency.id, client_id: clientId, user_id: userId, assigned_by: actorId },
-      { onConflict: "client_id,user_id" }
-    )
+    .insert({ agency_id: agency.id, client_id: clientId, user_id: userId, assigned_by: actorId })
     .select("user_id, created_at")
     .single();
   if (error || !data) throw new Error("Could not assign the Account Manager.");

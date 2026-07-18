@@ -146,6 +146,7 @@ export default function AgencyPortalView({
             stats={stats}
             managedClientLimit={managedClientLimit}
             canManage={agencyRole !== "client_viewer"}
+            agencyRole={agencyRole}
             canManageAgency={canManageAgency}
             members={members}
             assignments={assignments}
@@ -391,6 +392,7 @@ function ClientsTab({
   stats,
   managedClientLimit,
   canManage,
+  agencyRole,
   canManageAgency,
   members,
   assignments: initialAssignments,
@@ -400,6 +402,7 @@ function ClientsTab({
   stats: Record<string, ClientStats>;
   managedClientLimit: number | null;
   canManage: boolean;
+  agencyRole: AgencyRole;
   canManageAgency: boolean;
   members: AgencyMember[];
   assignments: Record<string, AgencyClientAssignment[]>;
@@ -542,9 +545,11 @@ function ClientsTab({
 
       {clients.length === 0 ? (
         <div className="bg-gray-900 border border-gray-800 border-dashed rounded-xl p-8 text-center text-sm text-gray-500">
-          {canManage
+          {agencyRole === "owner" || agencyRole === "admin"
             ? "No clients yet. Add your first client above to start managing their compliance."
-            : "No clients are assigned to you yet. Ask an Agency Admin to assign a client portfolio."}
+            : agencyRole === "account_manager"
+              ? "No clients are assigned to you yet. Ask an Agency Admin to assign a client portfolio."
+              : "No clients are available in this agency portfolio."}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
