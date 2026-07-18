@@ -16,11 +16,13 @@ import { SsoPanel } from "./SsoPanel";
 import { ScimPanel } from "./ScimPanel";
 import { HierarchyPanel } from "./HierarchyPanel";
 import { isOrganizationHierarchyAdmin, listOrganizationSubtree } from "@/lib/org-hierarchy";
+import { FeatureFlagsPanel } from "./FeatureFlagsPanel";
+import { listFlagAudit, listOrgFlags } from "@/lib/flags";
 
 export const dynamic = "force-dynamic";
 
 const BASE = "/dashboard/settings/organization";
-type Tab = "profile" | "members" | "workspaces" | "sso" | "scim" | "hierarchy";
+type Tab = "profile" | "members" | "workspaces" | "sso" | "scim" | "hierarchy" | "flags";
 
 export default async function OrganizationSettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const org = await getOrCreateOrganization();
@@ -28,7 +30,9 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
 
   const role = (await getMyOrgRole(org.id)) ?? "viewer";
   const { tab: tabParam } = await searchParams;
-  const tab: Tab = (["profile", "members", "workspaces", "sso", "scim", "hierarchy"] as const).includes(tabParam as Tab)
+  const tab: Tab = (["profile", "members", "workspaces", "sso", "scim", "hierarchy", "flags"] as const).includes(
+    tabParam as Tab
+  )
     ? (tabParam as Tab)
     : "profile";
 
@@ -43,6 +47,9 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
   const scimUsers = tab === "scim" ? (await listScimUsers(org.id, { limit: 200 })).users : [];
   const hierarchy = tab === "hierarchy" ? await listOrganizationSubtree(org.id) : null;
   const hierarchyAdmin = tab === "hierarchy" ? await isOrganizationHierarchyAdmin(org.id) : false;
+  const orgAdmin = role === "owner" || role === "admin";
+  const flags = tab === "flags" && orgAdmin ? await listOrgFlags() : [];
+  const flagAudit = tab === "flags" && orgAdmin ? await listFlagAudit() : [];
 
   const tabs: TabItem[] = [
     { key: "profile", label: "Profile" },
@@ -51,6 +58,7 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
     { key: "sso", label: "SSO" },
     { key: "scim", label: "SCIM" },
     { key: "hierarchy", label: "Hierarchy" },
+    ...(orgAdmin ? [{ key: "flags", label: "Feature flags" } satisfies TabItem] : []),
   ];
 
   let scimBaseUrl = "/api/scim/v2";
@@ -105,6 +113,7 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
           />
         )}
         {tab === "hierarchy" && hierarchy && <HierarchyPanel root={hierarchy} canManage={hierarchyAdmin} />}
+        {tab === "flags" && orgAdmin && <FeatureFlagsPanel flags={flags} audit={flagAudit} canManage />}
       </main>
     </div>
   );

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 const state = vi.hoisted(() => ({
   cookieValue: null as string | null,
   organizations: [] as Record<string, unknown>[],
+  memberships: [] as Record<string, unknown>[],
   personal: null as Record<string, unknown> | null,
 }));
 
@@ -18,10 +19,24 @@ vi.mock("@/lib/supabase/server", () => ({
       getUser: async () => ({ data: { user: { id: "user-a", email: "user-a@example.com" } } }),
     },
     from: (table: string) => {
+      if (table === "organization_members") {
+        const query = {
+          eq: () => query,
+          then: (resolve: (value: unknown) => unknown) =>
+            Promise.resolve(resolve({ data: state.memberships, error: null })),
+        };
+        return { select: () => query };
+      }
       if (table !== "organizations") throw new Error(`Unexpected table: ${table}`);
       const query = {
         order: async () => ({ data: state.organizations, error: null }),
         eq: () => query,
+        in: (_column: string, ids: string[]) => ({
+          then: (resolve: (value: unknown) => unknown) =>
+            Promise.resolve(
+              resolve({ data: state.organizations.filter((org) => ids.includes(org.id as string)), error: null })
+            ),
+        }),
         maybeSingle: async () => ({ data: state.personal, error: null }),
       };
       return { select: () => query };
@@ -53,6 +68,7 @@ describe("resolveActiveOrganizationId", () => {
   it("defaults to the caller's personal organization", async () => {
     state.cookieValue = null;
     state.organizations = [personal, shared];
+    state.memberships = [];
     state.personal = personal;
 
     await expect(resolveActiveOrganizationId()).resolves.toBe("org-personal");
@@ -61,6 +77,7 @@ describe("resolveActiveOrganizationId", () => {
   it("ignores a stored organization the caller is not a member of", async () => {
     state.cookieValue = "org-foreign";
     state.organizations = [personal, shared];
+    state.memberships = [];
     state.personal = personal;
 
     await expect(resolveActiveOrganizationId()).resolves.toBe("org-personal");
@@ -69,6 +86,7 @@ describe("resolveActiveOrganizationId", () => {
   it("returns a stored organization when it is a valid membership", async () => {
     state.cookieValue = "org-shared";
     state.organizations = [personal, shared];
+    state.memberships = [{ organization_id: "org-shared" }];
     state.personal = personal;
 
     await expect(resolveActiveOrganizationId()).resolves.toBe("org-shared");
