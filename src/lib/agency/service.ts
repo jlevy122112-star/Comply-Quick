@@ -329,6 +329,86 @@ export async function createClient_(input: ClientInput): Promise<AgencyClient> {
   return mapClient(data);
 }
 
+async function resolveAgencyOwnerPersonalOrganization(
+  admin: ReturnType<typeof createAdminClient>,
+  ownerId: string
+): Promise<string | null> {
+  const { data: personalOrganization, error } = await admin
+    .from("organizations")
+    .select("id")
+    .eq("owner_id", ownerId)
+    .eq("is_personal", true)
+    .maybeSingle();
+  if (error) {
+    log.error("Failed to resolve the agency owner's personal organization", {
+      error: error.message,
+    });
+    throw new Error("Could not migrate the client's historical data.");
+  }
+  return (personalOrganization?.id as string | undefined) ?? null;
+}
+
+async function migrateClientHistoricalData(
+  admin: ReturnType<typeof createAdminClient>,
+  ownerId: string,
+  clientId: string,
+  organizationId: string,
+  personalOrganizationId: string | null
+): Promise<void> {
+  const organizationFilter = personalOrganizationId
+    ? `organization_id.eq.${personalOrganizationId},organization_id.is.null,organization_id.eq.${organizationId}`
+    : `organization_id.is.null,organization_id.eq.${organizationId}`;
+  const historicalOrganizationFilter = personalOrganizationId
+    ? `organization_id.eq.${personalOrganizationId},organization_id.is.null`
+    : "organization_id.is.null";
+  const { data: clientProjects, error: projectLookupError } = await admin
+    .from("projects")
+    .select("id")
+    .eq("user_id", ownerId)
+    .eq("client_id", clientId)
+    .or(organizationFilter);
+  if (projectLookupError) {
+    log.error("Failed to find historical client projects", { error: projectLookupError.message });
+    throw new Error("Could not migrate the client's historical data.");
+  }
+  const projectIds = (clientProjects ?? []).map((project) => project.id as string);
+  if (projectIds.length === 0) return;
+
+  const { error: projectTagError } = await admin
+    .from("projects")
+    .update({ organization_id: organizationId })
+    .in("id", projectIds)
+    .eq("user_id", ownerId)
+    .eq("client_id", clientId)
+    .or(historicalOrganizationFilter);
+  if (projectTagError) {
+    log.error("Failed to tag historical client projects", { error: projectTagError.message });
+    throw new Error("Could not migrate the client's historical data.");
+  }
+
+  const { error: findingTagError } = await admin
+    .from("findings")
+    .update({ organization_id: organizationId })
+    .in("project_id", projectIds)
+    .eq("user_id", ownerId)
+    .or(historicalOrganizationFilter);
+  if (findingTagError) {
+    log.error("Failed to tag historical client findings", { error: findingTagError.message });
+    throw new Error("Could not migrate the client's historical data.");
+  }
+
+  const { error: evidenceTagError } = await admin
+    .from("evidence_records")
+    .update({ organization_id: organizationId })
+    .in("project_id", projectIds)
+    .eq("user_id", ownerId)
+    .or(historicalOrganizationFilter);
+  if (evidenceTagError) {
+    log.error("Failed to tag historical client evidence", { error: evidenceTagError.message });
+    throw new Error("Could not migrate the client's historical data.");
+  }
+}
+
 /** Provisions the linked organization and default workspace for an agency client. */
 export async function provisionClientOrganization(clientId: string): Promise<Organization> {
   const supabase = await createClient();
@@ -349,16 +429,33 @@ export async function provisionClientOrganization(clientId: string): Promise<Org
     .eq("agency_id", agency.id)
     .maybeSingle();
   if (clientError || !client) throw new NotFoundError("Client not found.");
+  const admin = createAdminClient();
   if (client.organization_id) {
-    const { data: existing } = await createAdminClient()
+    const { data: existing } = await admin
       .from("organizations")
       .select("*")
       .eq("id", client.organization_id)
       .maybeSingle();
-    if (existing) return mapOrganization(existing);
+    if (existing) {
+      try {
+        const personalOrganizationId = await resolveAgencyOwnerPersonalOrganization(admin, agency.ownerId);
+        await migrateClientHistoricalData(
+          admin,
+          agency.ownerId,
+          client.id,
+          client.organization_id,
+          personalOrganizationId
+        );
+      } catch (error) {
+        log.error("Failed to complete historical client migration during organization reuse", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      return mapOrganization(existing);
+    }
   }
 
-  const admin = createAdminClient();
+  const personalOrganizationId = await resolveAgencyOwnerPersonalOrganization(admin, agency.ownerId);
   const slug = `${organizationSlugify(client.name)}-${client.id.slice(0, 6)}`;
   let { data: organization, error: organizationError } = await admin
     .from("organizations")
@@ -409,53 +506,6 @@ export async function provisionClientOrganization(clientId: string): Promise<Org
     throw new Error("Could not provision the client workspace.");
   }
 
-  const { data: clientProjects, error: projectLookupError } = await admin
-    .from("projects")
-    .select("id")
-    .eq("user_id", agency.ownerId)
-    .eq("client_id", client.id)
-    .is("organization_id", null);
-  if (projectLookupError) {
-    log.error("Failed to find historical client projects", { error: projectLookupError.message });
-    throw new Error("Could not migrate the client's historical data.");
-  }
-  const projectIds = (clientProjects ?? []).map((project) => project.id as string);
-  if (projectIds.length > 0) {
-    const { error: projectTagError } = await admin
-      .from("projects")
-      .update({ organization_id: organization.id })
-      .in("id", projectIds)
-      .eq("user_id", agency.ownerId)
-      .eq("client_id", client.id)
-      .is("organization_id", null);
-    if (projectTagError) {
-      log.error("Failed to tag historical client projects", { error: projectTagError.message });
-      throw new Error("Could not migrate the client's historical data.");
-    }
-
-    const { error: findingTagError } = await admin
-      .from("findings")
-      .update({ organization_id: organization.id })
-      .in("project_id", projectIds)
-      .eq("user_id", agency.ownerId)
-      .is("organization_id", null);
-    if (findingTagError) {
-      log.error("Failed to tag historical client findings", { error: findingTagError.message });
-      throw new Error("Could not migrate the client's historical data.");
-    }
-
-    const { error: evidenceTagError } = await admin
-      .from("evidence_records")
-      .update({ organization_id: organization.id })
-      .in("project_id", projectIds)
-      .eq("user_id", agency.ownerId)
-      .is("organization_id", null);
-    if (evidenceTagError) {
-      log.error("Failed to tag historical client evidence", { error: evidenceTagError.message });
-      throw new Error("Could not migrate the client's historical data.");
-    }
-  }
-
   const { data: linked, error: linkError } = await supabase
     .from("agency_clients")
     .update({ organization_id: organization.id, updated_at: new Date().toISOString() })
@@ -483,8 +533,13 @@ export async function provisionClientOrganization(clientId: string): Promise<Org
         .eq("id", raced.organization_id)
         .maybeSingle();
       if (racedOrganization) return mapOrganization(racedOrganization);
+      return mapOrganization({ ...organization, id: raced.organization_id });
     }
+    return mapOrganization(organization);
   }
+
+  await migrateClientHistoricalData(admin, agency.ownerId, client.id, organization.id, personalOrganizationId);
+
   return mapOrganization(organization);
 }
 
