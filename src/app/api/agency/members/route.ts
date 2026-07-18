@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { listMembers, addMember } from "@/lib/agency/service";
+import { AGENCY_ROLES, type AgencyRole } from "@/lib/agency/roles";
 import {
   createRateLimiter,
   getClientKey,
@@ -44,8 +45,12 @@ export async function POST(request: NextRequest) {
       throw new ValidationError("Invalid JSON body.");
     }
     if (typeof body.email !== "string") throw new ValidationError("An email is required.");
+    const role = body.role === undefined ? "client_viewer" : body.role;
+    if (typeof role !== "string" || !AGENCY_ROLES.includes(role as AgencyRole) || role === "owner") {
+      throw new ValidationError("Choose a valid agency role.");
+    }
 
-    const member = await addMember(body.email);
+    const member = await addMember(body.email, role as AgencyRole);
     return NextResponse.json({ member }, { headers: rateHeaders });
   } catch (err) {
     return errorResponse(err);
