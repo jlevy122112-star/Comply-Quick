@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { loginAction, signupAction } from "./actions";
+import { loginAction, magicLinkAction, resendConfirmationAction, signupAction } from "./actions";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/brand/Logo";
 
@@ -96,11 +96,17 @@ function AuthPage() {
     setBusy(true);
     setError("");
     try {
-      const supabase = createClient();
-      const emailRedirectTo = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`;
-      const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo } });
-      if (error) {
-        setError(error.message);
+      const result = await magicLinkAction(email, redirectTo);
+      if (!result.configured) {
+        const supabase = createClient();
+        const emailRedirectTo = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`;
+        const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo } });
+        if (error) {
+          setError(error.message);
+          return;
+        }
+      } else if (!result.delivered) {
+        setError("Couldn't send the link. Please try again.");
         return;
       }
       setNoticeEmail(email);
@@ -111,6 +117,37 @@ function AuthPage() {
       setBusy(false);
     }
   }, [email, redirectTo]);
+
+  const handleResendConfirmation = useCallback(async () => {
+    setBusy(true);
+    setError("");
+    try {
+      const result = await resendConfirmationAction(noticeEmail, redirectTo);
+      if (!result.configured) {
+        const supabase = createClient();
+        const emailRedirectTo = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(
+          redirectTo
+        )}&channel=signup`;
+        const { error } = await supabase.auth.resend({
+          type: "signup",
+          email: noticeEmail,
+          options: { emailRedirectTo },
+        });
+        if (error) {
+          setError(error.message);
+          return;
+        }
+      } else if (!result.delivered) {
+        setError("Couldn't resend the confirmation email. Please try again.");
+        return;
+      }
+      setError("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't resend the confirmation email. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }, [noticeEmail, redirectTo]);
 
   const handleForgot = useCallback(async () => {
     setBusy(true);
@@ -148,6 +185,9 @@ function AuthPage() {
             <NoticePanel
               notice={notice}
               email={noticeEmail}
+              busy={busy}
+              error={error}
+              onResend={notice === "confirm" ? handleResendConfirmation : undefined}
               onBack={() => {
                 setNotice("none");
                 setBusy(false);
@@ -484,10 +524,16 @@ function ForgotView({
 function NoticePanel({
   notice,
   email,
+  busy,
+  error,
+  onResend,
   onBack,
 }: {
   notice: "magic" | "confirm" | "reset";
   email: string;
+  busy: boolean;
+  error: string;
+  onResend?: () => void;
   onBack: () => void;
 }) {
   const copy = {
@@ -503,6 +549,17 @@ function NoticePanel({
         {copy.body} <span className="text-gray-200">{email}</span>. Click it to continue.
         {notice === "confirm" && " You can add your company logo from Settings after verifying."}
       </p>
+      {error && <p className="text-sm text-red-400">{error}</p>}
+      {notice === "confirm" && onResend && (
+        <button
+          type="button"
+          onClick={onResend}
+          disabled={busy}
+          className="text-xs text-indigo-400 hover:text-indigo-300 disabled:opacity-40"
+        >
+          {busy ? "Sending." : "Resend confirmation email"}
+        </button>
+      )}
       <button type="button" onClick={onBack} className="text-xs text-gray-400 hover:text-gray-200">
         &larr; Back
       </button>
