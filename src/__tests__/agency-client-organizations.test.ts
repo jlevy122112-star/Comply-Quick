@@ -3,6 +3,7 @@ import { managedClientLimit } from "@/lib/pricing";
 
 const state = {
   entitlement: { tier: "agency", isPremium: true },
+  entitlementUsers: [] as string[],
   linkedOrganizationId: null as string | null,
   callerId: "owner-1",
   agencyRole: "admin",
@@ -180,6 +181,10 @@ vi.mock("@/lib/supabase/admin", () => ({
 }));
 vi.mock("@/lib/entitlements", () => ({
   getEntitlement: async () => state.entitlement,
+  getEntitlementForUser: async (userId: string) => {
+    state.entitlementUsers.push(userId);
+    return state.entitlement;
+  },
 }));
 vi.mock("@/services", () => ({
   logger: { child: () => ({ info: vi.fn(), error: vi.fn(), warn: vi.fn() }) },
@@ -188,6 +193,7 @@ vi.mock("@/services", () => ({
 describe("agency client organizations", () => {
   beforeEach(() => {
     state.entitlement = { tier: "agency", isPremium: true };
+    state.entitlementUsers = [];
     state.linkedOrganizationId = null;
     state.callerId = "owner-1";
     state.agencyRole = "admin";
@@ -218,6 +224,15 @@ describe("agency client organizations", () => {
     const { createClient_ } = await import("@/lib/agency/service");
 
     await expect(createClient_({ name: "Over limit" })).rejects.toThrow(/50 managed clients/);
+  });
+
+  it("uses the agency owner's entitlement for a non-owner member", async () => {
+    state.callerId = "member-1";
+    state.clientCount = 50;
+    const { createClient_ } = await import("@/lib/agency/service");
+
+    await expect(createClient_({ name: "Over limit" })).rejects.toThrow(/50 managed clients/);
+    expect(state.entitlementUsers).toContain("owner-1");
   });
 
   it("provisions and then reuses the same linked organization", async () => {
