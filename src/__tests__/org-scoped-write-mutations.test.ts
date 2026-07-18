@@ -78,7 +78,7 @@ describe("organization-scoped write mutations", () => {
 
   it("keeps legacy finding and evidence writes user-scoped", async () => {
     currentRow = { status: "open", organization_id: null };
-    getActiveOrganizationId.mockResolvedValue(null);
+    getActiveOrganizationId.mockResolvedValue("personal-org");
     const { updateFindingStatus } = await import("@/lib/findings-db");
     const { setEvidenceStatus } = await import("@/lib/evidence-db");
 

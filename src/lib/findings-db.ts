@@ -345,10 +345,16 @@ export async function assignFinding(id: string, owner: string | null): Promise<b
   } = await supabase.auth.getUser();
   if (!user) return false;
 
+  const { data: current } = await supabase.from("findings").select("organization_id").eq("id", id).maybeSingle();
+  if (!current) return false;
+
+  const rowOrganizationId = (current as { organization_id: string | null }).organization_id;
   const organizationId = await getActiveOrganizationId();
+  if (rowOrganizationId && !organizationId) return false;
+
   let updateQuery = supabase.from("findings").update({ owner, updated_at: new Date().toISOString() }).eq("id", id);
-  if (organizationId) {
-    updateQuery = updateQuery.eq("organization_id", organizationId);
+  if (rowOrganizationId) {
+    updateQuery = updateQuery.eq("organization_id", rowOrganizationId);
   } else {
     updateQuery = updateQuery.eq("user_id", user.id).is("organization_id", null);
   }
