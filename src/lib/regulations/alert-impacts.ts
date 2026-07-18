@@ -86,19 +86,6 @@ export async function recordAlertImpact(
     organizationId = null;
   }
 
-  if (!organizationId) {
-    try {
-      const { data: organization } = await admin
-        .from("organizations")
-        .select("id")
-        .eq("owner_id", input.userId)
-        .maybeSingle();
-      organizationId = (organization as { id: string } | null)?.id ?? null;
-    } catch {
-      organizationId = null;
-    }
-  }
-
   await admin.from("alert_impacts").insert({
     user_id: input.userId,
     organization_id: organizationId,
