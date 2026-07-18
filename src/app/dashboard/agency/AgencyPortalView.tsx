@@ -550,7 +550,8 @@ function ClientsTab({
                   <button
                     type="button"
                     onClick={() => removeClient(c.id)}
-                    className="text-xs text-gray-500 hover:text-red-400 transition-colors"
+                    disabled={!canManage}
+                    className="text-xs text-gray-500 hover:text-red-400 transition-colors disabled:opacity-40"
                   >
                     Remove
                   </button>
@@ -564,7 +565,7 @@ function ClientsTab({
                       <button
                         type="button"
                         onClick={openWorkspace}
-                        disabled={openingWorkspace === c.id}
+                        disabled={!canManage || openingWorkspace === c.id}
                         className="mt-2 text-xs font-medium text-indigo-400 hover:text-indigo-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:opacity-50"
                       >
                         {openingWorkspace === c.id ? "Opening…" : "Open workspace →"}
@@ -576,7 +577,7 @@ function ClientsTab({
                       <button
                         type="button"
                         onClick={provision}
-                        disabled={isProvisioning}
+                        disabled={!canManage || isProvisioning}
                         aria-label={`Provision workspace for ${c.name}`}
                         className="mt-2 text-xs font-medium text-indigo-400 hover:text-indigo-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:opacity-50"
                       >

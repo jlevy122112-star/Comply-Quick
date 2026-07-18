@@ -666,27 +666,12 @@ export interface AgencyAccess {
 }
 
 export async function getAgencyAccess(): Promise<AgencyAccess> {
+  const agency = await getOrCreateAgency();
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new UnauthorizedError();
-  const { data: owned } = await supabase.from("agencies").select(AGENCY_COLS).eq("owner_id", user.id).maybeSingle();
-  let agency: Agency;
-  if (owned) {
-    agency = mapAgency(owned);
-  } else {
-    const { data: membership } = await supabase
-      .from("agency_members")
-      .select("agency_id, role")
-      .eq("user_id", user.id)
-      .limit(1)
-      .maybeSingle();
-    if (!membership?.agency_id) throw new ForbiddenError("Only agency owners and admins can perform this action.");
-    const { data } = await supabase.from("agencies").select(AGENCY_COLS).eq("id", membership.agency_id).maybeSingle();
-    if (!data) throw new ForbiddenError("Only agency owners and admins can perform this action.");
-    agency = mapAgency(data);
-  }
   if (user.id === agency.ownerId) {
     return { agency, role: "owner", assignableRoles: assignableAgencyRoles("owner") };
   }

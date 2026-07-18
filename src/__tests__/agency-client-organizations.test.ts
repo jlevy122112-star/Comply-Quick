@@ -48,7 +48,7 @@ function resultFor(table: string, operation: string): Record<string, unknown> {
   }
   if (table === "agency_members" && operation === "maybeSingle") {
     return {
-      data: state.agencyRole === "admin" ? { agency_id: agency.id, role: state.agencyRole } : null,
+      data: state.agencyRole ? { agency_id: agency.id, role: state.agencyRole } : null,
       error: null,
     };
   }
