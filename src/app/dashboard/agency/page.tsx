@@ -8,6 +8,7 @@ import {
   listClients,
   listDomains,
   getClientStats,
+  listAgencyClientAssignments,
   listMembers,
   getAgencyAccess,
 } from "@/lib/agency/service";
@@ -71,6 +72,10 @@ export default async function AgencyPortalPage() {
     getAgencyPortfolioAnalytics(),
     getAgencyAccess(),
   ]);
+  const assignments =
+    access.role === "owner" || access.role === "admin"
+      ? await listAgencyClientAssignments(clients.map((client) => client.id))
+      : {};
 
   return (
     <AgencyPortalView
@@ -85,6 +90,7 @@ export default async function AgencyPortalPage() {
       managedClientLimit={managedClientLimit(entitlement.tier)}
       portfolioAnalytics={portfolioAnalytics}
       agencyRole={access.role}
+      assignments={assignments}
     />
   );
 }

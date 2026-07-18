@@ -94,6 +94,9 @@ const state = vi.hoisted(() => ({
     { id: "finding-b1", organization_id: "org-b1", project_id: "project-b1", status: "open" },
     { id: "finding-archived", organization_id: "org-archived", project_id: "project-archived", status: "open" },
   ],
+  role: "owner" as "owner" | "account_manager",
+  userId: "owner-a",
+  assignments: [{ agency_id: "agency-a", client_id: "client-a2", user_id: "am-1" }],
 }));
 
 function query(table: string, rows: Record<string, unknown>[]) {
@@ -130,12 +133,19 @@ function rowsFor(table: string): Record<string, unknown>[] {
   if (table === "agency_clients") return state.clients;
   if (table === "projects") return state.projects;
   if (table === "findings") return state.findings;
+  if (table === "agency_client_account_managers") return state.assignments;
   return [];
 }
 
 vi.mock("@/lib/agency/service", () => ({
   canUseAgencyPortal: async () => true,
   getOrCreateAgency: async () => ({ id: "agency-a", ownerId: "owner-a" }),
+  getAgencyAccess: async () => ({
+    agency: { id: "agency-a", ownerId: "owner-a" },
+    userId: state.userId,
+    role: state.role,
+    assignableRoles: [],
+  }),
 }));
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({ from: (table: string) => query(table, rowsFor(table)) }),
@@ -158,7 +168,11 @@ vi.mock("@/services/errors", () => ({
 }));
 
 describe("agency portfolio analytics", () => {
-  beforeEach(() => vi.resetModules());
+  beforeEach(() => {
+    state.role = "owner";
+    state.userId = "owner-a";
+    vi.resetModules();
+  });
 
   it("summarizes scores, findings, and risk across client rows", async () => {
     const { getAgencyPortfolioAnalytics } = await import("@/lib/agency/analytics");
@@ -196,6 +210,18 @@ describe("agency portfolio analytics", () => {
       score: 10,
       risk: "critical",
     });
+  });
+
+  it("limits account manager analytics to assigned clients", async () => {
+    state.role = "account_manager";
+    state.userId = "am-1";
+    const { getAgencyPortfolioAnalytics } = await import("@/lib/agency/analytics");
+
+    const result = await getAgencyPortfolioAnalytics();
+
+    expect(result.clients.map((client) => client.name)).toEqual(["Beta"]);
+    expect(result.summary.clientCount).toBe(1);
+    expect(result.summary.averageScore).toBe(60);
   });
 
   it("returns an empty summary for an agency with no clients", async () => {
