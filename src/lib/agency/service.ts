@@ -768,9 +768,20 @@ export async function addMember(email: string, requestedRole: AgencyRole = "clie
   const found = list.users.find((u) => u.email?.toLowerCase() === normalized);
   if (!found) throw new ValidationError("No Comply-Quick account found for that email. Ask them to sign up first.");
 
+  // Idempotent: if the user is already a member, return their existing seat
+  // unchanged. Role changes go through updateMemberRole so re-inviting never
+  // silently overwrites (and possibly demotes) an existing member's role.
+  const { data: existing } = await supabase
+    .from("agency_members")
+    .select(MEMBER_COLS)
+    .eq("agency_id", agency.id)
+    .eq("user_id", found.id)
+    .maybeSingle();
+  if (existing) return mapMember(existing, found.email ?? null);
+
   const { data, error } = await supabase
     .from("agency_members")
-    .upsert({ agency_id: agency.id, user_id: found.id, role: requestedRole }, { onConflict: "agency_id,user_id" })
+    .insert({ agency_id: agency.id, user_id: found.id, role: requestedRole })
     .select(MEMBER_COLS)
     .single();
   if (error || !data) {
