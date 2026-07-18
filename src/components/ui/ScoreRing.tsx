@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { cn } from "./cn";
 
 type Size = "sm" | "md" | "lg";
@@ -59,8 +60,14 @@ export function ScoreRing({
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={`${dash} ${circumference}`}
-          className={cn(ring(clamped), "transition-[stroke-dasharray] duration-700 ease-out")}
+          className={cn(ring(clamped), "animate-progress-sweep transition-[stroke-dasharray] duration-700 ease-out")}
           stroke="currentColor"
+          style={
+            {
+              "--score-dash": dash,
+              "--score-circumference": circumference,
+            } as CSSProperties
+          }
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
