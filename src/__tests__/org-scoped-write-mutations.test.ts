@@ -68,12 +68,12 @@ describe("organization-scoped write mutations", () => {
     expect(updateFilters).not.toContainEqual(["user_id", "member-1"]);
   });
 
-  it("does not mutate a canonical finding when the active organization differs", async () => {
+  it("mutates a canonical finding using its own organization when active organization differs", async () => {
     getActiveOrganizationId.mockResolvedValue("org-2");
     const { updateFindingStatus } = await import("@/lib/findings-db");
 
-    await expect(updateFindingStatus("finding-1", "resolved")).resolves.toBe(false);
-    expect(updateFilters).toContainEqual(["organization_id", "org-2"]);
+    await expect(updateFindingStatus("finding-1", "resolved")).resolves.toBe(true);
+    expect(updateFilters).toContainEqual(["organization_id", "org-1"]);
   });
 
   it("keeps legacy finding and evidence writes user-scoped", async () => {

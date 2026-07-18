@@ -320,7 +320,7 @@ export async function updateFindingStatus(id: string, status: FindingStatus): Pr
     })
     .eq("id", id);
   if (isOrganizationRow) {
-    updateQuery = updateQuery.eq("organization_id", organizationId as string);
+    updateQuery = updateQuery.eq("organization_id", currentRow.organization_id as string);
   } else {
     updateQuery = updateQuery.eq("user_id", user.id).is("organization_id", null);
   }
