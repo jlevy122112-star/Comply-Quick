@@ -75,7 +75,7 @@ function mapEntitlement(data: SubscriptionRow): Entitlement {
  * Used by the metered API layer, where the request is authenticated by API key
  * and has no Supabase session to read auth.uid() from.
  */
-export async function getEntitlementForUser(userId: string): Promise<Entitlement> {
+export const getEntitlementForUser = cache(async (userId: string): Promise<Entitlement> => {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("subscriptions")
@@ -84,7 +84,7 @@ export async function getEntitlementForUser(userId: string): Promise<Entitlement
     .maybeSingle();
   if (error || !data) return DEFAULT_ENTITLEMENT;
   return mapEntitlement(data);
-}
+});
 
 /**
  * Resolves the entitlement for an organization by inheriting its owner's
