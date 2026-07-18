@@ -12,6 +12,7 @@ import {
 import { createWorkspace, renameWorkspace, deleteWorkspace } from "@/lib/workspaces-db";
 import { createSsoConnection, setSsoEnabled, deleteSsoConnection, type SsoProtocol } from "@/lib/sso-db";
 import { createScimToken, revokeScimToken } from "@/lib/scim/tokens";
+import { createChildOrganization, reparentOrganization, type OrganizationKind } from "@/lib/org-hierarchy";
 
 const PATH = "/dashboard/settings/organization";
 
@@ -146,4 +147,30 @@ export async function revokeScimTokenAction(orgId: string, id: string): Promise<
   const ok = await revokeScimToken(orgId, id);
   revalidatePath(PATH);
   return ok ? { ok: true } : { ok: false, error: "Could not revoke the token." };
+}
+
+export async function createChildOrganizationAction(
+  parentOrganizationId: string,
+  input: { name: string; kind?: OrganizationKind }
+): Promise<{ ok: true } | Denied> {
+  try {
+    await createChildOrganization({ parentOrganizationId, ...input });
+    revalidatePath(PATH);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Could not create the child organization." };
+  }
+}
+
+export async function reparentOrganizationAction(
+  organizationId: string,
+  parentOrganizationId: string | null
+): Promise<{ ok: true } | Denied> {
+  try {
+    await reparentOrganization(organizationId, parentOrganizationId);
+    revalidatePath(PATH);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Could not move the organization." };
+  }
 }

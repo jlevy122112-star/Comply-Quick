@@ -14,11 +14,13 @@ import { MembersPanel } from "./MembersPanel";
 import { WorkspacesPanel } from "./WorkspacesPanel";
 import { SsoPanel } from "./SsoPanel";
 import { ScimPanel } from "./ScimPanel";
+import { HierarchyPanel } from "./HierarchyPanel";
+import { isOrganizationHierarchyAdmin, listOrganizationSubtree } from "@/lib/org-hierarchy";
 
 export const dynamic = "force-dynamic";
 
 const BASE = "/dashboard/settings/organization";
-type Tab = "profile" | "members" | "workspaces" | "sso" | "scim";
+type Tab = "profile" | "members" | "workspaces" | "sso" | "scim" | "hierarchy";
 
 export default async function OrganizationSettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const org = await getOrCreateOrganization();
@@ -26,7 +28,7 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
 
   const role = (await getMyOrgRole(org.id)) ?? "viewer";
   const { tab: tabParam } = await searchParams;
-  const tab: Tab = (["profile", "members", "workspaces", "sso", "scim"] as const).includes(tabParam as Tab)
+  const tab: Tab = (["profile", "members", "workspaces", "sso", "scim", "hierarchy"] as const).includes(tabParam as Tab)
     ? (tabParam as Tab)
     : "profile";
 
@@ -39,6 +41,8 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
   const sso = tab === "sso" ? await listSsoConnections(org.id) : [];
   const scimTokens = tab === "scim" ? await listScimTokens(org.id) : [];
   const scimUsers = tab === "scim" ? (await listScimUsers(org.id, { limit: 200 })).users : [];
+  const hierarchy = tab === "hierarchy" ? await listOrganizationSubtree(org.id) : null;
+  const hierarchyAdmin = tab === "hierarchy" ? await isOrganizationHierarchyAdmin(org.id) : false;
 
   const tabs: TabItem[] = [
     { key: "profile", label: "Profile" },
@@ -46,6 +50,7 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
     { key: "workspaces", label: "Workspaces", count: workspaceCount },
     { key: "sso", label: "SSO" },
     { key: "scim", label: "SCIM" },
+    { key: "hierarchy", label: "Hierarchy" },
   ];
 
   let scimBaseUrl = "/api/scim/v2";
@@ -99,6 +104,7 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
             live={scimEnabled()}
           />
         )}
+        {tab === "hierarchy" && hierarchy && <HierarchyPanel root={hierarchy} canManage={hierarchyAdmin} />}
       </main>
     </div>
   );

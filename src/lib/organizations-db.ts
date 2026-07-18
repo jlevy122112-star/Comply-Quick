@@ -21,6 +21,9 @@ export interface Organization {
   slug: string;
   plan: "free" | "team" | "enterprise";
   createdAt: string;
+  parentOrganizationId?: string | null;
+  kind?: "organization" | "department" | "region" | null;
+  isPersonal?: boolean;
 }
 
 export interface OrgMember {
@@ -39,6 +42,9 @@ interface OrgRow {
   slug: string;
   plan: Organization["plan"];
   created_at: string;
+  parent_organization_id?: string | null;
+  kind?: "organization" | "department" | "region" | null;
+  is_personal?: boolean;
 }
 
 interface MemberRow {
@@ -58,6 +64,9 @@ function mapOrg(row: OrgRow): Organization {
     slug: row.slug,
     plan: row.plan,
     createdAt: row.created_at,
+    parentOrganizationId: row.parent_organization_id ?? null,
+    kind: row.kind ?? null,
+    isPersonal: row.is_personal ?? false,
   };
 }
 
