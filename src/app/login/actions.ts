@@ -67,7 +67,7 @@ export async function signupAction(formData: FormData) {
       loginError("An account with this email already exists. Please sign in.", "signin");
     }
     if (!result.delivered) {
-      loginError("We couldn't send your confirmation email. Please try again.", "signup");
+      redirect(`/login?mode=signin&notice=confirm&email=${encodeURIComponent(email)}&warning=resend`);
     }
     redirect(`/login?mode=signin&notice=confirm&email=${encodeURIComponent(email)}`);
   }

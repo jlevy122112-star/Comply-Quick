@@ -84,4 +84,17 @@ describe("signup verification delivery", () => {
     );
     expect(signUp).not.toHaveBeenCalled();
   });
+
+  it("keeps delivery failures on the confirmation notice so resend stays reachable", async () => {
+    sendVerificationEmail.mockResolvedValue({
+      configured: true,
+      delivered: false,
+      reason: "http_500",
+    });
+
+    await expect(signupAction(signupForm())).rejects.toThrow(
+      "REDIRECT:/login?mode=signin&notice=confirm&email=test%40example.com&warning=resend"
+    );
+    expect(signUp).not.toHaveBeenCalled();
+  });
 });

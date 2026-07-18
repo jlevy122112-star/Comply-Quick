@@ -29,6 +29,7 @@ function AuthPage() {
   const initialError = searchParams.get("error") ?? "";
   const initialEmail = searchParams.get("email") ?? "";
   const initialNotice = searchParams.get("notice");
+  const initialConfirmWarning = searchParams.get("warning") === "resend";
 
   const [mode, setMode] = useState<Mode>(initialMode);
   // "confirm" = signup needs email verification; "reset" = password-reset email sent.
@@ -38,6 +39,8 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(initialError);
   const [noticeEmail, setNoticeEmail] = useState(initialEmail);
+  const [confirmWarning, setConfirmWarning] = useState(initialConfirmWarning);
+  const [noticeMessage, setNoticeMessage] = useState("");
 
   // Shared fields.
   const [email, setEmail] = useState(initialEmail);
@@ -53,6 +56,8 @@ function AuthPage() {
   const resetTransientState = useCallback(() => {
     setError("");
     setNotice("none");
+    setConfirmWarning(false);
+    setNoticeMessage("");
   }, []);
 
   const switchMode = useCallback(
@@ -111,6 +116,7 @@ function AuthPage() {
       }
       setNoticeEmail(email);
       setNotice("magic");
+      setNoticeMessage("Magic sign-in link sent — check your inbox.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't send the link. Please try again.");
     } finally {
@@ -142,6 +148,8 @@ function AuthPage() {
         return;
       }
       setError("");
+      setConfirmWarning(false);
+      setNoticeMessage("Confirmation email sent — check your inbox.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't resend the confirmation email. Please try again.");
     } finally {
@@ -187,10 +195,14 @@ function AuthPage() {
               email={noticeEmail}
               busy={busy}
               error={error}
+              confirmWarning={confirmWarning}
+              noticeMessage={noticeMessage}
               onResend={notice === "confirm" ? handleResendConfirmation : undefined}
               onBack={() => {
                 setNotice("none");
                 setBusy(false);
+                setConfirmWarning(false);
+                setNoticeMessage("");
               }}
             />
           ) : mode === "forgot" ? (
@@ -526,6 +538,8 @@ function NoticePanel({
   email,
   busy,
   error,
+  confirmWarning,
+  noticeMessage,
   onResend,
   onBack,
 }: {
@@ -533,6 +547,8 @@ function NoticePanel({
   email: string;
   busy: boolean;
   error: string;
+  confirmWarning: boolean;
+  noticeMessage: string;
   onResend?: () => void;
   onBack: () => void;
 }) {
@@ -549,6 +565,19 @@ function NoticePanel({
         {copy.body} <span className="text-gray-200">{email}</span>. Click it to continue.
         {notice === "confirm" && " You can add your company logo from Settings after verifying."}
       </p>
+      {confirmWarning && notice === "confirm" && (
+        <p
+          role="alert"
+          className="rounded-lg border border-amber-900/50 bg-amber-950/30 px-3 py-2 text-sm text-amber-200"
+        >
+          We couldn&apos;t send the first confirmation email. Click &quot;Resend confirmation email&quot; to try again.
+        </p>
+      )}
+      {noticeMessage && (
+        <p role="status" className="text-sm text-emerald-300">
+          {noticeMessage}
+        </p>
+      )}
       {error && <p className="text-sm text-red-400">{error}</p>}
       {notice === "confirm" && onResend && (
         <button
