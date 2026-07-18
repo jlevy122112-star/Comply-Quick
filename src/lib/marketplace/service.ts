@@ -9,7 +9,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getEntitlement } from "@/lib/entitlements";
+import { getOrgEntitlement } from "@/lib/entitlements";
 import { logger } from "@/services";
 import { UnauthorizedError, ForbiddenError, NotFoundError, ValidationError } from "@/services/errors";
 import {
@@ -97,7 +97,7 @@ function mapPurchase(row: Record<string, unknown>): Purchase {
 
 /** Selling is gated to paid tiers; browsing/buying is open to any signed-in user. */
 export async function canSell(): Promise<boolean> {
-  const entitlement = await getEntitlement();
+  const entitlement = await getOrgEntitlement();
   return entitlement.isPremium;
 }
 

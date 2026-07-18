@@ -7,7 +7,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { getActiveOrganizationId, organizationReadFilter } from "@/lib/organizations-db";
 import { createClient } from "@/lib/supabase/server";
-import { getEntitlement } from "@/lib/entitlements";
+import { getOrgEntitlement } from "@/lib/entitlements";
 import { getAiClient } from "@/services/ai";
 import { analytics, logger } from "@/services";
 import { UnauthorizedError } from "@/services/errors";
@@ -54,7 +54,7 @@ export interface ScanQuota {
 
 /** Reports the current user's scan quota for the current calendar month. */
 export async function getScanQuota(): Promise<ScanQuota> {
-  const entitlement = await getEntitlement();
+  const entitlement = await getOrgEntitlement();
   if (entitlement.isPremium) {
     return { isPremium: true, used: 0, limit: null, remaining: null };
   }
