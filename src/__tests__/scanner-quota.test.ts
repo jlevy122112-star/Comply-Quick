@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 const getUser = vi.fn();
 const eqCalls: Array<[string, string]> = [];
+let isPremium = false;
 
 function makeQuery() {
   const builder: Record<string, unknown> = {};
@@ -26,7 +27,7 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 vi.mock("@/lib/entitlements", () => ({
-  getEntitlement: async () => ({ isPremium: false }),
+  getOrgEntitlement: async () => ({ isPremium }),
 }));
 
 vi.mock("@/lib/billing/usage", () => ({
@@ -40,6 +41,14 @@ async function load() {
 }
 
 describe("getScanQuota", () => {
+  it("returns unlimited quota for a paid organization member", async () => {
+    isPremium = true;
+    const { getScanQuota } = await load();
+
+    await expect(getScanQuota()).resolves.toEqual({ isPremium: true, used: 0, limit: null, remaining: null });
+    isPremium = false;
+  });
+
   it("counts only the caller's scans when organization-shared scans exist", async () => {
     getUser.mockResolvedValue({ data: { user: { id: "caller-id" } } });
     eqCalls.length = 0;

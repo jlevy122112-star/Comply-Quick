@@ -4,7 +4,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getEntitlement } from "@/lib/entitlements";
+import { getOrgEntitlement } from "@/lib/entitlements";
 import { recordAuditLog } from "@/lib/audit-log";
 import { getAiClient, type AiClient } from "@/services/ai";
 import { logger } from "@/services";
@@ -372,6 +372,6 @@ export async function runAutopilot(
 
 /** Whether the current user may use Autopilot (paid-plan gate). */
 export async function canUseAutopilot(): Promise<boolean> {
-  const entitlement = await getEntitlement();
+  const entitlement = await getOrgEntitlement();
   return entitlement.isPremium;
 }

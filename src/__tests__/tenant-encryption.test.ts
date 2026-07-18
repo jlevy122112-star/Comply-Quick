@@ -8,7 +8,7 @@ import { clearTenantEncryptionCache, decryptField, encryptField } from "@/lib/se
 const adminRows = new Map<string, Record<string, unknown>>();
 
 vi.mock("@/lib/entitlements", () => ({
-  getEntitlement: vi.fn(async () => ({
+  getOrgEntitlement: vi.fn(async () => ({
     tier: "enterprise",
     status: "active",
     isPremium: true,
