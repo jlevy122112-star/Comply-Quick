@@ -1,7 +1,8 @@
 {
   "$schema": "https://typedoc.org/schema.json",
-  "entryPoints": ["src/index.ts"], 
-  "out": "docs",
+  "entryPoints": ["src/lib/pricing.ts", "src/lib/compliance/catalog.ts", "src/lib/score/badge.ts"],
+  "out": "docs/api",
+  "plugin": ["typedoc-plugin-markdown"],
   "excludePrivate": true,
   "excludeProtected": true,
   "includeVersion": true
