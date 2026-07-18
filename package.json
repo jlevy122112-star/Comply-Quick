@@ -18,7 +18,10 @@
     "quality": "npm run typecheck && npm run lint && npm run test && npm run format:check",
     "prepare": "husky",
     "test:e2e": "playwright test",
-    "test:e2e:update": "playwright test --update-snapshots"
+    "test:e2e:update": "playwright test --update-snapshots",
+    "docs:api": "typedoc",
+    "docs:build": "npm run docs:api",
+    "docs": "npm run docs:build"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -61,12 +64,5 @@
     "typescript": "^5",
     "vitest": "^4.1.9",
     "@playwright/test": "1.61.1"
-  }
-},
-{
-  "scripts": {
-    "docs:api": "typedoc",
-    "docs:build": "npm run docs:api",
-    "docs": "npm run docs:build"
   }
 }
