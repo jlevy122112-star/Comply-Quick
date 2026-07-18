@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { loginAction, signupAction } from "./actions";
+import { loginAction, magicLinkAction, resendConfirmationAction, signupAction } from "./actions";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/brand/Logo";
 
@@ -29,6 +29,7 @@ function AuthPage() {
   const initialError = searchParams.get("error") ?? "";
   const initialEmail = searchParams.get("email") ?? "";
   const initialNotice = searchParams.get("notice");
+  const initialConfirmWarning = searchParams.get("warning") === "resend";
 
   const [mode, setMode] = useState<Mode>(initialMode);
   // "confirm" = signup needs email verification; "reset" = password-reset email sent.
@@ -38,6 +39,8 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(initialError);
   const [noticeEmail, setNoticeEmail] = useState(initialEmail);
+  const [confirmWarning, setConfirmWarning] = useState(initialConfirmWarning);
+  const [noticeMessage, setNoticeMessage] = useState("");
 
   // Shared fields.
   const [email, setEmail] = useState(initialEmail);
@@ -53,6 +56,8 @@ function AuthPage() {
   const resetTransientState = useCallback(() => {
     setError("");
     setNotice("none");
+    setConfirmWarning(false);
+    setNoticeMessage("");
   }, []);
 
   const switchMode = useCallback(
@@ -96,21 +101,61 @@ function AuthPage() {
     setBusy(true);
     setError("");
     try {
-      const supabase = createClient();
-      const emailRedirectTo = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`;
-      const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo } });
-      if (error) {
-        setError(error.message);
+      const result = await magicLinkAction(email, redirectTo);
+      if (!result.configured) {
+        const supabase = createClient();
+        const emailRedirectTo = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`;
+        const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo } });
+        if (error) {
+          setError(error.message);
+          return;
+        }
+      } else if (!result.delivered) {
+        setError("Couldn't send the link. Please try again.");
         return;
       }
       setNoticeEmail(email);
       setNotice("magic");
+      setNoticeMessage("Magic sign-in link sent — check your inbox.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't send the link. Please try again.");
     } finally {
       setBusy(false);
     }
   }, [email, redirectTo]);
+
+  const handleResendConfirmation = useCallback(async () => {
+    setBusy(true);
+    setError("");
+    try {
+      const result = await resendConfirmationAction(noticeEmail, redirectTo);
+      if (!result.configured) {
+        const supabase = createClient();
+        const emailRedirectTo = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(
+          redirectTo
+        )}&channel=signup`;
+        const { error } = await supabase.auth.resend({
+          type: "signup",
+          email: noticeEmail,
+          options: { emailRedirectTo },
+        });
+        if (error) {
+          setError(error.message);
+          return;
+        }
+      } else if (!result.delivered) {
+        setError("Couldn't resend the confirmation email. Please try again.");
+        return;
+      }
+      setError("");
+      setConfirmWarning(false);
+      setNoticeMessage("Confirmation email sent — check your inbox.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't resend the confirmation email. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }, [noticeEmail, redirectTo]);
 
   const handleForgot = useCallback(async () => {
     setBusy(true);
@@ -148,9 +193,16 @@ function AuthPage() {
             <NoticePanel
               notice={notice}
               email={noticeEmail}
+              busy={busy}
+              error={error}
+              confirmWarning={confirmWarning}
+              noticeMessage={noticeMessage}
+              onResend={notice === "confirm" ? handleResendConfirmation : undefined}
               onBack={() => {
                 setNotice("none");
                 setBusy(false);
+                setConfirmWarning(false);
+                setNoticeMessage("");
               }}
             />
           ) : mode === "forgot" ? (
@@ -484,10 +536,20 @@ function ForgotView({
 function NoticePanel({
   notice,
   email,
+  busy,
+  error,
+  confirmWarning,
+  noticeMessage,
+  onResend,
   onBack,
 }: {
   notice: "magic" | "confirm" | "reset";
   email: string;
+  busy: boolean;
+  error: string;
+  confirmWarning: boolean;
+  noticeMessage: string;
+  onResend?: () => void;
   onBack: () => void;
 }) {
   const copy = {
@@ -503,6 +565,30 @@ function NoticePanel({
         {copy.body} <span className="text-gray-200">{email}</span>. Click it to continue.
         {notice === "confirm" && " You can add your company logo from Settings after verifying."}
       </p>
+      {confirmWarning && notice === "confirm" && (
+        <p
+          role="alert"
+          className="rounded-lg border border-amber-900/50 bg-amber-950/30 px-3 py-2 text-sm text-amber-200"
+        >
+          We couldn&apos;t send the first confirmation email. Click &quot;Resend confirmation email&quot; to try again.
+        </p>
+      )}
+      {noticeMessage && (
+        <p role="status" className="text-sm text-emerald-300">
+          {noticeMessage}
+        </p>
+      )}
+      {error && <p className="text-sm text-red-400">{error}</p>}
+      {notice === "confirm" && onResend && (
+        <button
+          type="button"
+          onClick={onResend}
+          disabled={busy}
+          className="text-xs text-indigo-400 hover:text-indigo-300 disabled:opacity-40"
+        >
+          {busy ? "Sending." : "Resend confirmation email"}
+        </button>
+      )}
       <button type="button" onClick={onBack} className="text-xs text-gray-400 hover:text-gray-200">
         &larr; Back
       </button>
