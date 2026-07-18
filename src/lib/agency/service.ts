@@ -54,6 +54,12 @@ export interface AgencyClient {
   createdAt: string;
 }
 
+export interface AgencyClientAssignment {
+  userId: string;
+  email: string | null;
+  createdAt: string;
+}
+
 export interface AgencyDomain {
   id: string;
   agencyId: string;
@@ -248,26 +254,38 @@ export async function updateBranding(patch: BrandingUpdate): Promise<Agency> {
 // ─── Clients ─────────────────────────────────────────────────────────────────
 
 export async function listClients(): Promise<AgencyClient[]> {
-  const agency = await getOrCreateAgency();
+  const access = await getAgencyAccess();
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("agency_clients")
     .select(CLIENT_COLS)
-    .eq("agency_id", agency.id)
+    .eq("agency_id", access.agency.id)
     .order("created_at", { ascending: false });
+  if (access.role === "account_manager") {
+    const { data: assignments } = await supabase
+      .from("agency_client_account_managers")
+      .select("client_id")
+      .eq("agency_id", access.agency.id)
+      .eq("user_id", access.userId);
+    const clientIds = (assignments ?? []).map((row) => row.client_id as string);
+    if (clientIds.length === 0) return [];
+    query = query.in("id", clientIds);
+  }
+  const { data, error } = await query;
   if (error || !data) return [];
   return data.map(mapClient);
 }
 
 /** Fetches one client owned by the caller's agency, or null if not found. */
 export async function getClient(id: string): Promise<AgencyClient | null> {
-  const agency = await getOrCreateAgency();
+  const access = await getAgencyAccess();
+  if (access.role === "account_manager") await assertAssignedClient(id, access);
   const supabase = await createClient();
   const { data } = await supabase
     .from("agency_clients")
     .select(CLIENT_COLS)
     .eq("id", id)
-    .eq("agency_id", agency.id)
+    .eq("agency_id", access.agency.id)
     .maybeSingle();
   return data ? mapClient(data) : null;
 }
@@ -280,7 +298,8 @@ interface ClientInput {
 }
 
 export async function createClient_(input: ClientInput): Promise<AgencyClient> {
-  const { agency } = await requireAgencyCapability("manage_clients");
+  const access = await requireAgencyCapability("manage_clients");
+  const { agency } = access;
   const supabase = await createClient();
   const name = input.name.trim();
   if (name.length === 0 || name.length > 120) throw new ValidationError("Client name must be 1–120 characters.");
@@ -319,7 +338,20 @@ export async function createClient_(input: ClientInput): Promise<AgencyClient> {
     log.error("Failed to create client", { error: error?.message });
     throw new Error("Could not create client.");
   }
-  return mapClient(data);
+  const client = mapClient(data);
+  if (access.role === "account_manager") {
+    const { error: assignmentError } = await createAdminClient().from("agency_client_account_managers").insert({
+      agency_id: agency.id,
+      client_id: client.id,
+      user_id: access.userId,
+      assigned_by: access.userId,
+    });
+    if (assignmentError) {
+      log.error("Failed to assign new client to account manager", { error: assignmentError.message });
+      throw new Error("Could not assign the new client.");
+    }
+  }
+  return client;
 }
 
 async function resolveAgencyOwnerPersonalOrganization(
@@ -412,10 +444,12 @@ export async function provisionClientOrganization(clientId: string): Promise<Org
   if (!(await canUseAgencyPortal())) {
     throw new ForbiddenError("The client portal is available on the Agency and Enterprise plans.");
   }
-  const { agency } = await requireAgencyCapability(
+  const access = await requireAgencyCapability(
     "manage_clients",
-    "Only agency owners and admins can provision client workspaces."
+    "Only agency owners and admins, or assigned Account Managers, can provision client workspaces."
   );
+  const { agency } = access;
+  await assertAssignedClient(clientId, access);
 
   const { data: client, error: clientError } = await supabase
     .from("agency_clients")
@@ -542,7 +576,9 @@ export async function updateClient(
   id: string,
   patch: Partial<ClientInput> & { status?: AgencyClient["status"] }
 ): Promise<AgencyClient> {
-  const { agency } = await requireAgencyCapability("manage_clients");
+  const access = await requireAgencyCapability("manage_clients");
+  const { agency } = access;
+  await assertAssignedClient(id, access);
   const supabase = await createClient();
 
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
@@ -572,7 +608,9 @@ export async function updateClient(
 }
 
 export async function deleteClient(id: string): Promise<boolean> {
-  const { agency } = await requireAgencyCapability("manage_clients");
+  const access = await requireAgencyCapability("manage_clients");
+  const { agency } = access;
+  await assertAssignedClient(id, access);
   const supabase = await createClient();
   const { error } = await supabase.from("agency_clients").delete().eq("id", id).eq("agency_id", agency.id);
   return !error;
@@ -591,7 +629,8 @@ export interface ClientStats {
  * so use the admin client just like portfolio analytics does.
  */
 export async function getClientStats(): Promise<Record<string, ClientStats>> {
-  const agency = await getOrCreateAgency();
+  const access = await getAgencyAccess();
+  const agency = access.agency;
   const admin = createAdminClient();
 
   const stats: Record<string, ClientStats> = {};
@@ -620,6 +659,10 @@ export async function getClientStats(): Promise<Record<string, ClientStats>> {
   // Only surface stats for clients that belong to this agency.
   const { data: clientIds } = await admin.from("agency_clients").select("id").eq("agency_id", agency.id);
   const valid = new Set((clientIds ?? []).map((c) => c.id as string));
+  const assigned = await assignedClientIds(access);
+  if (assigned) {
+    for (const id of valid) if (!assigned.has(id)) valid.delete(id);
+  }
   for (const id of Object.keys(stats)) if (!valid.has(id)) delete stats[id];
 
   return stats;
@@ -657,6 +700,7 @@ function mapMember(row: Record<string, unknown>, email: string | null): AgencyMe
 
 export interface AgencyAccess {
   agency: Agency;
+  userId: string;
   role: AgencyRole;
   assignableRoles: AgencyRole[];
 }
@@ -669,7 +713,7 @@ export async function getAgencyAccess(): Promise<AgencyAccess> {
   } = await supabase.auth.getUser();
   if (!user) throw new UnauthorizedError();
   if (user.id === agency.ownerId) {
-    return { agency, role: "owner", assignableRoles: assignableAgencyRoles("owner") };
+    return { agency, userId: user.id, role: "owner", assignableRoles: assignableAgencyRoles("owner") };
   }
   const { data: membership } = await supabase
     .from("agency_members")
@@ -679,7 +723,7 @@ export async function getAgencyAccess(): Promise<AgencyAccess> {
     .maybeSingle();
   if (!membership) throw new ForbiddenError("You are not a member of this agency.");
   const role = canonicalAgencyRole(membership.role as string);
-  return { agency, role, assignableRoles: assignableAgencyRoles(role) };
+  return { agency, userId: user.id, role, assignableRoles: assignableAgencyRoles(role) };
 }
 
 async function requireAgencyCapability(
@@ -691,6 +735,106 @@ async function requireAgencyCapability(
     throw new ForbiddenError(deniedMessage);
   }
   return access;
+}
+
+async function assignedClientIds(access: AgencyAccess): Promise<Set<string> | null> {
+  if (access.role !== "account_manager") return null;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("agency_client_account_managers")
+    .select("client_id")
+    .eq("agency_id", access.agency.id)
+    .eq("user_id", access.userId);
+  return new Set((data ?? []).map((row) => row.client_id as string));
+}
+
+async function assertAssignedClient(clientId: string, access: AgencyAccess): Promise<void> {
+  if (access.role !== "account_manager") return;
+  const ids = await assignedClientIds(access);
+  if (!ids?.has(clientId)) throw new ForbiddenError("You are not assigned to this client.");
+}
+
+export async function listClientAssignments(clientId: string): Promise<AgencyClientAssignment[]> {
+  const access = await getAgencyAccess();
+  const supabase = await createClient();
+  const { data: client } = await supabase
+    .from("agency_clients")
+    .select("id")
+    .eq("id", clientId)
+    .eq("agency_id", access.agency.id)
+    .maybeSingle();
+  if (!client) throw new NotFoundError("Client not found.");
+  const { data, error } = await supabase
+    .from("agency_client_account_managers")
+    .select("user_id, created_at")
+    .eq("agency_id", access.agency.id)
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: true });
+  if (error || !data) return [];
+  const admin = createAdminClient();
+  const assignments = await Promise.all(
+    data.map(async (row) => {
+      const { data: user } = await admin.auth.admin.getUserById(row.user_id as string);
+      return {
+        userId: row.user_id as string,
+        email: user.user?.email ?? null,
+        createdAt: row.created_at as string,
+      };
+    })
+  );
+  return assignments;
+}
+
+export async function assignAccountManager(clientId: string, userId: string): Promise<AgencyClientAssignment> {
+  const { agency, userId: actorId } = await requireAgencyCapability("manage_agency");
+  const supabase = await createClient();
+  const { data: client } = await supabase
+    .from("agency_clients")
+    .select("id")
+    .eq("id", clientId)
+    .eq("agency_id", agency.id)
+    .maybeSingle();
+  if (!client) throw new NotFoundError("Client not found.");
+  const { data: member } = await supabase
+    .from("agency_members")
+    .select("user_id, role")
+    .eq("agency_id", agency.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!member || member.role !== "account_manager") {
+    throw new ValidationError("Only agency Account Managers can be assigned to clients.");
+  }
+  const { data, error } = await supabase
+    .from("agency_client_account_managers")
+    .upsert(
+      { agency_id: agency.id, client_id: clientId, user_id: userId, assigned_by: actorId },
+      { onConflict: "client_id,user_id" }
+    )
+    .select("user_id, created_at")
+    .single();
+  if (error || !data) throw new Error("Could not assign the Account Manager.");
+  const admin = createAdminClient();
+  const { data: user } = await admin.auth.admin.getUserById(userId);
+  return { userId: data.user_id as string, email: user.user?.email ?? null, createdAt: data.created_at as string };
+}
+
+export async function unassignAccountManager(clientId: string, userId: string): Promise<boolean> {
+  const { agency } = await requireAgencyCapability("manage_agency");
+  const supabase = await createClient();
+  const { data: client } = await supabase
+    .from("agency_clients")
+    .select("id")
+    .eq("id", clientId)
+    .eq("agency_id", agency.id)
+    .maybeSingle();
+  if (!client) throw new NotFoundError("Client not found.");
+  const { error } = await supabase
+    .from("agency_client_account_managers")
+    .delete()
+    .eq("agency_id", agency.id)
+    .eq("client_id", clientId)
+    .eq("user_id", userId);
+  return !error;
 }
 
 /**
@@ -820,7 +964,13 @@ export async function removeMember(userId: string): Promise<boolean> {
     .eq("agency_id", agency.id)
     .eq("user_id", userId)
     .neq("role", "owner");
-  return !error;
+  if (error) return false;
+  const { error: assignmentError } = await supabase
+    .from("agency_client_account_managers")
+    .delete()
+    .eq("agency_id", agency.id)
+    .eq("user_id", userId);
+  return !assignmentError;
 }
 
 // ─── Custom domains ────────────────────────────────────────────────────────────

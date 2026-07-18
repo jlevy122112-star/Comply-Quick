@@ -8,7 +8,14 @@ import { switchActiveOrganizationAction } from "@/app/dashboard/actions";
 import { uploadBrandLogo, validateLogoFile } from "@/lib/storage/brand";
 import type { Tier } from "@/lib/entitlements";
 import { tierLabel } from "@/lib/tier-copy";
-import type { Agency, AgencyClient, AgencyDomain, ClientStats, AgencyMember } from "@/lib/agency/service";
+import type {
+  Agency,
+  AgencyClient,
+  AgencyClientAssignment,
+  AgencyDomain,
+  ClientStats,
+  AgencyMember,
+} from "@/lib/agency/service";
 import type { AgencyPortfolioAnalytics } from "@/lib/agency/analytics";
 import PortfolioAnalytics from "./PortfolioAnalytics";
 import type { BillingSummary } from "@/lib/billing/usage";
@@ -26,6 +33,7 @@ interface Props {
   managedClientLimit: number | null;
   portfolioAnalytics: AgencyPortfolioAnalytics;
   agencyRole: AgencyRole;
+  assignments: Record<string, AgencyClientAssignment[]>;
 }
 
 type Tab = "clients" | "portfolio" | "team" | "branding" | "domains";
@@ -58,6 +66,7 @@ export default function AgencyPortalView({
   managedClientLimit,
   portfolioAnalytics,
   agencyRole,
+  assignments,
 }: Props) {
   const [tab, setTab] = useState<Tab>("clients");
   const [agency, setAgency] = useState(initialAgency);
@@ -137,6 +146,9 @@ export default function AgencyPortalView({
             stats={stats}
             managedClientLimit={managedClientLimit}
             canManage={agencyRole !== "client_viewer"}
+            canManageAgency={canManageAgency}
+            members={members}
+            assignments={assignments}
           />
         )}
         {tab === "portfolio" && <PortfolioAnalytics analytics={portfolioAnalytics} />}
@@ -379,12 +391,18 @@ function ClientsTab({
   stats,
   managedClientLimit,
   canManage,
+  canManageAgency,
+  members,
+  assignments: initialAssignments,
 }: {
   clients: AgencyClient[];
   setClients: React.Dispatch<React.SetStateAction<AgencyClient[]>>;
   stats: Record<string, ClientStats>;
   managedClientLimit: number | null;
   canManage: boolean;
+  canManageAgency: boolean;
+  members: AgencyMember[];
+  assignments: Record<string, AgencyClientAssignment[]>;
 }) {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -395,8 +413,12 @@ function ClientsTab({
   const [provisioning, setProvisioning] = useState<Record<string, boolean>>({});
   const [provisionError, setProvisionError] = useState<string | null>(null);
   const [openingWorkspace, setOpeningWorkspace] = useState<string | null>(null);
+  const [assignments, setAssignments] = useState(initialAssignments);
+  const [assignmentBusy, setAssignmentBusy] = useState<string | null>(null);
+  const [assignmentError, setAssignmentError] = useState<string | null>(null);
   const activeClientCount = clients.filter((client) => client.status === "active").length;
   const clientCapReached = managedClientLimit !== null && activeClientCount >= managedClientLimit;
+  const accountManagers = members.filter((member) => member.role === "account_manager");
 
   const addClient = useCallback(async () => {
     if (name.trim().length === 0) return;
@@ -428,6 +450,48 @@ function ClientsTab({
     },
     [setClients]
   );
+
+  const assignManager = async (clientId: string, userId: string) => {
+    if (!userId) return;
+    setAssignmentBusy(clientId);
+    setAssignmentError(null);
+    try {
+      const res = await fetch(`/api/agency/clients/${clientId}/account-managers`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? "Could not assign the Account Manager.");
+      setAssignments((current) => ({ ...current, [clientId]: [...(current[clientId] ?? []), data.assignment] }));
+    } catch (e) {
+      setAssignmentError(e instanceof Error ? e.message : "Could not assign the Account Manager.");
+    } finally {
+      setAssignmentBusy(null);
+    }
+  };
+
+  const unassignManager = async (clientId: string, userId: string) => {
+    setAssignmentBusy(`${clientId}:${userId}`);
+    setAssignmentError(null);
+    try {
+      const res = await fetch(`/api/agency/clients/${clientId}/account-managers`, {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? "Could not unassign the Account Manager.");
+      setAssignments((current) => ({
+        ...current,
+        [clientId]: (current[clientId] ?? []).filter((assignment) => assignment.userId !== userId),
+      }));
+    } catch (e) {
+      setAssignmentError(e instanceof Error ? e.message : "Could not unassign the Account Manager.");
+    } finally {
+      setAssignmentBusy(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -478,7 +542,9 @@ function ClientsTab({
 
       {clients.length === 0 ? (
         <div className="bg-gray-900 border border-gray-800 border-dashed rounded-xl p-8 text-center text-sm text-gray-500">
-          No clients yet. Add your first client above to start managing their compliance.
+          {canManage
+            ? "No clients yet. Add your first client above to start managing their compliance."
+            : "No clients are assigned to you yet. Ask an Agency Admin to assign a client portfolio."}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -586,6 +652,57 @@ function ClientsTab({
                     </>
                   )}
                 </div>
+                {canManageAgency && (
+                  <div className="mt-3 border-t border-gray-800 pt-3">
+                    <p className="text-xs font-medium text-gray-300">Account Managers</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {(assignments[c.id] ?? []).map((assignment) => (
+                        <span
+                          key={assignment.userId}
+                          className="inline-flex items-center gap-1 rounded-full bg-indigo-500/10 px-2 py-1 text-xs text-indigo-200"
+                        >
+                          {assignment.email ?? assignment.userId}
+                          <button
+                            type="button"
+                            aria-label={`Unassign ${assignment.email ?? "Account Manager"} from ${c.name}`}
+                            onClick={() => unassignManager(c.id, assignment.userId)}
+                            disabled={assignmentBusy === `${c.id}:${assignment.userId}`}
+                            className="text-indigo-300 hover:text-white disabled:opacity-40"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                      {(assignments[c.id] ?? []).length === 0 && (
+                        <span className="text-xs text-gray-500">No Account Managers assigned.</span>
+                      )}
+                    </div>
+                    <label className="mt-2 block">
+                      <span className="sr-only">Assign an Account Manager to {c.name}</span>
+                      <select
+                        aria-label={`Assign an Account Manager to ${c.name}`}
+                        value=""
+                        onChange={(event) => assignManager(c.id, event.target.value)}
+                        disabled={assignmentBusy === c.id || accountManagers.length === 0}
+                        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-2 py-1.5 text-xs text-gray-200 disabled:opacity-40"
+                      >
+                        <option value="">
+                          {accountManagers.length === 0 ? "No Account Managers available" : "Assign Account Manager…"}
+                        </option>
+                        {accountManagers
+                          .filter(
+                            (member) =>
+                              !(assignments[c.id] ?? []).some((assignment) => assignment.userId === member.userId)
+                          )
+                          .map((member) => (
+                            <option key={member.userId} value={member.userId}>
+                              {member.email ?? member.userId}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -594,6 +711,11 @@ function ClientsTab({
       {provisionError && (
         <p className="text-sm text-red-400" role="alert" aria-live="polite">
           {provisionError}
+        </p>
+      )}
+      {assignmentError && (
+        <p className="text-sm text-red-400" role="alert" aria-live="polite">
+          {assignmentError}
         </p>
       )}
     </div>
