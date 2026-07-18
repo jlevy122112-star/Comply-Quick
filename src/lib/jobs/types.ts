@@ -33,4 +33,6 @@ export interface UpdateJobInput {
   attempts?: number;
   runAfter?: string;
   lastError?: string | null;
+  lockedAt?: string | null;
+  lockedBy?: string | null;
 }

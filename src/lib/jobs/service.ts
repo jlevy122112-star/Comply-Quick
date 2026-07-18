@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { getActiveOrganizationId } from "@/lib/organizations-db";
-import { getOrgEntitlement } from "@/lib/entitlements";
 import { createJobBackend, type JobBackend } from "./backend";
 import type { Job } from "./types";
 
@@ -10,10 +9,12 @@ export const JOB_CONCURRENCY_BY_TIER = {
   agency: 5,
   enterprise: 1_000_000,
 } as const;
+// The org_job_concurrency_limit SQL helper must mirror this map.
 
 const DEFAULT_MAX_ATTEMPTS = 3;
 const DEFAULT_PRIORITY = 0;
 const DEFAULT_RETRY_DELAY_MS = 1_000;
+const DEFAULT_STALE_JOB_TIMEOUT_MS = 5 * 60 * 1_000;
 
 export interface EnqueueOptions {
   priority?: number;
@@ -24,6 +25,7 @@ export interface EnqueueOptions {
 export interface JobQueueOptions {
   backend?: JobBackend;
   retryDelayMs?: number;
+  staleJobTimeoutMs?: number;
 }
 
 async function requireContext(): Promise<{ organizationId: string; userId: string }> {
@@ -37,18 +39,15 @@ async function requireContext(): Promise<{ organizationId: string; userId: strin
   return { organizationId, userId: user.id };
 }
 
-async function resolveConcurrencyLimit(): Promise<number> {
-  const entitlement = await getOrgEntitlement();
-  return JOB_CONCURRENCY_BY_TIER[entitlement.tier];
-}
-
 export class JobQueue {
   private readonly backend: JobBackend;
   private readonly retryDelayMs: number;
+  private readonly staleJobTimeoutMs: number;
 
   constructor(options: JobQueueOptions = {}) {
     this.backend = options.backend ?? createJobBackend();
     this.retryDelayMs = options.retryDelayMs ?? DEFAULT_RETRY_DELAY_MS;
+    this.staleJobTimeoutMs = options.staleJobTimeoutMs ?? DEFAULT_STALE_JOB_TIMEOUT_MS;
   }
 
   async enqueue(type: string, payload: Record<string, unknown>, options: EnqueueOptions = {}): Promise<Job> {
@@ -72,11 +71,24 @@ export class JobQueue {
   async claimBatch(workerId: string, batchSize = 10): Promise<Job[]> {
     if (!workerId.trim()) throw new Error("A worker id is required.");
     if (!Number.isInteger(batchSize) || batchSize <= 0) throw new Error("batchSize must be positive.");
-    return this.backend.claimBatch(workerId, batchSize, await resolveConcurrencyLimit());
+    await this.backend.reclaimStale(this.staleJobTimeoutMs);
+    return this.backend.claimBatch(workerId, batchSize);
+  }
+
+  async reclaimStale(timeoutMs = this.staleJobTimeoutMs): Promise<number> {
+    if (!Number.isInteger(timeoutMs) || timeoutMs <= 0) {
+      throw new Error("timeoutMs must be positive.");
+    }
+    return this.backend.reclaimStale(timeoutMs);
   }
 
   async completeJob(id: string): Promise<Job> {
-    return this.backend.update(id, { status: "succeeded", lastError: null });
+    return this.backend.update(id, {
+      status: "succeeded",
+      lastError: null,
+      lockedAt: null,
+      lockedBy: null,
+    });
   }
 
   async failJob(id: string, error: unknown): Promise<Job> {
@@ -89,6 +101,8 @@ export class JobQueue {
         status: "failed",
         attempts,
         lastError: message,
+        lockedAt: null,
+        lockedBy: null,
       });
     }
 
@@ -98,6 +112,8 @@ export class JobQueue {
       attempts,
       runAfter: new Date(Date.now() + delay).toISOString(),
       lastError: message,
+      lockedAt: null,
+      lockedBy: null,
     });
   }
 

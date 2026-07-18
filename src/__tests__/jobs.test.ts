@@ -59,10 +59,18 @@ function job(overrides: Partial<Job> = {}): Job {
 
 function fakeBackend(initial: Job[] = []): JobBackend & {
   jobs: Map<string, Job>;
-  calls: { claim?: [string, number, number]; enqueue?: Parameters<JobBackend["enqueue"]>[0] };
+  calls: {
+    reclaim?: number;
+    claim?: [string, number];
+    enqueue?: Parameters<JobBackend["enqueue"]>[0];
+  };
 } {
   const jobs = new Map(initial.map((item) => [item.id, item]));
-  const calls: { claim?: [string, number, number]; enqueue?: Parameters<JobBackend["enqueue"]>[0] } = {};
+  const calls: {
+    reclaim?: number;
+    claim?: [string, number];
+    enqueue?: Parameters<JobBackend["enqueue"]>[0];
+  } = {};
   return {
     jobs,
     calls,
@@ -82,8 +90,17 @@ function fakeBackend(initial: Job[] = []): JobBackend & {
       jobs.set(created.id, created);
       return created;
     }),
-    claimBatch: vi.fn(async (workerId, batchSize, perOrgLimit) => {
-      calls.claim = [workerId, batchSize, perOrgLimit];
+    reclaimStale: vi.fn(async (timeoutMs) => {
+      calls.reclaim = timeoutMs;
+      for (const [id, current] of jobs) {
+        if (id === "stale" && current.status === "running") {
+          jobs.set(id, { ...current, status: "queued", lockedAt: null, lockedBy: null });
+        }
+      }
+      return 1;
+    }),
+    claimBatch: vi.fn(async (workerId, batchSize) => {
+      calls.claim = [workerId, batchSize];
       return [...jobs.values()].slice(0, batchSize);
     }),
     update: vi.fn(async (id, input) => {
@@ -131,7 +148,7 @@ describe("Postgres job queue", () => {
     });
   });
 
-  it("passes the tier concurrency cap to the atomic claim RPC", async () => {
+  it("reclaims stale jobs before calling the atomic claim RPC", async () => {
     const backend = fakeBackend([
       job({ id: "org-a-high", organizationId: "org-a", priority: 10 }),
       job({ id: "org-b", organizationId: "org-b", priority: 9 }),
@@ -140,21 +157,42 @@ describe("Postgres job queue", () => {
 
     const claimed = await queue.claimBatch("worker-1", 2);
 
-    expect(backend.calls.claim).toEqual(["worker-1", 2, 5]);
+    expect(backend.calls.reclaim).toBe(300_000);
+    expect(backend.calls.claim).toEqual(["worker-1", 2]);
     expect(claimed.map((item) => item.id)).toEqual(["org-a-high", "org-b"]);
   });
 
-  it("uses low free limits and the highest enterprise limit", async () => {
-    const backend = fakeBackend();
+  it("keeps different organizations on their own tier caps in one claim", async () => {
+    const freeJobs = Array.from({ length: 3 }, (_, index) =>
+      job({ id: `free-${index + 1}`, organizationId: "org-free", status: "queued" })
+    );
+    const agencyJobs = Array.from({ length: 7 }, (_, index) =>
+      job({ id: `agency-${index + 1}`, organizationId: "org-agency", status: "queued" })
+    );
+    const backend = fakeBackend([...freeJobs, ...agencyJobs]);
+    backend.claimBatch = vi.fn(async (workerId, batchSize) => {
+      backend.calls.claim = [workerId, batchSize];
+      const limits = new Map([
+        ["org-free", 1],
+        ["org-agency", 5],
+      ]);
+      const running = new Map<string, number>();
+      return [...freeJobs, ...agencyJobs]
+        .filter((item) => {
+          const count = running.get(item.organizationId) ?? 0;
+          const allowed = count < (limits.get(item.organizationId) ?? 1);
+          if (allowed) running.set(item.organizationId, count + 1);
+          return allowed;
+        })
+        .slice(0, batchSize);
+    });
     const queue = createJobQueue({ backend });
 
-    state.tier = "free";
-    await queue.claimBatch("free-worker", 1);
-    expect(backend.calls.claim).toEqual(["free-worker", 1, 1]);
+    const claimed = await queue.claimBatch("worker-1", 10);
 
-    state.tier = "enterprise";
-    await queue.claimBatch("enterprise-worker", 1);
-    expect(backend.calls.claim).toEqual(["enterprise-worker", 1, 1_000_000]);
+    expect(backend.calls.claim).toEqual(["worker-1", 10]);
+    expect(claimed.filter((item) => item.organizationId === "org-free")).toHaveLength(1);
+    expect(claimed.filter((item) => item.organizationId === "org-agency")).toHaveLength(5);
   });
 
   it("retries failures with exponential backoff and eventually marks them failed", async () => {
@@ -169,12 +207,29 @@ describe("Postgres job queue", () => {
     expect(retried.attempts).toBe(1);
     expect(retried.lastError).toBe("temporary");
     expect(retried.runAfter).toBe("2026-01-01T00:00:01.000Z");
+    expect(retried.lockedAt).toBeNull();
+    expect(retried.lockedBy).toBeNull();
 
     const failed = await queue.failJob("retry", "permanent");
     await queue.failJob("retry", "permanent");
     expect(failed.status).toBe("queued");
     expect(backend.jobs.get("retry")?.status).toBe("failed");
     expect(backend.jobs.get("retry")?.attempts).toBe(3);
+  });
+
+  it("reclaims stale running jobs and clears their lock metadata", async () => {
+    const backend = fakeBackend([job({ id: "stale", status: "running" })]);
+    const queue = createJobQueue({ backend });
+
+    const reclaimed = await queue.reclaimStale(120_000);
+
+    expect(reclaimed).toBe(1);
+    expect(backend.calls.reclaim).toBe(120_000);
+    expect(backend.jobs.get("stale")).toMatchObject({
+      status: "queued",
+      lockedAt: null,
+      lockedBy: null,
+    });
   });
 
   it("completes jobs and scopes observability reads to the active organization", async () => {
@@ -232,14 +287,24 @@ describe("Postgres job queue", () => {
     });
 
     const backend = new PostgresJobBackend();
-    const claimed = await backend.claimBatch("worker", 2, 1);
+    const claimed = await backend.claimBatch("worker", 2);
 
     expect(state.admin.rpc).toHaveBeenCalledWith("claim_jobs", {
       worker_id: "worker",
       batch_size: 2,
-      per_org_limit: 1,
     });
     expect(claimed.map((item) => item.id)).toEqual(["high", "other-tenant"]);
+  });
+
+  it("calls the stale-job reclaim RPC in seconds", async () => {
+    state.admin.rpc.mockResolvedValue({ data: 2, error: null });
+    const backend = new PostgresJobBackend();
+
+    await expect(backend.reclaimStale(120_500)).resolves.toBe(2);
+
+    expect(state.admin.rpc).toHaveBeenCalledWith("reclaim_stale_jobs", {
+      timeout_seconds: 120,
+    });
   });
 });
 

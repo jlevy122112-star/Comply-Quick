@@ -3,7 +3,8 @@ import type { EnqueueJobInput, Job, UpdateJobInput } from "./types";
 
 export interface JobBackend {
   enqueue(input: EnqueueJobInput): Promise<Job>;
-  claimBatch(workerId: string, batchSize: number, perOrgLimit: number): Promise<Job[]>;
+  reclaimStale(timeoutMs: number): Promise<number>;
+  claimBatch(workerId: string, batchSize: number): Promise<Job[]>;
   update(id: string, input: UpdateJobInput): Promise<Job>;
   listOrgJobs(organizationId: string): Promise<Job[]>;
   getJob(organizationId: string, id: string): Promise<Job | null>;
@@ -71,11 +72,19 @@ export class PostgresJobBackend implements JobBackend {
     return mapJob(data as JobRow);
   }
 
-  async claimBatch(workerId: string, batchSize: number, perOrgLimit: number): Promise<Job[]> {
+  async reclaimStale(timeoutMs: number): Promise<number> {
+    const timeoutSeconds = Math.max(1, Math.floor(timeoutMs / 1_000));
+    const { data, error } = await this.admin.rpc("reclaim_stale_jobs", {
+      timeout_seconds: timeoutSeconds,
+    });
+    if (error) throw new Error(error.message);
+    return typeof data === "number" ? data : 0;
+  }
+
+  async claimBatch(workerId: string, batchSize: number): Promise<Job[]> {
     const { data, error } = await this.admin.rpc("claim_jobs", {
       worker_id: workerId,
       batch_size: batchSize,
-      per_org_limit: perOrgLimit,
     });
     if (error) throw new Error(error.message);
     return ((data ?? []) as JobRow[]).map(mapJob);
@@ -89,6 +98,8 @@ export class PostgresJobBackend implements JobBackend {
         ...(input.attempts === undefined ? {} : { attempts: input.attempts }),
         ...(input.runAfter === undefined ? {} : { run_after: input.runAfter }),
         ...(input.lastError === undefined ? {} : { last_error: input.lastError }),
+        ...(input.lockedAt === undefined ? {} : { locked_at: input.lockedAt }),
+        ...(input.lockedBy === undefined ? {} : { locked_by: input.lockedBy }),
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)
