@@ -53,6 +53,26 @@ as $$
 declare
   cursor_id uuid := new.parent_organization_id;
 begin
+  if (
+    (tg_op = 'INSERT' and new.parent_organization_id is not null)
+    or (
+      tg_op = 'UPDATE'
+      and new.parent_organization_id is distinct from old.parent_organization_id
+      and new.parent_organization_id is not null
+    )
+  ) then
+    if coalesce(new.is_personal, false)
+      or exists (
+        select 1
+        from public.organizations parent
+        where parent.id = new.parent_organization_id
+          and parent.is_personal
+      )
+      or not public.is_org_hierarchy_admin(new.parent_organization_id) then
+      raise exception 'Only hierarchy admins can attach non-personal organizations to non-personal parents';
+    end if;
+  end if;
+
   while cursor_id is not null loop
     if cursor_id = new.id then
       raise exception 'Organization hierarchy cycles are not allowed';
@@ -99,20 +119,8 @@ create policy organizations_hierarchy_insert_guard
   );
 
 drop policy if exists organizations_hierarchy_update_guard on public.organizations;
-create policy organizations_hierarchy_update_guard
+drop policy if exists organizations_update_hierarchy on public.organizations;
+create policy organizations_update_hierarchy
   on public.organizations for update
-  as restrictive
   using (public.is_org_hierarchy_admin(id))
-  with check (
-    parent_organization_id is null
-    or (
-      not coalesce(is_personal, false)
-      and not exists (
-        select 1
-        from public.organizations parent
-        where parent.id = parent_organization_id
-          and parent.is_personal
-      )
-      and public.is_org_hierarchy_admin(parent_organization_id)
-    )
-  );
+  with check (public.is_org_hierarchy_admin(id));

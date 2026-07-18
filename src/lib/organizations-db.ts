@@ -122,8 +122,21 @@ export const getOrCreateOrganization = cache(async (): Promise<Organization | nu
 export async function listMyOrganizations(): Promise<Organization[]> {
   try {
     const supabase = await createClient();
-    const { data } = await supabase.from("organizations").select("*").order("created_at", { ascending: true });
-    return ((data ?? []) as OrgRow[]).map(mapOrg);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return [];
+    const [{ data: owned }, { data: memberships }] = await Promise.all([
+      supabase.from("organizations").select("*").eq("owner_id", user.id),
+      supabase.from("organization_members").select("organization_id").eq("user_id", user.id),
+    ]);
+    const ids = [...new Set((memberships ?? []).map((row) => row.organization_id as string))];
+    const { data: memberOrganizations } = ids.length
+      ? await supabase.from("organizations").select("*").in("id", ids)
+      : { data: [] };
+    const byId = new Map<string, OrgRow>();
+    for (const row of [...(owned ?? []), ...(memberOrganizations ?? [])] as OrgRow[]) byId.set(row.id, row);
+    return [...byId.values()].sort((a, b) => a.created_at.localeCompare(b.created_at)).map(mapOrg);
   } catch {
     return [];
   }

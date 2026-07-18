@@ -4,6 +4,15 @@ import { useState } from "react";
 import type { OrganizationTreeNode, OrganizationKind } from "@/lib/org-hierarchy";
 import { createChildOrganizationAction, reparentOrganizationAction } from "./actions";
 
+function descendantIds(node: OrganizationTreeNode): Set<string> {
+  const ids = new Set<string>();
+  for (const child of node.children) {
+    ids.add(child.id);
+    for (const id of descendantIds(child)) ids.add(id);
+  }
+  return ids;
+}
+
 function Tree({
   node,
   canManage,
@@ -31,7 +40,7 @@ function Tree({
             >
               <option value="">Root</option>
               {options
-                .filter((option) => option.id !== node.id)
+                .filter((option) => option.id !== node.id && !descendantIds(node).has(option.id))
                 .map((option) => (
                   <option key={option.id} value={option.id}>
                     {option.name}

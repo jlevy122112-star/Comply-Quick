@@ -135,6 +135,11 @@ export async function createChildOrganization(input: {
     .select("*")
     .single();
   if (error || !data) throw new Error("Could not create the child organization.");
+  await supabase.from("organization_members").insert({
+    organization_id: (data as Record<string, unknown>).id as string,
+    user_id: userData.user.id,
+    role: "owner",
+  });
   return asOrganization(data as Record<string, unknown>);
 }
 
