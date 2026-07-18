@@ -22,6 +22,16 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const themeScript = `
+  (() => {
+    try {
+      if (localStorage.getItem("comply-quick-theme") === "dark") {
+        document.documentElement.classList.add("dark");
+      }
+    } catch {}
+  })();
+`;
+
 export const metadata: Metadata = {
   title: {
     default: "Comply-Quick — Compliance Package Generator for Web Agencies",
@@ -74,6 +84,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${geistMono.variable} h-full antialiased`}>
+      <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       <body className="min-h-full flex flex-col">
         {children}
         <WebVitalsReporter />
