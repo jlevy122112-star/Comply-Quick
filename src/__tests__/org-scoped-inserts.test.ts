@@ -16,7 +16,7 @@ const { serverRows, mockServerClient } = vi.hoisted(() => ({
           select: () => ({
             eq: () => ({
               eq: () => ({
-                maybeSingle: async () => ({ data: { id: "project-a" }, error: null }),
+                maybeSingle: async () => ({ data: { id: "project-a", organization_id: "org-a" }, error: null }),
               }),
             }),
           }),
@@ -104,11 +104,11 @@ describe("organization-scoped insert paths", () => {
     const rows: Record<string, unknown>[] = [];
     const admin = {
       from(table: string) {
-        if (table === "organizations") {
+        if (table === "projects") {
           return {
             select: () => ({
               eq: () => ({
-                maybeSingle: async () => ({ data: { id: "org-a" }, error: null }),
+                maybeSingle: async () => ({ data: { organization_id: "org-a" }, error: null }),
               }),
             }),
           };
