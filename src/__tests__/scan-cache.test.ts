@@ -10,7 +10,7 @@ let insertedRow: Record<string, unknown> | null = null;
 
 function makeQuery() {
   const builder: Record<string, unknown> = {};
-  for (const m of ["select", "eq", "gte", "order", "limit", "insert", "update"]) {
+  for (const m of ["select", "eq", "or", "gte", "order", "limit", "insert", "update"]) {
     builder[m] = () => builder;
   }
   builder.maybeSingle = async () => ({ data: cacheRow });
@@ -31,6 +31,7 @@ vi.mock("@/lib/scanner/pipeline", () => ({
 
 vi.mock("@/lib/entitlements", () => ({
   getEntitlement: async () => ({ isPremium: true }),
+  getOrgEntitlement: async () => ({ isPremium: true }),
 }));
 
 vi.mock("@/services/ai", () => ({ getAiClient: () => ({}) }));
