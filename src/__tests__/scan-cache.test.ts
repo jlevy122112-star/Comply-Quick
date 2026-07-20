@@ -9,13 +9,20 @@ let cacheRow: Record<string, unknown> | null = null;
 let insertedRow: Record<string, unknown> | null = null;
 
 function makeQuery() {
-  const builder: Record<string, unknown> = {};
-  for (const m of ["select", "eq", "gte", "order", "limit", "insert", "update"]) {
-    builder[m] = () => builder;
-  }
-  builder.maybeSingle = async () => ({ data: cacheRow });
-  builder.single = async () => ({ data: insertedRow, error: null });
-  return builder;
+  return new Proxy({} as Record<string, unknown>, {
+    get(_, prop) {
+      if (prop === "then") {
+        return (resolve: (value: unknown) => void) => resolve({ data: [] });
+      }
+      if (prop === "maybeSingle") {
+        return async () => ({ data: cacheRow });
+      }
+      if (prop === "single") {
+        return async () => ({ data: insertedRow, error: null });
+      }
+      return () => makeQuery();
+    },
+  });
 }
 
 vi.mock("@/lib/supabase/server", () => ({

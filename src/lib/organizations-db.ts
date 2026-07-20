@@ -20,6 +20,8 @@ export interface Organization {
   name: string;
   slug: string;
   plan: "free" | "team" | "enterprise";
+  parentOrganizationId: string | null;
+  isPersonal: boolean;
   createdAt: string;
 }
 
@@ -38,6 +40,8 @@ interface OrgRow {
   name: string;
   slug: string;
   plan: Organization["plan"];
+  parent_organization_id: string | null;
+  is_personal: boolean;
   created_at: string;
 }
 
@@ -57,6 +61,8 @@ function mapOrg(row: OrgRow): Organization {
     name: row.name,
     slug: row.slug,
     plan: row.plan,
+    parentOrganizationId: row.parent_organization_id ?? null,
+    isPersonal: row.is_personal ?? false,
     createdAt: row.created_at,
   };
 }
@@ -276,4 +282,108 @@ export async function removeOrgMember(memberId: string): Promise<boolean> {
   const supabase = await createClient();
   const { error } = await supabase.from("organization_members").delete().eq("id", memberId);
   return !error;
+}
+
+/** Fetch a single organization the caller can see (owner or member of this org or an ancestor). */
+export async function getOrganization(orgId: string): Promise<Organization | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("organizations").select("*").eq("id", orgId).maybeSingle();
+  if (error || !data) return null;
+  return mapOrg(data as OrgRow);
+}
+
+/** Direct children of an organization. */
+export async function listOrganizationChildren(orgId: string): Promise<Organization[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("organizations")
+    .select("*")
+    .eq("parent_organization_id", orgId)
+    .order("name", { ascending: true });
+  if (error || !data) return [];
+  return (data as OrgRow[]).map(mapOrg);
+}
+
+/** Creates a child organization under `parentId`. The caller must be an admin of the parent. */
+export async function createChildOrganization(
+  parentId: string,
+  name: string,
+  plan: Organization["plan"] = "team"
+): Promise<{ ok: true; organization: Organization } | { ok: false; error: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Unauthorized." };
+
+  const parent = await getOrganization(parentId);
+  if (!parent) return { ok: false, error: "Parent organization not found." };
+
+  const base = slugify(name);
+  const slug = `${base}-${crypto.randomUUID().slice(0, 8)}`;
+  const { data, error } = await supabase
+    .from("organizations")
+    .insert({
+      owner_id: user.id,
+      name: name.trim().slice(0, 120) || "Child Organization",
+      slug,
+      plan,
+      parent_organization_id: parentId,
+      is_personal: false,
+    })
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    return { ok: false, error: "Could not create child organization." };
+  }
+
+  // Best-effort owner membership row for uniform role resolution.
+  await supabase
+    .from("organization_members")
+    .insert({ organization_id: (data as OrgRow).id, user_id: user.id, role: "owner" })
+    .maybeSingle();
+
+  return { ok: true, organization: mapOrg(data as OrgRow) };
+}
+
+/** Moves an organization under a new parent, preventing cycles. */
+export async function moveOrganization(
+  orgId: string,
+  newParentId: string | null
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = await createClient();
+
+  const org = await getOrganization(orgId);
+  if (!org) return { ok: false, error: "Organization not found." };
+
+  if (newParentId !== null) {
+    const parent = await getOrganization(newParentId);
+    if (!parent) return { ok: false, error: "Parent organization not found." };
+
+    const { data } = await supabase.rpc("is_org_descendant", { ancestor: orgId, candidate: newParentId });
+    if (data === true) {
+      return { ok: false, error: "Cannot move an organization under one of its own descendants." };
+    }
+  }
+
+  const { error } = await supabase
+    .from("organizations")
+    .update({ parent_organization_id: newParentId, updated_at: new Date().toISOString() })
+    .eq("id", orgId);
+
+  if (error) return { ok: false, error: "Could not move organization." };
+  return { ok: true };
+}
+
+/** Full path from root to the given org, ordered root-first. */
+export async function getOrganizationPath(orgId: string): Promise<Organization[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_org_ancestors", { o_id: orgId });
+  if (error || !data) return [];
+  const ids = data as { id: string }[];
+  const { data: rows } = await supabase.from("organizations").select("*").in("id", ids.map((r) => r.id));
+  if (!rows) return [];
+  const byId = new Map((rows as OrgRow[]).map((r) => [r.id, mapOrg(r)]));
+  return ids.map((r) => byId.get(r.id)).filter((o): o is Organization => o !== undefined);
 }

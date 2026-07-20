@@ -8,17 +8,20 @@ import { listWorkspaces, countWorkspaces } from "@/lib/workspaces-db";
 import { listSsoConnections, ssoEnabled } from "@/lib/sso-db";
 import { listScimTokens, scimEnabled } from "@/lib/scim/tokens";
 import { listScimUsers } from "@/lib/scim/provisioning";
+import { getEntitlement } from "@/lib/entitlements";
+import { listMyOrganizations } from "@/lib/organizations-db";
 import { OrgProfilePanel } from "./OrgProfilePanel";
 import { BrandLogoPanel } from "./BrandLogoPanel";
 import { MembersPanel } from "./MembersPanel";
 import { WorkspacesPanel } from "./WorkspacesPanel";
 import { SsoPanel } from "./SsoPanel";
 import { ScimPanel } from "./ScimPanel";
+import { HierarchyPanel } from "./HierarchyPanel";
 
 export const dynamic = "force-dynamic";
 
 const BASE = "/dashboard/settings/organization";
-type Tab = "profile" | "members" | "workspaces" | "sso" | "scim";
+type Tab = "profile" | "members" | "workspaces" | "hierarchy" | "sso" | "scim";
 
 export default async function OrganizationSettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const org = await getOrCreateOrganization();
@@ -26,16 +29,23 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
 
   const role = (await getMyOrgRole(org.id)) ?? "viewer";
   const { tab: tabParam } = await searchParams;
-  const tab: Tab = (["profile", "members", "workspaces", "sso", "scim"] as const).includes(tabParam as Tab)
+  const tab: Tab = (["profile", "members", "workspaces", "hierarchy", "sso", "scim"] as const).includes(
+    tabParam as Tab
+  )
     ? (tabParam as Tab)
     : "profile";
 
   // Cheap counts drive the tab badges on every load; the heavy list (member
   // email resolution, workspace project tallies, SSO rows) is fetched only for
   // the active tab so, e.g., viewing Profile never pays the members email cost.
-  const [memberCount, workspaceCount] = await Promise.all([countOrgMembers(org.id), countWorkspaces(org.id)]);
+  const [memberCount, workspaceCount, entitlement] = await Promise.all([
+    countOrgMembers(org.id),
+    countWorkspaces(org.id),
+    getEntitlement(),
+  ]);
   const members = tab === "members" ? await listOrgMembers(org.id) : [];
   const workspaces = tab === "workspaces" ? await listWorkspaces(org.id) : [];
+  const hierarchyOrgs = tab === "hierarchy" ? await listMyOrganizations() : [];
   const sso = tab === "sso" ? await listSsoConnections(org.id) : [];
   const scimTokens = tab === "scim" ? await listScimTokens(org.id) : [];
   const scimUsers = tab === "scim" ? (await listScimUsers(org.id, { limit: 200 })).users : [];
@@ -44,6 +54,7 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
     { key: "profile", label: "Profile" },
     { key: "members", label: "Members", count: memberCount },
     { key: "workspaces", label: "Workspaces", count: workspaceCount },
+    { key: "hierarchy", label: "Hierarchy" },
     { key: "sso", label: "SSO" },
     { key: "scim", label: "SCIM" },
   ];
@@ -88,6 +99,14 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
         )}
         {tab === "members" && <MembersPanel orgId={org.id} role={role} members={members} />}
         {tab === "workspaces" && <WorkspacesPanel orgId={org.id} role={role} workspaces={workspaces} />}
+        {tab === "hierarchy" && (
+          <HierarchyPanel
+            orgs={hierarchyOrgs}
+            currentOrgId={org.id}
+            role={role}
+            isEnterprise={entitlement.isEnterprise}
+          />
+        )}
         {tab === "sso" && <SsoPanel orgId={org.id} role={role} connections={sso} live={ssoEnabled()} />}
         {tab === "scim" && (
           <ScimPanel

@@ -83,6 +83,8 @@ function mapOrganization(row: Record<string, unknown>): Organization {
     name: row.name as string,
     slug: row.slug as string,
     plan: (row.plan as Organization["plan"]) ?? "team",
+    parentOrganizationId: (row.parent_organization_id as string | null) ?? null,
+    isPersonal: (row.is_personal as boolean | null) ?? false,
     createdAt: row.created_at as string,
   };
 }

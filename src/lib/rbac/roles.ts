@@ -33,6 +33,17 @@ export const ROLE_DESCRIPTIONS: Record<Role, string> = {
   viewer: "Read-only access to shared workspaces and projects.",
 };
 
+/** Agency-facing labels for the generic role ladder.
+ *  Maps the RBAC layer to the names requested by enterprise/agency customers.
+ */
+export const AGENCY_ROLE_LABELS: Record<Role, string> = {
+  owner: "Agency Owner",
+  admin: "Agency Admin",
+  manager: "Account Manager",
+  member: "Member",
+  viewer: "Client Viewer",
+};
+
 export function isRole(value: string): value is Role {
   return (ROLES as readonly string[]).includes(value);
 }
@@ -45,4 +56,9 @@ export function atLeast(role: Role, min: Role): boolean {
 /** Roles a holder of `actor` is allowed to assign to others (never above self). */
 export function assignableRoles(actor: Role): Role[] {
   return ROLES.filter((r) => ROLE_RANK[r] <= ROLE_RANK[actor]);
+}
+
+/** Returns the agency-facing label for a role, falling back to the generic label. */
+export function agencyRoleLabel(role: Role): string {
+  return AGENCY_ROLE_LABELS[role] ?? ROLE_LABELS[role];
 }

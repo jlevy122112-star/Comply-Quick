@@ -8,6 +8,9 @@ import {
   addOrgMemberByEmail,
   updateOrgMemberRole,
   removeOrgMember,
+  getOrganization,
+  createChildOrganization,
+  moveOrganization,
 } from "@/lib/organizations-db";
 import { createWorkspace, renameWorkspace, deleteWorkspace } from "@/lib/workspaces-db";
 import { createSsoConnection, setSsoEnabled, deleteSsoConnection, type SsoProtocol } from "@/lib/sso-db";
@@ -146,4 +149,38 @@ export async function revokeScimTokenAction(orgId: string, id: string): Promise<
   const ok = await revokeScimToken(orgId, id);
   revalidatePath(PATH);
   return ok ? { ok: true } : { ok: false, error: "Could not revoke the token." };
+}
+
+export async function createChildOrganizationAction(
+  parentId: string,
+  name: string
+): Promise<{ ok: true } | Denied> {
+  const gate = await authorize(parentId, "org:update");
+  if (!gate.ok) return gate;
+  const parent = await getOrganization(parentId);
+  if (!parent || parent.plan !== "enterprise") {
+    return { ok: false, error: "Sub-organizations require an Enterprise plan." };
+  }
+  const res = await createChildOrganization(parentId, name, parent.plan);
+  revalidatePath(PATH);
+  return res.ok ? { ok: true } : { ok: false, error: res.error };
+}
+
+export async function moveOrganizationAction(
+  orgId: string,
+  newParentId: string | null
+): Promise<{ ok: true } | Denied> {
+  const gate = await authorize(orgId, "org:update");
+  if (!gate.ok) return gate;
+  if (newParentId !== null) {
+    const parentGate = await authorize(newParentId, "org:update");
+    if (!parentGate.ok) return parentGate;
+    const parent = await getOrganization(newParentId);
+    if (!parent || parent.plan !== "enterprise") {
+      return { ok: false, error: "Only Enterprise organizations can be parents." };
+    }
+  }
+  const res = await moveOrganization(orgId, newParentId);
+  revalidatePath(PATH);
+  return res.ok ? { ok: true } : { ok: false, error: res.error };
 }
