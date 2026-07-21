@@ -18,7 +18,10 @@
     "quality": "npm run typecheck && npm run lint && npm run test && npm run format:check",
     "prepare": "husky",
     "test:e2e": "playwright test",
-    "test:e2e:update": "playwright test --update-snapshots"
+    "test:e2e:update": "playwright test --update-snapshots",
+    "docs:api": "typedoc",
+    "docs:build": "npm run docs:api",
+    "docs": "npm run docs:build"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -35,6 +38,7 @@
     "@supabase/supabase-js": "^2.110.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
+    "lucide-react": "1.24.0",
     "next": "16.2.10",
     "openai": "^6.45.0",
     "react": "19.2.4",
@@ -43,6 +47,7 @@
     "undici": "^7.28.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.61.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -58,8 +63,9 @@
     "lint-staged": "^16.4.0",
     "prettier": "^3.9.4",
     "tailwindcss": "^4",
+    "typedoc": "^0.28.20",
+    "typedoc-plugin-markdown": "^4.12.0",
     "typescript": "^5",
-    "vitest": "^4.1.9",
-    "@playwright/test": "1.61.1"
+    "vitest": "^4.1.9"
   }
 }

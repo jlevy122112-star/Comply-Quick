@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAggregateScore, type DbProject } from "@/lib/projects-db";
-import { canUseAgencyPortal, getOrCreateAgency, type AgencyClient } from "./service";
+import { canUseAgencyPortal, getAgencyAccess, type AgencyClient } from "./service";
 import { ForbiddenError } from "@/services/errors";
 
 export type PortfolioRisk = "good" | "warning" | "critical" | "none";
@@ -129,7 +129,8 @@ export async function getAgencyPortfolioAnalytics(): Promise<AgencyPortfolioAnal
     throw new ForbiddenError("The client portfolio analytics view is available on the Agency and Enterprise plans.");
   }
 
-  const agency = await getOrCreateAgency();
+  const access = await getAgencyAccess();
+  const agency = access.agency;
   const supabase = await createClient();
   const { data: clients, error } = await supabase
     .from("agency_clients")
@@ -137,9 +138,19 @@ export async function getAgencyPortfolioAnalytics(): Promise<AgencyPortfolioAnal
     .eq("agency_id", agency.id)
     .order("created_at", { ascending: false });
   if (error) return { clients: [], summary: summarizePortfolio([]) };
+  let visibleClients = clients ?? [];
+  if (access.role === "account_manager") {
+    const { data: assignments } = await supabase
+      .from("agency_client_account_managers")
+      .select("client_id")
+      .eq("agency_id", agency.id)
+      .eq("user_id", access.userId);
+    const assignedIds = new Set((assignments ?? []).map((row) => row.client_id as string));
+    visibleClients = visibleClients.filter((row) => assignedIds.has(row.id as string));
+  }
 
   const admin = createAdminClient();
-  const agencyClients = (clients ?? []).map((row) => ({
+  const agencyClients = visibleClients.map((row) => ({
     id: row.id as string,
     agencyId: row.agency_id as string,
     name: row.name as string,

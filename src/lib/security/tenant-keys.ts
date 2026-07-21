@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { getEntitlement } from "@/lib/entitlements";
+import { getOrgEntitlement } from "@/lib/entitlements";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { decryptWithDek, encryptWithDek } from "./envelope";
 import { getKeyProvider, getKeyProviderInfo, type KeyProvider } from "./key-provider";
@@ -160,22 +160,22 @@ export async function rotateTenantKey(orgId: string): Promise<TenantEncryptionSt
   return mapRow(data as TenantKeyRow);
 }
 
-async function requireEnterprise(): Promise<void> {
-  const entitlement = await getEntitlement();
+async function requireEnterprise(orgId: string): Promise<void> {
+  const entitlement = await getOrgEntitlement(orgId);
   if (!entitlement.isEnterprise) {
     throw new Error("Field-level encryption requires an active Enterprise subscription.");
   }
 }
 
 export async function encryptField(orgId: string, plaintext: string): Promise<string> {
-  await requireEnterprise();
+  await requireEnterprise(orgId);
   const provider = getKeyProvider();
   const dek = await getDek(orgId, provider, { create: true });
   return encryptWithDek(orgId, plaintext, dek);
 }
 
 export async function decryptField(orgId: string, payload: string): Promise<string> {
-  await requireEnterprise();
+  await requireEnterprise(orgId);
   const provider = getKeyProvider();
   const dek = await getDek(orgId, provider, { create: false });
   return decryptWithDek(orgId, payload, dek);

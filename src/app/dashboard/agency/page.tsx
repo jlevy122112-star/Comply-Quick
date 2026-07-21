@@ -8,7 +8,9 @@ import {
   listClients,
   listDomains,
   getClientStats,
+  listAgencyClientAssignments,
   listMembers,
+  getAgencyAccess,
 } from "@/lib/agency/service";
 import { getAgencyPortfolioAnalytics } from "@/lib/agency/analytics";
 import { getBillingSummary } from "@/lib/billing/usage";
@@ -60,7 +62,7 @@ export default async function AgencyPortalPage() {
     );
   }
 
-  const [agency, clients, domains, stats, members, billing, portfolioAnalytics] = await Promise.all([
+  const [agency, clients, domains, stats, members, billing, portfolioAnalytics, access] = await Promise.all([
     getOrCreateAgency(),
     listClients(),
     listDomains(),
@@ -68,7 +70,12 @@ export default async function AgencyPortalPage() {
     listMembers(),
     getBillingSummary(),
     getAgencyPortfolioAnalytics(),
+    getAgencyAccess(),
   ]);
+  const assignments =
+    access.role === "owner" || access.role === "admin"
+      ? await listAgencyClientAssignments(clients.map((client) => client.id))
+      : {};
 
   return (
     <AgencyPortalView
@@ -82,6 +89,8 @@ export default async function AgencyPortalPage() {
       billing={billing}
       managedClientLimit={managedClientLimit(entitlement.tier)}
       portfolioAnalytics={portfolioAnalytics}
+      agencyRole={access.role}
+      assignments={assignments}
     />
   );
 }

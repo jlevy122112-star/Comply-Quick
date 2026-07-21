@@ -26,25 +26,32 @@ vi.mock("@/lib/supabase/client", () => ({
   }),
 }));
 
-vi.mock("@/app/login/actions", () => ({
-  loginAction: async (formData: FormData) => {
-    const { error } = await authMocks.signInWithPassword({
-      email: String(formData.get("email")),
-      password: String(formData.get("password")),
-    });
-    if (error) return { error: error.message };
-  },
-  signupAction: async (formData: FormData) => {
-    const password = String(formData.get("password"));
-    if (password.length < 8) return { error: "Password must be at least 8 characters." };
-    if (password !== String(formData.get("confirmPassword"))) return { error: "Passwords don't match." };
-    await authMocks.signUp({ email: String(formData.get("email")), password });
-  },
+vi.mock("@/lib/supabase/server", () => ({
+  createClient: async () => ({
+    auth: {
+      signInWithPassword: authMocks.signInWithPassword,
+      signUp: authMocks.signUp,
+    },
+  }),
+}));
+
+vi.mock("@/lib/auth/verification-email", () => ({
+  verificationEmailConfigured: () => false,
+  sendVerificationEmail: vi.fn(),
+}));
+
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    getAll: () => [],
+    set: vi.fn(),
+  }),
+  headers: async () => new Headers({ origin: "http://localhost:3000" }),
 }));
 
 // Mock next/navigation
 const mockPush = vi.fn();
 const mockReplace = vi.fn();
+const { mockRedirect } = vi.hoisted(() => ({ mockRedirect: vi.fn() }));
 const mockPrefetch = vi.fn();
 const mockGetSearchParams = vi.fn().mockReturnValue(null);
 
@@ -54,6 +61,7 @@ vi.mock("next/navigation", () => ({
     replace: mockReplace,
     prefetch: mockPrefetch,
   }),
+  redirect: mockRedirect,
   useSearchParams: () => ({
     get: mockGetSearchParams,
   }),
@@ -75,6 +83,7 @@ import { OnboardingWizard } from "@/app/dashboard/onboarding/OnboardingWizard";
 describe("E2E Login & Sign-up Workflow", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authMocks.signUp.mockResolvedValue({ data: { session: null, user: null }, error: null });
     mockGetSearchParams.mockImplementation((key) => {
       if (key === "mode") return "signin";
       return null;
@@ -134,8 +143,7 @@ describe("E2E Login & Sign-up Workflow", () => {
     await userEvent.click(submitBtn);
 
     expect(authMocks.signInWithPassword).toHaveBeenCalled();
-    const errorMsg = await screen.findByText("Invalid credentials");
-    expect(errorMsg).toBeInTheDocument();
+    expect(screen.getByText("Invalid credentials")).toBeInTheDocument();
   });
 
   it("should validate passwords during sign-up", async () => {
@@ -153,7 +161,7 @@ describe("E2E Login & Sign-up Workflow", () => {
     await userEvent.type(passwordInput, "short");
     await userEvent.type(confirmPasswordInput, "short");
     await userEvent.click(submitBtn);
-    expect(await screen.findByText("Password must be at least 8 characters.")).toBeInTheDocument();
+    expect(screen.getByText("Password must be at least 8 characters.")).toBeInTheDocument();
 
     // Mismatched password validation
     await userEvent.clear(passwordInput);
@@ -161,7 +169,7 @@ describe("E2E Login & Sign-up Workflow", () => {
     await userEvent.type(passwordInput, "password123");
     await userEvent.type(confirmPasswordInput, "password456");
     await userEvent.click(submitBtn);
-    expect(await screen.findByText("Passwords don't match.")).toBeInTheDocument();
+    expect(screen.getByText("Passwords don't match.")).toBeInTheDocument();
   });
 
   it("should invoke magic link sign-in when requested", async () => {

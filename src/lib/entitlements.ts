@@ -1,6 +1,8 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isTier, normalizeTierKey, type PaidTier, type Tier } from "@/lib/pricing";
+import { getActiveOrganizationId } from "@/lib/organizations-db";
 
 export type { PaidTier, Tier };
 
@@ -73,7 +75,7 @@ function mapEntitlement(data: SubscriptionRow): Entitlement {
  * Used by the metered API layer, where the request is authenticated by API key
  * and has no Supabase session to read auth.uid() from.
  */
-export async function getEntitlementForUser(userId: string): Promise<Entitlement> {
+export const getEntitlementForUser = cache(async (userId: string): Promise<Entitlement> => {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("subscriptions")
@@ -82,4 +84,22 @@ export async function getEntitlementForUser(userId: string): Promise<Entitlement
     .maybeSingle();
   if (error || !data) return DEFAULT_ENTITLEMENT;
   return mapEntitlement(data);
-}
+});
+
+/**
+ * Resolves the entitlement for an organization by inheriting its owner's
+ * subscription. Billing remains user-scoped; this is the org-aware read facade.
+ */
+export const getOrgEntitlement = cache(async (organizationId?: string): Promise<Entitlement> => {
+  const resolvedOrganizationId = organizationId ?? (await getActiveOrganizationId());
+  if (!resolvedOrganizationId) return getEntitlement();
+
+  const supabase = await createClient();
+  const { data: organization } = await supabase
+    .from("organizations")
+    .select("owner_id")
+    .eq("id", resolvedOrganizationId)
+    .maybeSingle();
+  const ownerId = (organization as { owner_id?: string } | null)?.owner_id;
+  return ownerId ? getEntitlementForUser(ownerId) : getEntitlement();
+});

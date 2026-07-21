@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, useCallback, useMemo, useTransition } from "react";
+import { useCallback, useMemo, useTransition } from "react";
 import Link from "next/link";
 import type { DbProject } from "@/lib/projects-db";
 import type { ComplianceScore } from "@/components/ClauseEngine";
 import type { Tier } from "@/lib/entitlements";
-import { getTierConfig } from "@/lib/pricing";
 import { tierLabel } from "@/lib/tier-copy";
-import { deleteProjectAction, signOutAction } from "@/app/dashboard/actions";
-import { Logo } from "@/components/brand/Logo";
+import { deleteProjectAction } from "@/app/dashboard/actions";
+import { AppShell } from "@/components/dashboard/AppShell";
 import CommandCenterInsights from "./CommandCenterInsights";
 import AutopilotPanel from "./AutopilotPanel";
 import ScannerPanel from "./ScannerPanel";
@@ -16,9 +15,7 @@ import IntelligencePanel from "./IntelligencePanel";
 import NpsSurvey from "./NpsSurvey";
 import { alertsForRegions, regionsFromProjects, type RegulatoryAlert } from "@/lib/regulations/alerts";
 import type { QuickToolKey } from "@/lib/tools/usage";
-import type { Organization } from "@/lib/organizations";
-import { OrganizationSwitcher } from "@/components/organizations/OrganizationSwitcher";
-import { primaryBackgroundStyle } from "@/lib/theme";
+import type { Organization } from "@/lib/organizations-db";
 
 // ─── Framework Display Map ──────────────────────────────────────────────────
 
@@ -151,7 +148,6 @@ export default function CommandCenterView({
   isLegalAdmin,
 }: CommandCenterViewProps) {
   const [isPending, startTransition] = useTransition();
-  const [portalLoading, setPortalLoading] = useState(false);
   const projectsNeedingAttention = projects.filter((p) => p.status !== "current").length;
   // Only surface regulatory alerts that touch the jurisdictions this account targets.
   const alerts = useMemo(() => alertsForRegions(regionsFromProjects(projects)), [projects]);
@@ -176,206 +172,15 @@ export default function CommandCenterView({
     URL.revokeObjectURL(url);
   }
 
-  const handleManageBilling = useCallback(async () => {
-    setPortalLoading(true);
-    try {
-      const res = await fetch("/api/billing-portal", { method: "POST" });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        setPortalLoading(false);
-      }
-    } catch {
-      setPortalLoading(false);
-    }
-  }, []);
-
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
+    <AppShell
+      tier={tier}
+      organizations={organizations}
+      activeOrganizationId={activeOrganizationId}
+      userEmail={userEmail}
+      isLegalAdmin={isLegalAdmin}
+    >
       <NpsSurvey />
-      {/* Header */}
-      <header className="border-b border-gray-800/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            {activeOrg ? (
-              <Link href="/dashboard/home" className="inline-flex items-center gap-2.5">
-                <div
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white"
-                  style={primaryBackgroundStyle(activeOrg)}
-                >
-                  {activeOrg.logoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={activeOrg.logoUrl} alt="" className="h-5 w-5 object-contain" />
-                  ) : (
-                    activeOrg.name.charAt(0).toUpperCase()
-                  )}
-                </div>
-                <span className="font-semibold text-white">{activeOrg.name}</span>
-              </Link>
-            ) : (
-              <Logo href="/" tone="dark" size="md" />
-            )}
-            <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-xs font-medium text-indigo-300">
-              Command Center
-            </span>
-            <OrganizationSwitcher organizations={organizations} activeOrganizationId={activeOrganizationId} />
-          </div>
-          <div className="flex items-center gap-3">
-            <span
-              className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                tier === "enterprise"
-                  ? "bg-amber-500/20 border border-amber-500/30 text-amber-300"
-                  : tier === "agency"
-                    ? "bg-indigo-500/20 border border-indigo-500/30 text-indigo-300"
-                    : tier === "solo"
-                      ? "bg-gray-700 text-gray-300"
-                      : "bg-gray-800 text-gray-400"
-              }`}
-            >
-              {getTierConfig(tier).label}
-            </span>
-            {(tier === "agency" || tier === "enterprise") && (
-              <>
-                <Link
-                  href="/dashboard/agency"
-                  className="hidden sm:inline-block px-3 py-2 rounded-lg border border-indigo-500/40 text-indigo-300 text-sm font-medium hover:border-indigo-400 hover:text-indigo-200 transition-colors"
-                >
-                  Agency Portal
-                </Link>
-                <button
-                  type="button"
-                  onClick={handleManageBilling}
-                  disabled={portalLoading}
-                  className="hidden sm:inline-block px-3 py-2 rounded-lg border border-gray-700 text-gray-300 text-sm font-medium hover:border-gray-600 hover:text-white transition-colors disabled:opacity-40"
-                >
-                  {portalLoading ? "Opening…" : "Manage Billing"}
-                </button>
-                <Link
-                  href="/dashboard/cancel"
-                  className="hidden sm:inline-block px-3 py-2 rounded-lg text-gray-500 text-sm hover:text-gray-300 transition-colors"
-                >
-                  Cancel plan
-                </Link>
-              </>
-            )}
-            <Link
-              href="/dashboard/marketplace"
-              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-emerald-500/40 text-emerald-300 text-sm font-medium hover:border-emerald-400 hover:text-emerald-200 transition-colors"
-            >
-              Marketplace
-            </Link>
-            <Link
-              href="/dashboard/partners"
-              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-emerald-500/40 text-emerald-300 text-sm font-medium hover:border-emerald-400 hover:text-emerald-200 transition-colors"
-            >
-              Partners
-            </Link>
-            <Link
-              href="/dashboard/findings"
-              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-rose-500/40 text-rose-300 text-sm font-medium hover:border-rose-400 hover:text-rose-200 transition-colors"
-            >
-              Findings
-            </Link>
-            <Link
-              href="/dashboard/calendar"
-              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-sky-500/40 text-sky-300 text-sm font-medium hover:border-sky-400 hover:text-sky-200 transition-colors"
-            >
-              Calendar
-            </Link>
-            <Link
-              href="/dashboard/approvals"
-              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-indigo-500/40 text-indigo-300 text-sm font-medium hover:border-indigo-400 hover:text-indigo-200 transition-colors"
-            >
-              Approvals
-            </Link>
-            <Link
-              href="/dashboard/evidence"
-              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-emerald-500/40 text-emerald-300 text-sm font-medium hover:border-emerald-400 hover:text-emerald-200 transition-colors"
-            >
-              Evidence
-            </Link>
-            <Link
-              href="/dashboard/alerts"
-              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-amber-500/40 text-amber-300 text-sm font-medium hover:border-amber-400 hover:text-amber-200 transition-colors"
-            >
-              Alerts
-            </Link>
-            <Link
-              href="/dashboard/audit"
-              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-gray-600/50 text-gray-300 text-sm font-medium hover:border-gray-400 hover:text-gray-100 transition-colors"
-            >
-              Audit Trail
-            </Link>
-            {isLegalAdmin && (
-              <Link
-                href="/dashboard/legal-review"
-                className="hidden sm:inline-block px-3 py-2 rounded-lg border border-amber-500/40 text-amber-300 text-sm font-medium hover:border-amber-400 hover:text-amber-200 transition-colors"
-              >
-                Legal Review
-              </Link>
-            )}
-            <Link
-              href="/dashboard/onboarding"
-              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-gray-600/50 text-gray-300 text-sm font-medium hover:border-gray-400 hover:text-gray-100 transition-colors"
-            >
-              Guided setup
-            </Link>
-            <Link
-              href="/dashboard/settings/integrations"
-              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-gray-600/50 text-gray-300 text-sm font-medium hover:border-gray-400 hover:text-gray-100 transition-colors"
-            >
-              Integrations
-            </Link>
-            <Link
-              href="/dashboard/settings/organization"
-              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-gray-600/50 text-gray-300 text-sm font-medium hover:border-gray-400 hover:text-gray-100 transition-colors"
-            >
-              Organization
-            </Link>
-            <Link
-              href="/dashboard/settings/privacy"
-              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-gray-600/50 text-gray-300 text-sm font-medium hover:border-gray-400 hover:text-gray-100 transition-colors"
-            >
-              Privacy
-            </Link>
-            <Link
-              href="/dashboard/settings/security"
-              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-gray-600/50 text-gray-300 text-sm font-medium hover:border-gray-400 hover:text-gray-100 transition-colors"
-            >
-              Security
-            </Link>
-            <Link
-              href="/dashboard/settings/consent"
-              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-gray-600/50 text-gray-300 text-sm font-medium hover:border-gray-400 hover:text-gray-100 transition-colors"
-            >
-              Consent
-            </Link>
-            <Link
-              href="/dashboard/settings/breaches"
-              className="hidden sm:inline-block px-3 py-2 rounded-lg border border-gray-600/50 text-gray-300 text-sm font-medium hover:border-gray-400 hover:text-gray-100 transition-colors"
-            >
-              Breaches
-            </Link>
-            <Link
-              href="/dashboard"
-              className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors"
-            >
-              + New Package
-            </Link>
-            <form action={signOutAction}>
-              <button
-                type="submit"
-                className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
-                title={userEmail ?? undefined}
-              >
-                Sign out
-              </button>
-            </form>
-          </div>
-        </div>
-      </header>
-
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* ── Guided Next-Best-Action + ROI + Coverage ── */}
         <CommandCenterInsights
@@ -549,7 +354,7 @@ export default function CommandCenterView({
           </div>
         </div>
       </main>
-    </div>
+    </AppShell>
   );
 }
 

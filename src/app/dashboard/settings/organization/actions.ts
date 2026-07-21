@@ -12,14 +12,12 @@ import {
   addOrgMemberByEmail,
   updateOrgMemberRole,
   removeOrgMember,
-  getOrganization,
-  createChildOrganization,
-  moveOrganization,
 } from "@/lib/organizations-db";
-import { setFeatureFlag, type FeatureFlag } from "@/lib/feature-flags";
 import { createWorkspace, renameWorkspace, deleteWorkspace } from "@/lib/workspaces-db";
 import { createSsoConnection, setSsoEnabled, deleteSsoConnection, type SsoProtocol } from "@/lib/sso-db";
 import { createScimToken, revokeScimToken } from "@/lib/scim/tokens";
+import { createChildOrganization, reparentOrganization, type OrganizationKind } from "@/lib/org-hierarchy";
+import { setOrgFlag, type FeatureFlagKey } from "@/lib/flags";
 
 const PATH = "/dashboard/settings/organization";
 
@@ -45,26 +43,19 @@ export async function updateOrgAction(
   return ok ? { ok: true } : { ok: false, error: "Could not update the organization." };
 }
 
-export async function updateOrganizationBrandingAction(
-  orgId: string,
-  patch: OrganizationBrandingPatch
+export async function setOrgFlagAction(
+  organizationId: string,
+  key: FeatureFlagKey,
+  enabled: boolean,
+  userId?: string
 ): Promise<{ ok: true } | Denied> {
-  const gate = await authorize(orgId, "org:update");
-  if (!gate.ok) return gate;
-  const ok = await updateOrganizationBranding(orgId, patch);
-  revalidatePath(PATH);
-  return ok ? { ok: true } : { ok: false, error: "Could not update branding." };
-}
-
-export async function updateOrganizationSmtpAction(
-  orgId: string,
-  patch: OrganizationSmtpPatch
-): Promise<{ ok: true } | Denied> {
-  const gate = await authorize(orgId, "org:update");
-  if (!gate.ok) return gate;
-  const ok = await updateOrganizationSmtp(orgId, patch);
-  revalidatePath(PATH);
-  return ok ? { ok: true } : { ok: false, error: "Could not update email settings." };
+  try {
+    await setOrgFlag(key, enabled, { userId, organizationId });
+    revalidatePath(PATH);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Could not update the feature flag." };
+  }
 }
 
 export async function addMemberAction(orgId: string, email: string, role: string): Promise<{ ok: true } | Denied> {
@@ -179,47 +170,49 @@ export async function revokeScimTokenAction(orgId: string, id: string): Promise<
 }
 
 export async function createChildOrganizationAction(
-  parentId: string,
-  name: string
+  parentOrganizationId: string,
+  input: { name: string; kind?: OrganizationKind }
 ): Promise<{ ok: true } | Denied> {
-  const gate = await authorize(parentId, "org:update");
-  if (!gate.ok) return gate;
-  const parent = await getOrganization(parentId);
-  if (!parent || parent.plan !== "enterprise") {
-    return { ok: false, error: "Sub-organizations require an Enterprise plan." };
+  try {
+    await createChildOrganization({ parentOrganizationId, ...input });
+    revalidatePath(PATH);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Could not create the child organization." };
   }
-  const res = await createChildOrganization(parentId, name, parent.plan);
-  revalidatePath(PATH);
-  return res.ok ? { ok: true } : { ok: false, error: res.error };
 }
 
-export async function moveOrganizationAction(
+export async function reparentOrganizationAction(
+  organizationId: string,
+  parentOrganizationId: string | null
+): Promise<{ ok: true } | Denied> {
+  try {
+    await reparentOrganization(organizationId, parentOrganizationId);
+    revalidatePath(PATH);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Could not move the organization." };
+  }
+}
+
+export async function updateOrganizationBrandingAction(
   orgId: string,
-  newParentId: string | null
+  patch: OrganizationBrandingPatch
 ): Promise<{ ok: true } | Denied> {
   const gate = await authorize(orgId, "org:update");
   if (!gate.ok) return gate;
-  if (newParentId !== null) {
-    const parentGate = await authorize(newParentId, "org:update");
-    if (!parentGate.ok) return parentGate;
-    const parent = await getOrganization(newParentId);
-    if (!parent || parent.plan !== "enterprise") {
-      return { ok: false, error: "Only Enterprise organizations can be parents." };
-    }
-  }
-  const res = await moveOrganization(orgId, newParentId);
+  const ok = await updateOrganizationBranding(orgId, patch);
   revalidatePath(PATH);
-  return res.ok ? { ok: true } : { ok: false, error: res.error };
+  return ok ? { ok: true } : { ok: false, error: "Could not update brand settings." };
 }
 
-export async function setFeatureFlagAction(
+export async function updateOrganizationSmtpAction(
   orgId: string,
-  flag: FeatureFlag,
-  enabled: boolean
+  patch: OrganizationSmtpPatch
 ): Promise<{ ok: true } | Denied> {
   const gate = await authorize(orgId, "org:update");
   if (!gate.ok) return gate;
-  const res = await setFeatureFlag(orgId, flag, enabled);
+  const ok = await updateOrganizationSmtp(orgId, patch);
   revalidatePath(PATH);
-  return res.ok ? { ok: true } : { ok: false, error: res.error };
+  return ok ? { ok: true } : { ok: false, error: "Could not update email settings." };
 }

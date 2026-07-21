@@ -14,6 +14,8 @@ export const THEME_PALETTES: ThemePalette[] = [
   "slate",
 ];
 
+export type OrganizationKind = "organization" | "department" | "region";
+
 export interface Organization {
   id: string;
   ownerId: string;
@@ -31,4 +33,5 @@ export interface Organization {
   smtpReplyToEmail: string | null;
   createdAt: string;
   updatedAt: string;
+  kind: OrganizationKind | null;
 }

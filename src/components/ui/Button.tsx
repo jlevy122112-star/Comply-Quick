@@ -6,11 +6,11 @@ export type ButtonSize = "sm" | "md" | "lg";
 
 const VARIANTS: Record<ButtonVariant, string> = {
   primary:
-    "bg-indigo-600 text-white hover:bg-indigo-500 focus-visible:outline-indigo-400 shadow-sm shadow-indigo-950/40",
+    "bg-accent-primary text-text-inverse hover:bg-accent-primary-hover focus-visible:ring-accent-primary shadow-sm shadow-accent-primary/30",
   secondary:
-    "bg-gray-800 text-gray-100 border border-gray-700 hover:border-gray-500 hover:bg-gray-750 focus-visible:outline-gray-400",
-  ghost: "text-gray-300 hover:text-white hover:bg-gray-800/60 focus-visible:outline-gray-500",
-  danger: "bg-red-600 text-white hover:bg-red-500 focus-visible:outline-red-400",
+    "bg-surface-elevated text-text-primary border border-border-default hover:border-border-strong focus-visible:ring-accent-primary",
+  ghost: "text-text-secondary hover:text-text-primary hover:bg-surface-elevated focus-visible:ring-accent-primary",
+  danger: "bg-status-danger text-text-inverse hover:bg-status-danger/85 focus-visible:ring-status-danger",
 };
 
 const SIZES: Record<ButtonSize, string> = {
@@ -34,23 +34,26 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     <button
       ref={ref}
       disabled={disabled || loading}
+      aria-busy={loading || undefined}
       className={cn(
-        "inline-flex items-center justify-center font-medium transition-all duration-150",
-        "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2",
-        "disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none active:scale-[0.98]",
+        "relative inline-flex items-center justify-center overflow-hidden font-medium transition-all duration-150",
+        "hover:-translate-y-px hover:shadow-md",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-page-bg",
+        "disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none active:translate-y-0 active:scale-[0.98]",
         VARIANTS[variant],
         SIZES[size],
         className
       )}
       {...props}
     >
+      {loading && <span className="pointer-events-none absolute inset-0 animate-shimmer" aria-hidden="true" />}
       {loading && (
-        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <svg className="relative h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
         </svg>
       )}
-      {children}
+      <span className="relative">{children}</span>
     </button>
   );
 });

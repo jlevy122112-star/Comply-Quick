@@ -3,13 +3,18 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Badge, TabNav, type TabItem } from "@/components/ui";
 import { ROLE_LABELS, can } from "@/lib/rbac";
-import { getOrCreateOrganization, getMyOrgRole, listOrgMembers, countOrgMembers } from "@/lib/organizations-db";
+import {
+  getOrCreateOrganization,
+  getActiveOrganizationId,
+  getMyOrgRole,
+  listMyOrganizationsCached,
+  listOrgMembers,
+  countOrgMembers,
+} from "@/lib/organizations-db";
 import { listWorkspaces, countWorkspaces } from "@/lib/workspaces-db";
 import { listSsoConnections, ssoEnabled } from "@/lib/sso-db";
 import { listScimTokens, scimEnabled } from "@/lib/scim/tokens";
 import { listScimUsers } from "@/lib/scim/provisioning";
-import { getFeatureFlag, listFeatureFlags } from "@/lib/feature-flags";
-import { listMyOrganizations } from "@/lib/organizations-db";
 import { OrgProfilePanel } from "./OrgProfilePanel";
 import { WhiteLabelPanel } from "./WhiteLabelPanel";
 import { MembersPanel } from "./MembersPanel";
@@ -17,12 +22,14 @@ import { WorkspacesPanel } from "./WorkspacesPanel";
 import { SsoPanel } from "./SsoPanel";
 import { ScimPanel } from "./ScimPanel";
 import { HierarchyPanel } from "./HierarchyPanel";
+import { isOrganizationHierarchyAdmin, listOrganizationSubtree } from "@/lib/org-hierarchy";
 import { FeatureFlagsPanel } from "./FeatureFlagsPanel";
+import { listFlagAudit, listOrgFlags } from "@/lib/flags";
 
 export const dynamic = "force-dynamic";
 
 const BASE = "/dashboard/settings/organization";
-type Tab = "profile" | "members" | "workspaces" | "hierarchy" | "features" | "sso" | "scim";
+type Tab = "profile" | "members" | "workspaces" | "sso" | "scim" | "hierarchy" | "flags";
 
 export default async function OrganizationSettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const org = await getOrCreateOrganization();
@@ -30,36 +37,45 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
 
   const role = (await getMyOrgRole(org.id)) ?? "viewer";
   const { tab: tabParam } = await searchParams;
-  const tab: Tab = (
-    ["profile", "members", "workspaces", "hierarchy", "features", "sso", "scim"] as const
+  const requestedTab: Tab = (
+    ["profile", "members", "workspaces", "sso", "scim", "hierarchy", "flags"] as const
   ).includes(tabParam as Tab)
     ? (tabParam as Tab)
     : "profile";
 
+  const activeOrgId = await getActiveOrganizationId();
+  const activeOrgRole = activeOrgId ? await getMyOrgRole(activeOrgId) : null;
+  const flagsAdmin = activeOrgRole === "owner" || activeOrgRole === "admin";
+  const tab: Tab = requestedTab === "flags" && !flagsAdmin ? "profile" : requestedTab;
+  const activeOrganization = activeOrgId
+    ? (await listMyOrganizationsCached()).find((organization) => organization.id === activeOrgId)
+    : null;
+
   // Cheap counts drive the tab badges on every load; the heavy list (member
   // email resolution, workspace project tallies, SSO rows) is fetched only for
   // the active tab so, e.g., viewing Profile never pays the members email cost.
-  const [memberCount, workspaceCount, hierarchyEnabled] = await Promise.all([
+  const [memberCount, workspaceCount] = await Promise.all([
     countOrgMembers(org.id),
     countWorkspaces(org.id),
-    getFeatureFlag(org.id, "enterpriseHierarchy"),
   ]);
   const members = tab === "members" ? await listOrgMembers(org.id) : [];
   const workspaces = tab === "workspaces" ? await listWorkspaces(org.id) : [];
-  const hierarchyOrgs = tab === "hierarchy" ? await listMyOrganizations() : [];
-  const featureFlags = tab === "features" ? await listFeatureFlags(org.id) : [];
   const sso = tab === "sso" ? await listSsoConnections(org.id) : [];
   const scimTokens = tab === "scim" ? await listScimTokens(org.id) : [];
   const scimUsers = tab === "scim" ? (await listScimUsers(org.id, { limit: 200 })).users : [];
+  const hierarchy = tab === "hierarchy" ? await listOrganizationSubtree(org.id) : null;
+  const hierarchyAdmin = tab === "hierarchy" ? await isOrganizationHierarchyAdmin(org.id) : false;
+  const flags = tab === "flags" && activeOrgId && flagsAdmin ? await listOrgFlags(activeOrgId) : [];
+  const flagAudit = tab === "flags" && activeOrgId && flagsAdmin ? await listFlagAudit(20, activeOrgId) : [];
 
   const tabs: TabItem[] = [
     { key: "profile", label: "Profile" },
     { key: "members", label: "Members", count: memberCount },
     { key: "workspaces", label: "Workspaces", count: workspaceCount },
     { key: "hierarchy", label: "Hierarchy" },
-    { key: "features", label: "Features" },
     { key: "sso", label: "SSO" },
     { key: "scim", label: "SCIM" },
+    ...(flagsAdmin ? [{ key: "flags", label: "Feature flags" } satisfies TabItem] : []),
   ];
 
   let scimBaseUrl = "/api/scim/v2";
@@ -102,15 +118,6 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
         )}
         {tab === "members" && <MembersPanel orgId={org.id} role={role} members={members} />}
         {tab === "workspaces" && <WorkspacesPanel orgId={org.id} role={role} workspaces={workspaces} />}
-        {tab === "hierarchy" && (
-          <HierarchyPanel
-            orgs={hierarchyOrgs}
-            currentOrgId={org.id}
-            role={role}
-            isEnabled={hierarchyEnabled}
-          />
-        )}
-        {tab === "features" && <FeatureFlagsPanel orgId={org.id} role={role} flags={featureFlags} />}
         {tab === "sso" && <SsoPanel orgId={org.id} role={role} connections={sso} live={ssoEnabled()} />}
         {tab === "scim" && (
           <ScimPanel
@@ -120,6 +127,16 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
             users={scimUsers}
             baseUrl={scimBaseUrl}
             live={scimEnabled()}
+          />
+        )}
+        {tab === "hierarchy" && hierarchy && <HierarchyPanel root={hierarchy} canManage={hierarchyAdmin} />}
+        {tab === "flags" && flagsAdmin && activeOrgId && activeOrganization && (
+          <FeatureFlagsPanel
+            organizationId={activeOrgId}
+            organizationName={activeOrganization.name}
+            flags={flags}
+            audit={flagAudit}
+            canManage
           />
         )}
       </main>

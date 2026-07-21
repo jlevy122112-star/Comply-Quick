@@ -9,13 +9,22 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getEntitlement } from "@/lib/entitlements";
+import { getEntitlementForUser } from "@/lib/entitlements";
 import { logger } from "@/services";
 import { UnauthorizedError, ForbiddenError, NotFoundError, ValidationError } from "@/services/errors";
 import { getDomainProvider, type DomainVerification } from "./domain-provider";
 import { TIER_CONFIG, isUnlimited, managedClientLimit } from "@/lib/pricing";
 import { slugify as organizationSlugify } from "@/lib/organizations-db";
 import type { Organization } from "@/lib/organizations-db";
+import {
+  AGENCY_ROLE_DESCRIPTIONS,
+  AGENCY_ROLE_LABELS,
+  assignableAgencyRoles,
+  canAgency,
+  canonicalAgencyRole,
+  type AgencyCapability,
+  type AgencyRole,
+} from "./roles";
 
 const log = logger.child({ module: "agency" });
 
@@ -42,6 +51,12 @@ export interface AgencyClient {
   notes: string;
   status: "active" | "archived";
   organizationId: string | null;
+  createdAt: string;
+}
+
+export interface AgencyClientAssignment {
+  userId: string;
+  email: string | null;
   createdAt: string;
 }
 
@@ -94,6 +109,7 @@ function mapOrganization(row: Record<string, unknown>): Organization {
     smtpReplyToEmail: (row.smtp_reply_to_email as string | null) ?? null,
     createdAt: row.created_at as string,
     updatedAt: (row.updated_at as string) ?? (row.created_at as string),
+    kind: (row.kind as Organization["kind"] | null) ?? null,
   };
 }
 
@@ -126,10 +142,38 @@ function mapDomain(row: Record<string, unknown>): AgencyDomain {
 }
 
 /** Whether the current user may use the Agency portal (agency/enterprise tier). */
-export async function canUseAgencyPortal(): Promise<boolean> {
-  const entitlement = await getEntitlement();
+export const canUseAgencyPortal = cache(async (): Promise<boolean> => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { data: ownedAgency } = await supabase
+    .from("agencies")
+    .select("owner_id")
+    .eq("owner_id", user.id)
+    .maybeSingle();
+  let ownerId = (ownedAgency as { owner_id?: string } | null)?.owner_id;
+  if (!ownerId) {
+    const { data: membership } = await supabase
+      .from("agency_members")
+      .select("agency_id")
+      .eq("user_id", user.id)
+      .limit(1)
+      .maybeSingle();
+    if (membership?.agency_id) {
+      const { data: agency } = await supabase
+        .from("agencies")
+        .select("owner_id")
+        .eq("id", membership.agency_id)
+        .maybeSingle();
+      ownerId = (agency as { owner_id?: string } | null)?.owner_id;
+    }
+  }
+  const entitlement = await getEntitlementForUser(ownerId ?? user.id);
   return entitlement.isPremium && (entitlement.tier === "agency" || entitlement.tier === "enterprise");
-}
+});
 
 /** Turns an agency name into a URL-safe, reasonably-unique slug seed. */
 export function slugify(input: string): string {
@@ -165,6 +209,21 @@ export const getOrCreateAgency = cache(async (): Promise<Agency> => {
   const existing = await owned();
   if (existing.data) return mapAgency(existing.data);
 
+  const { data: membership } = await supabase
+    .from("agency_members")
+    .select("agency_id")
+    .eq("user_id", user.id)
+    .limit(1)
+    .maybeSingle();
+  if (membership?.agency_id) {
+    const { data: memberAgency } = await supabase
+      .from("agencies")
+      .select(AGENCY_COLS)
+      .eq("id", membership.agency_id)
+      .maybeSingle();
+    if (memberAgency) return mapAgency(memberAgency);
+  }
+
   // Derive a slug and create the workspace. Each user owns at most one agency
   // (unique owner_id), so a duplicate-key error means either a concurrent
   // create won the race (from another request/tab) or the slug clashed with a
@@ -193,37 +252,6 @@ export const getOrCreateAgency = cache(async (): Promise<Agency> => {
   throw new Error(`Could not allocate a unique agency slug (seed: ${seed}).`);
 });
 
-/**
- * Resolves an existing agency for provisioning only. Unlike getOrCreateAgency,
- * this never creates an agency and only accepts an owner or an admin member.
- */
-async function resolveActorAgency(): Promise<Agency | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data: owned } = await supabase.from("agencies").select(AGENCY_COLS).eq("owner_id", user.id).maybeSingle();
-  if (owned) return mapAgency(owned);
-
-  const { data: membership } = await supabase
-    .from("agency_members")
-    .select("agency_id, role")
-    .eq("user_id", user.id)
-    .eq("role", "admin")
-    .limit(1)
-    .maybeSingle();
-  if (!membership?.agency_id) return null;
-
-  const { data: agency } = await supabase
-    .from("agencies")
-    .select(AGENCY_COLS)
-    .eq("id", membership.agency_id)
-    .maybeSingle();
-  return agency ? mapAgency(agency) : null;
-}
-
 interface BrandingUpdate {
   name?: string;
   logoUrl?: string | null;
@@ -233,7 +261,7 @@ interface BrandingUpdate {
 
 /** Updates white-label branding for the caller's agency. Owner-scoped by RLS. */
 export async function updateBranding(patch: BrandingUpdate): Promise<Agency> {
-  const agency = await getOrCreateAgency();
+  const { agency } = await requireAgencyCapability("manage_agency");
   const supabase = await createClient();
 
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
@@ -265,26 +293,41 @@ export async function updateBranding(patch: BrandingUpdate): Promise<Agency> {
 // ─── Clients ─────────────────────────────────────────────────────────────────
 
 export async function listClients(): Promise<AgencyClient[]> {
-  const agency = await getOrCreateAgency();
+  const access = await getAgencyAccess();
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("agency_clients")
     .select(CLIENT_COLS)
-    .eq("agency_id", agency.id)
+    .eq("agency_id", access.agency.id)
     .order("created_at", { ascending: false });
+  if (access.role === "account_manager") {
+    const { data: assignments } = await supabase
+      .from("agency_client_account_managers")
+      .select("client_id")
+      .eq("agency_id", access.agency.id)
+      .eq("user_id", access.userId);
+    const clientIds = (assignments ?? []).map((row) => row.client_id as string);
+    if (clientIds.length === 0) return [];
+    query = query.in("id", clientIds);
+  }
+  const { data, error } = await query;
   if (error || !data) return [];
   return data.map(mapClient);
 }
 
 /** Fetches one client owned by the caller's agency, or null if not found. */
 export async function getClient(id: string): Promise<AgencyClient | null> {
-  const agency = await getOrCreateAgency();
+  const access = await getAgencyAccess();
+  if (access.role === "account_manager") {
+    const assigned = await assignedClientIds(access);
+    if (!assigned?.has(id)) return null;
+  }
   const supabase = await createClient();
   const { data } = await supabase
     .from("agency_clients")
     .select(CLIENT_COLS)
     .eq("id", id)
-    .eq("agency_id", agency.id)
+    .eq("agency_id", access.agency.id)
     .maybeSingle();
   return data ? mapClient(data) : null;
 }
@@ -297,12 +340,13 @@ interface ClientInput {
 }
 
 export async function createClient_(input: ClientInput): Promise<AgencyClient> {
-  const agency = await getOrCreateAgency();
+  const access = await requireAgencyCapability("manage_clients");
+  const { agency } = access;
   const supabase = await createClient();
   const name = input.name.trim();
   if (name.length === 0 || name.length > 120) throw new ValidationError("Client name must be 1–120 characters.");
 
-  const entitlement = await getEntitlement();
+  const entitlement = await getEntitlementForUser(agency.ownerId);
   const clientLimit = managedClientLimit(entitlement.tier);
   if (clientLimit !== null && !isUnlimited(clientLimit)) {
     const { count, error: countError } = await supabase
@@ -336,7 +380,108 @@ export async function createClient_(input: ClientInput): Promise<AgencyClient> {
     log.error("Failed to create client", { error: error?.message });
     throw new Error("Could not create client.");
   }
-  return mapClient(data);
+  const client = mapClient(data);
+  if (access.role === "account_manager") {
+    const { error: assignmentError } = await createAdminClient().from("agency_client_account_managers").insert({
+      agency_id: agency.id,
+      client_id: client.id,
+      user_id: access.userId,
+      assigned_by: access.userId,
+    });
+    if (assignmentError) {
+      const { error: cleanupError } = await createAdminClient()
+        .from("agency_clients")
+        .delete()
+        .eq("id", client.id)
+        .eq("agency_id", agency.id);
+      if (cleanupError) {
+        log.error("Failed to clean up client after assignment failure", { error: cleanupError.message });
+      }
+      log.error("Failed to assign new client to account manager", { error: assignmentError.message });
+      throw new Error("Could not assign the new client.");
+    }
+  }
+  return client;
+}
+
+async function resolveAgencyOwnerPersonalOrganization(
+  admin: ReturnType<typeof createAdminClient>,
+  ownerId: string
+): Promise<string | null> {
+  const { data: personalOrganization, error } = await admin
+    .from("organizations")
+    .select("id")
+    .eq("owner_id", ownerId)
+    .eq("is_personal", true)
+    .maybeSingle();
+  if (error) {
+    log.error("Failed to resolve the agency owner's personal organization", {
+      error: error.message,
+    });
+    throw new Error("Could not migrate the client's historical data.");
+  }
+  return (personalOrganization?.id as string | undefined) ?? null;
+}
+
+async function migrateClientHistoricalData(
+  admin: ReturnType<typeof createAdminClient>,
+  ownerId: string,
+  clientId: string,
+  organizationId: string,
+  personalOrganizationId: string | null
+): Promise<void> {
+  const organizationFilter = personalOrganizationId
+    ? `organization_id.eq.${personalOrganizationId},organization_id.is.null,organization_id.eq.${organizationId}`
+    : `organization_id.is.null,organization_id.eq.${organizationId}`;
+  const historicalOrganizationFilter = personalOrganizationId
+    ? `organization_id.eq.${personalOrganizationId},organization_id.is.null`
+    : "organization_id.is.null";
+  const { data: clientProjects, error: projectLookupError } = await admin
+    .from("projects")
+    .select("id")
+    .eq("user_id", ownerId)
+    .eq("client_id", clientId)
+    .or(organizationFilter);
+  if (projectLookupError) {
+    log.error("Failed to find historical client projects", { error: projectLookupError.message });
+    throw new Error("Could not migrate the client's historical data.");
+  }
+  const projectIds = (clientProjects ?? []).map((project) => project.id as string);
+  if (projectIds.length === 0) return;
+
+  const { error: projectTagError } = await admin
+    .from("projects")
+    .update({ organization_id: organizationId })
+    .in("id", projectIds)
+    .eq("user_id", ownerId)
+    .eq("client_id", clientId)
+    .or(historicalOrganizationFilter);
+  if (projectTagError) {
+    log.error("Failed to tag historical client projects", { error: projectTagError.message });
+    throw new Error("Could not migrate the client's historical data.");
+  }
+
+  const { error: findingTagError } = await admin
+    .from("findings")
+    .update({ organization_id: organizationId })
+    .in("project_id", projectIds)
+    .eq("user_id", ownerId)
+    .or(historicalOrganizationFilter);
+  if (findingTagError) {
+    log.error("Failed to tag historical client findings", { error: findingTagError.message });
+    throw new Error("Could not migrate the client's historical data.");
+  }
+
+  const { error: evidenceTagError } = await admin
+    .from("evidence_records")
+    .update({ organization_id: organizationId })
+    .in("project_id", projectIds)
+    .eq("user_id", ownerId)
+    .or(historicalOrganizationFilter);
+  if (evidenceTagError) {
+    log.error("Failed to tag historical client evidence", { error: evidenceTagError.message });
+    throw new Error("Could not migrate the client's historical data.");
+  }
 }
 
 /** Provisions the linked organization and default workspace for an agency client. */
@@ -349,8 +494,12 @@ export async function provisionClientOrganization(clientId: string): Promise<Org
   if (!(await canUseAgencyPortal())) {
     throw new ForbiddenError("The client portal is available on the Agency and Enterprise plans.");
   }
-  const agency = await resolveActorAgency();
-  if (!agency) throw new ForbiddenError("Only agency owners and admins can provision client workspaces.");
+  const access = await requireAgencyCapability(
+    "manage_clients",
+    "Only agency owners and admins, or assigned Account Managers, can provision client workspaces."
+  );
+  const { agency } = access;
+  await assertAssignedClient(clientId, access);
 
   const { data: client, error: clientError } = await supabase
     .from("agency_clients")
@@ -359,16 +508,33 @@ export async function provisionClientOrganization(clientId: string): Promise<Org
     .eq("agency_id", agency.id)
     .maybeSingle();
   if (clientError || !client) throw new NotFoundError("Client not found.");
+  const admin = createAdminClient();
   if (client.organization_id) {
-    const { data: existing } = await createAdminClient()
+    const { data: existing } = await admin
       .from("organizations")
       .select("*")
       .eq("id", client.organization_id)
       .maybeSingle();
-    if (existing) return mapOrganization(existing);
+    if (existing) {
+      try {
+        const personalOrganizationId = await resolveAgencyOwnerPersonalOrganization(admin, agency.ownerId);
+        await migrateClientHistoricalData(
+          admin,
+          agency.ownerId,
+          client.id,
+          client.organization_id,
+          personalOrganizationId
+        );
+      } catch (error) {
+        log.error("Failed to complete historical client migration during organization reuse", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      return mapOrganization(existing);
+    }
   }
 
-  const admin = createAdminClient();
+  const personalOrganizationId = await resolveAgencyOwnerPersonalOrganization(admin, agency.ownerId);
   const slug = `${organizationSlugify(client.name)}-${client.id.slice(0, 6)}`;
   let { data: organization, error: organizationError } = await admin
     .from("organizations")
@@ -419,53 +585,6 @@ export async function provisionClientOrganization(clientId: string): Promise<Org
     throw new Error("Could not provision the client workspace.");
   }
 
-  const { data: clientProjects, error: projectLookupError } = await admin
-    .from("projects")
-    .select("id")
-    .eq("user_id", agency.ownerId)
-    .eq("client_id", client.id)
-    .is("organization_id", null);
-  if (projectLookupError) {
-    log.error("Failed to find historical client projects", { error: projectLookupError.message });
-    throw new Error("Could not migrate the client's historical data.");
-  }
-  const projectIds = (clientProjects ?? []).map((project) => project.id as string);
-  if (projectIds.length > 0) {
-    const { error: projectTagError } = await admin
-      .from("projects")
-      .update({ organization_id: organization.id })
-      .in("id", projectIds)
-      .eq("user_id", agency.ownerId)
-      .eq("client_id", client.id)
-      .is("organization_id", null);
-    if (projectTagError) {
-      log.error("Failed to tag historical client projects", { error: projectTagError.message });
-      throw new Error("Could not migrate the client's historical data.");
-    }
-
-    const { error: findingTagError } = await admin
-      .from("findings")
-      .update({ organization_id: organization.id })
-      .in("project_id", projectIds)
-      .eq("user_id", agency.ownerId)
-      .is("organization_id", null);
-    if (findingTagError) {
-      log.error("Failed to tag historical client findings", { error: findingTagError.message });
-      throw new Error("Could not migrate the client's historical data.");
-    }
-
-    const { error: evidenceTagError } = await admin
-      .from("evidence_records")
-      .update({ organization_id: organization.id })
-      .in("project_id", projectIds)
-      .eq("user_id", agency.ownerId)
-      .is("organization_id", null);
-    if (evidenceTagError) {
-      log.error("Failed to tag historical client evidence", { error: evidenceTagError.message });
-      throw new Error("Could not migrate the client's historical data.");
-    }
-  }
-
   const { data: linked, error: linkError } = await supabase
     .from("agency_clients")
     .update({ organization_id: organization.id, updated_at: new Date().toISOString() })
@@ -493,8 +612,13 @@ export async function provisionClientOrganization(clientId: string): Promise<Org
         .eq("id", raced.organization_id)
         .maybeSingle();
       if (racedOrganization) return mapOrganization(racedOrganization);
+      return mapOrganization({ ...organization, id: raced.organization_id });
     }
+    return mapOrganization(organization);
   }
+
+  await migrateClientHistoricalData(admin, agency.ownerId, client.id, organization.id, personalOrganizationId);
+
   return mapOrganization(organization);
 }
 
@@ -502,7 +626,9 @@ export async function updateClient(
   id: string,
   patch: Partial<ClientInput> & { status?: AgencyClient["status"] }
 ): Promise<AgencyClient> {
-  const agency = await getOrCreateAgency();
+  const access = await requireAgencyCapability("manage_clients");
+  const { agency } = access;
+  await assertAssignedClient(id, access);
   const supabase = await createClient();
 
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
@@ -532,7 +658,9 @@ export async function updateClient(
 }
 
 export async function deleteClient(id: string): Promise<boolean> {
-  const agency = await getOrCreateAgency();
+  const access = await requireAgencyCapability("manage_clients");
+  const { agency } = access;
+  await assertAssignedClient(id, access);
   const supabase = await createClient();
   const { error } = await supabase.from("agency_clients").delete().eq("id", id).eq("agency_id", agency.id);
   return !error;
@@ -548,23 +676,20 @@ export interface ClientStats {
 /**
  * Per-client rollup of the agency owner's monitors/projects. Client data is just
  * a filtered view of the owner's own rows (they remain owned by the agency user),
- * so a plain owner-scoped read suffices.
+ * so use the admin client just like portfolio analytics does.
  */
 export async function getClientStats(): Promise<Record<string, ClientStats>> {
-  const agency = await getOrCreateAgency();
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return {};
+  const access = await getAgencyAccess();
+  const agency = access.agency;
+  const admin = createAdminClient();
 
   const stats: Record<string, ClientStats> = {};
   const ensure = (id: string) => (stats[id] ??= { monitors: 0, projects: 0, lowestScore: null });
 
-  const { data: monitors } = await supabase
+  const { data: monitors } = await admin
     .from("scan_monitors")
     .select("client_id, last_score")
-    .eq("user_id", user.id)
+    .eq("user_id", agency.ownerId)
     .not("client_id", "is", null);
   for (const row of monitors ?? []) {
     const cid = row.client_id as string;
@@ -574,16 +699,20 @@ export async function getClientStats(): Promise<Record<string, ClientStats>> {
     if (score !== null && (s.lowestScore === null || score < s.lowestScore)) s.lowestScore = score;
   }
 
-  const { data: projects } = await supabase
+  const { data: projects } = await admin
     .from("projects")
     .select("client_id")
-    .eq("user_id", user.id)
+    .eq("user_id", agency.ownerId)
     .not("client_id", "is", null);
   for (const row of projects ?? []) ensure(row.client_id as string).projects += 1;
 
   // Only surface stats for clients that belong to this agency.
-  const { data: clientIds } = await supabase.from("agency_clients").select("id").eq("agency_id", agency.id);
+  const { data: clientIds } = await admin.from("agency_clients").select("id").eq("agency_id", agency.id);
   const valid = new Set((clientIds ?? []).map((c) => c.id as string));
+  const assigned = await assignedClientIds(access);
+  if (assigned) {
+    for (const id of valid) if (!assigned.has(id)) valid.delete(id);
+  }
   for (const id of Object.keys(stats)) if (!valid.has(id)) delete stats[id];
 
   return stats;
@@ -596,21 +725,220 @@ export interface AgencyMember {
   agencyId: string;
   userId: string;
   email: string | null;
-  role: "owner" | "admin" | "member";
+  role: AgencyRole | "member";
+  roleLabel: string;
+  roleDescription: string;
   createdAt: string;
 }
 
 const MEMBER_COLS = "id, agency_id, user_id, role, created_at";
 
 function mapMember(row: Record<string, unknown>, email: string | null): AgencyMember {
+  const role = (row.role as AgencyMember["role"]) ?? "member";
+  const canonicalRole = canonicalAgencyRole(role);
   return {
     id: row.id as string,
     agencyId: row.agency_id as string,
     userId: row.user_id as string,
     email,
-    role: (row.role as AgencyMember["role"]) ?? "member",
+    role,
+    roleLabel: AGENCY_ROLE_LABELS[canonicalRole],
+    roleDescription: AGENCY_ROLE_DESCRIPTIONS[canonicalRole],
     createdAt: row.created_at as string,
   };
+}
+
+export interface AgencyAccess {
+  agency: Agency;
+  userId: string;
+  role: AgencyRole;
+  assignableRoles: AgencyRole[];
+}
+
+export async function getAgencyAccess(): Promise<AgencyAccess> {
+  const agency = await getOrCreateAgency();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new UnauthorizedError();
+  if (user.id === agency.ownerId) {
+    return { agency, userId: user.id, role: "owner", assignableRoles: assignableAgencyRoles("owner") };
+  }
+  const { data: membership } = await supabase
+    .from("agency_members")
+    .select("role")
+    .eq("agency_id", agency.id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!membership) throw new ForbiddenError("You are not a member of this agency.");
+  const role = canonicalAgencyRole(membership.role as string);
+  return { agency, userId: user.id, role, assignableRoles: assignableAgencyRoles(role) };
+}
+
+async function requireAgencyCapability(
+  capability: AgencyCapability,
+  deniedMessage = "You do not have permission to perform this agency action."
+): Promise<AgencyAccess> {
+  const access = await getAgencyAccess();
+  if (!canAgency(access.role, capability)) {
+    throw new ForbiddenError(deniedMessage);
+  }
+  return access;
+}
+
+async function assignedClientIds(access: AgencyAccess): Promise<Set<string> | null> {
+  if (access.role !== "account_manager") return null;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("agency_client_account_managers")
+    .select("client_id")
+    .eq("agency_id", access.agency.id)
+    .eq("user_id", access.userId);
+  return new Set((data ?? []).map((row) => row.client_id as string));
+}
+
+async function assertAssignedClient(clientId: string, access: AgencyAccess): Promise<void> {
+  if (access.role !== "account_manager") return;
+  const ids = await assignedClientIds(access);
+  if (!ids?.has(clientId)) throw new ForbiddenError("You are not assigned to this client.");
+}
+
+export async function listClientAssignments(clientId: string): Promise<AgencyClientAssignment[]> {
+  const access = await requireAgencyCapability("manage_agency");
+  const supabase = await createClient();
+  const { data: client } = await supabase
+    .from("agency_clients")
+    .select("id")
+    .eq("id", clientId)
+    .eq("agency_id", access.agency.id)
+    .maybeSingle();
+  if (!client) throw new NotFoundError("Client not found.");
+  const { data, error } = await supabase
+    .from("agency_client_account_managers")
+    .select("user_id, created_at")
+    .eq("agency_id", access.agency.id)
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: true });
+  if (error || !data) return [];
+  const admin = createAdminClient();
+  const assignments = await Promise.all(
+    data.map(async (row) => {
+      const { data: user } = await admin.auth.admin.getUserById(row.user_id as string);
+      return {
+        userId: row.user_id as string,
+        email: user.user?.email ?? null,
+        createdAt: row.created_at as string,
+      };
+    })
+  );
+  return assignments;
+}
+
+export async function listAgencyClientAssignments(
+  clientIds: string[]
+): Promise<Record<string, AgencyClientAssignment[]>> {
+  const { agency } = await requireAgencyCapability("manage_agency");
+  if (clientIds.length === 0) return {};
+  const supabase = await createClient();
+  const { data: clients } = await supabase
+    .from("agency_clients")
+    .select("id")
+    .eq("agency_id", agency.id)
+    .in("id", clientIds);
+  const validClientIds = (clients ?? []).map((client) => client.id as string);
+  const assignmentsByClient: Record<string, AgencyClientAssignment[]> = Object.fromEntries(
+    validClientIds.map((clientId) => [clientId, []])
+  );
+  if (validClientIds.length === 0) return assignmentsByClient;
+  const { data, error } = await supabase
+    .from("agency_client_account_managers")
+    .select("client_id, user_id, created_at")
+    .eq("agency_id", agency.id)
+    .in("client_id", validClientIds)
+    .order("created_at", { ascending: true });
+  if (error || !data) return assignmentsByClient;
+  const admin = createAdminClient();
+  const emailById = new Map<string, string | null>();
+  await Promise.all(
+    [...new Set(data.map((row) => row.user_id as string))].map(async (userId) => {
+      const { data: user } = await admin.auth.admin.getUserById(userId);
+      emailById.set(userId, user.user?.email ?? null);
+    })
+  );
+  for (const row of data) {
+    assignmentsByClient[row.client_id as string]?.push({
+      userId: row.user_id as string,
+      email: emailById.get(row.user_id as string) ?? null,
+      createdAt: row.created_at as string,
+    });
+  }
+  return assignmentsByClient;
+}
+
+export async function assignAccountManager(clientId: string, userId: string): Promise<AgencyClientAssignment> {
+  const { agency, userId: actorId } = await requireAgencyCapability("manage_agency");
+  const supabase = await createClient();
+  const { data: client } = await supabase
+    .from("agency_clients")
+    .select("id")
+    .eq("id", clientId)
+    .eq("agency_id", agency.id)
+    .maybeSingle();
+  if (!client) throw new NotFoundError("Client not found.");
+  const { data: member } = await supabase
+    .from("agency_members")
+    .select("user_id, role")
+    .eq("agency_id", agency.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!member || member.role !== "account_manager") {
+    throw new ValidationError("Only agency Account Managers can be assigned to clients.");
+  }
+  const { data: existing } = await supabase
+    .from("agency_client_account_managers")
+    .select("user_id, created_at")
+    .eq("agency_id", agency.id)
+    .eq("client_id", clientId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (existing) {
+    const admin = createAdminClient();
+    const { data: user } = await admin.auth.admin.getUserById(userId);
+    return {
+      userId: existing.user_id as string,
+      email: user.user?.email ?? null,
+      createdAt: existing.created_at as string,
+    };
+  }
+  const { data, error } = await supabase
+    .from("agency_client_account_managers")
+    .insert({ agency_id: agency.id, client_id: clientId, user_id: userId, assigned_by: actorId })
+    .select("user_id, created_at")
+    .single();
+  if (error || !data) throw new Error("Could not assign the Account Manager.");
+  const admin = createAdminClient();
+  const { data: user } = await admin.auth.admin.getUserById(userId);
+  return { userId: data.user_id as string, email: user.user?.email ?? null, createdAt: data.created_at as string };
+}
+
+export async function unassignAccountManager(clientId: string, userId: string): Promise<boolean> {
+  const { agency } = await requireAgencyCapability("manage_agency");
+  const supabase = await createClient();
+  const { data: client } = await supabase
+    .from("agency_clients")
+    .select("id")
+    .eq("id", clientId)
+    .eq("agency_id", agency.id)
+    .maybeSingle();
+  if (!client) throw new NotFoundError("Client not found.");
+  const { error } = await supabase
+    .from("agency_client_account_managers")
+    .delete()
+    .eq("agency_id", agency.id)
+    .eq("client_id", clientId)
+    .eq("user_id", userId);
+  return !error;
 }
 
 /**
@@ -649,9 +977,13 @@ export async function listMembers(): Promise<AgencyMember[]> {
  * (TIER_CONFIG.seats; Enterprise is unlimited). The invitee must already have a
  * Comply-Quick account. Idempotent: re-adding an existing member is a no-op.
  */
-export async function addMember(email: string): Promise<AgencyMember> {
-  const agency = await getOrCreateAgency();
-  const entitlement = await getEntitlement();
+export async function addMember(email: string, requestedRole: AgencyRole = "client_viewer"): Promise<AgencyMember> {
+  const { agency } = await requireAgencyCapability("manage_agency");
+  const access = await getAgencyAccess();
+  if (!access.assignableRoles.includes(requestedRole)) {
+    throw new ForbiddenError("You cannot assign a role above your own.");
+  }
+  const entitlement = await getEntitlementForUser(agency.ownerId);
   const supabase = await createClient();
 
   const normalized = email.trim().toLowerCase();
@@ -680,9 +1012,20 @@ export async function addMember(email: string): Promise<AgencyMember> {
   const found = list.users.find((u) => u.email?.toLowerCase() === normalized);
   if (!found) throw new ValidationError("No Comply-Quick account found for that email. Ask them to sign up first.");
 
+  // Idempotent: if the user is already a member, return their existing seat
+  // unchanged. Role changes go through updateMemberRole so re-inviting never
+  // silently overwrites (and possibly demotes) an existing member's role.
+  const { data: existing } = await supabase
+    .from("agency_members")
+    .select(MEMBER_COLS)
+    .eq("agency_id", agency.id)
+    .eq("user_id", found.id)
+    .maybeSingle();
+  if (existing) return mapMember(existing, found.email ?? null);
+
   const { data, error } = await supabase
     .from("agency_members")
-    .upsert({ agency_id: agency.id, user_id: found.id, role: "member" }, { onConflict: "agency_id,user_id" })
+    .insert({ agency_id: agency.id, user_id: found.id, role: requestedRole })
     .select(MEMBER_COLS)
     .single();
   if (error || !data) {
@@ -693,9 +1036,30 @@ export async function addMember(email: string): Promise<AgencyMember> {
   return mapMember(data, found.email ?? null);
 }
 
+export async function updateMemberRole(userId: string, requestedRole: AgencyRole): Promise<AgencyMember> {
+  const access = await requireAgencyCapability("manage_agency");
+  if (userId === access.agency.ownerId) throw new ValidationError("The agency owner role cannot be changed.");
+  if (!access.assignableRoles.includes(requestedRole)) {
+    throw new ForbiddenError("You cannot assign a role above your own.");
+  }
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("agency_members")
+    .update({ role: requestedRole })
+    .eq("agency_id", access.agency.id)
+    .eq("user_id", userId)
+    .neq("role", "owner")
+    .select(MEMBER_COLS)
+    .maybeSingle();
+  if (error || !data) throw new NotFoundError("Agency member not found.");
+  const admin = createAdminClient();
+  const { data: found } = await admin.auth.admin.getUserById(userId);
+  return mapMember(data, found.user?.email ?? null);
+}
+
 /** Removes a team seat. The owner seat cannot be removed. */
 export async function removeMember(userId: string): Promise<boolean> {
-  const agency = await getOrCreateAgency();
+  const { agency } = await requireAgencyCapability("manage_agency");
   const supabase = await createClient();
   if (userId === agency.ownerId) throw new ValidationError("The agency owner seat cannot be removed.");
   const { error } = await supabase
@@ -704,7 +1068,13 @@ export async function removeMember(userId: string): Promise<boolean> {
     .eq("agency_id", agency.id)
     .eq("user_id", userId)
     .neq("role", "owner");
-  return !error;
+  if (error) return false;
+  const { error: assignmentError } = await supabase
+    .from("agency_client_account_managers")
+    .delete()
+    .eq("agency_id", agency.id)
+    .eq("user_id", userId);
+  return !assignmentError;
 }
 
 // ─── Custom domains ────────────────────────────────────────────────────────────
@@ -738,7 +1108,7 @@ export async function listDomains(): Promise<AgencyDomain[]> {
 }
 
 export async function addDomain(rawDomain: string): Promise<AgencyDomain> {
-  const agency = await getOrCreateAgency();
+  const { agency } = await requireAgencyCapability("manage_agency");
   const supabase = await createClient();
   const domain = normalizeDomain(rawDomain);
   if (!isValidDomain(domain)) throw new ValidationError("Enter a valid domain, e.g. compliance.acme.com.");
@@ -777,7 +1147,7 @@ export async function addDomain(rawDomain: string): Promise<AgencyDomain> {
 
 /** Re-checks a domain with the provider and flips it to `verified` once live. */
 export async function verifyDomain(id: string): Promise<AgencyDomain> {
-  const agency = await getOrCreateAgency();
+  const { agency } = await requireAgencyCapability("manage_agency");
   const supabase = await createClient();
   const { data: row } = await supabase
     .from("agency_domains")
@@ -820,7 +1190,7 @@ export async function verifyDomain(id: string): Promise<AgencyDomain> {
 }
 
 export async function deleteDomain(id: string): Promise<boolean> {
-  const agency = await getOrCreateAgency();
+  const { agency } = await requireAgencyCapability("manage_agency");
   const supabase = await createClient();
   const { data: row } = await supabase
     .from("agency_domains")

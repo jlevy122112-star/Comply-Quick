@@ -1,102 +1,118 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({
-  getOrganization: vi.fn(),
-  from: vi.fn(),
+const state = vi.hoisted(() => ({
+  role: "admin",
+  userId: "user-1",
+  flags: [
+    { id: "org-row", organization_id: "org-1", flag_key: "profit_optimizations", user_id: null, enabled: false },
+    {
+      id: "user-row",
+      organization_id: "org-1",
+      flag_key: "profit_optimizations",
+      user_id: "user-1",
+      enabled: true,
+    },
+  ] as Array<Record<string, unknown>>,
+  audit: [] as Array<Record<string, unknown>>,
 }));
 
-vi.mock("@/lib/organizations-db", () => ({ getOrganization: mocks.getOrganization }));
+function builder(table: string) {
+  const filters: Array<[string, string, unknown]> = [];
+  let payload: Record<string, unknown> | null = null;
+  const chain: Record<string, (...args: unknown[]) => unknown> = {};
+  for (const method of ["select", "eq", "is", "order", "limit"]) {
+    chain[method] = (...args: unknown[]) => {
+      if (method === "eq") filters.push(["eq", args[0] as string, args[1]]);
+      if (method === "is") filters.push(["is", args[0] as string, args[1]]);
+      return chain;
+    };
+  }
+  chain.update = (value: unknown) => {
+    payload = value as Record<string, unknown>;
+    return chain;
+  };
+  chain.insert = (value: unknown) => {
+    payload = value as Record<string, unknown>;
+    return chain;
+  };
+  chain.maybeSingle = async () => {
+    const rows = table === "organization_feature_flags" ? state.flags : [];
+    const row = rows.find((candidate) =>
+      filters.every(([operator, column, value]) =>
+        operator === "eq" ? candidate[column] === value : candidate[column] === null
+      )
+    );
+    return { data: row ?? null, error: null };
+  };
+  chain.then = ((resolve: (value: unknown) => unknown) => {
+    const rows = table === "organization_feature_flags" ? state.flags : state.audit;
+    const filtered = rows.filter((candidate) =>
+      filters.every(([operator, column, value]) =>
+        operator === "eq" ? candidate[column] === value : candidate[column] === null
+      )
+    );
+    if (payload && table === "feature_flag_audit") state.audit.push(payload);
+    return Promise.resolve(resolve({ data: filtered, error: null }));
+  }) as (...args: unknown[]) => unknown;
+  return chain;
+}
+
+vi.mock("@/lib/organizations-db", () => ({
+  getActiveOrganizationId: async () => "org-1",
+  getMyOrgRole: async () => state.role,
+}));
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({
-    auth: { getUser: async () => ({ data: { user: { id: "user_1" } } }) },
-    from: mocks.from,
+    auth: { getUser: async () => ({ data: { user: { id: state.userId } } }) },
+    from: (table: string) => builder(table),
   }),
 }));
 
-import {
-  isFeatureEnabled,
-  getFeatureFlag,
-  listFeatureFlags,
-  setFeatureFlag,
-  type FeatureFlag,
-} from "@/lib/feature-flags";
-
-function makeQuery(result: unknown) {
-  const builder: Record<string, unknown> = {};
-  for (const m of ["select", "eq"]) {
-    builder[m] = () => builder;
-  }
-  builder.maybeSingle = async () => result;
-  builder.then = (resolve: (value: unknown) => void) => resolve(result);
-  return builder;
-}
-
-describe("feature-flags", () => {
+describe("tenant feature flags", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.from.mockReturnValue(makeQuery({ data: null }));
+    state.role = "admin";
+    state.flags = [
+      { id: "org-row", organization_id: "org-1", flag_key: "profit_optimizations", user_id: null, enabled: false },
+      { id: "user-row", organization_id: "org-1", flag_key: "profit_optimizations", user_id: "user-1", enabled: true },
+    ];
+    state.audit = [];
+    process.env.NEXT_PUBLIC_ENABLE_SPEED_OPTIMIZATIONS = "false";
   });
 
-  it("uses plan defaults when no override exists", () => {
-    expect(isFeatureEnabled("enterpriseHierarchy", "enterprise", null)).toBe(true);
-    expect(isFeatureEnabled("enterpriseHierarchy", "agency", null)).toBe(false);
-    expect(isFeatureEnabled("enterpriseHierarchy", "free", null)).toBe(false);
-    expect(isFeatureEnabled("agencyPortal", "agency", null)).toBe(true);
-    expect(isFeatureEnabled("agencyPortal", "free", null)).toBe(false);
+  afterEach(() => {
+    delete process.env.NEXT_PUBLIC_ENABLE_SPEED_OPTIMIZATIONS;
   });
 
-  it("honors tenant overrides over plan defaults", () => {
-    expect(isFeatureEnabled("enterpriseHierarchy", "agency", true)).toBe(true);
-    expect(isFeatureEnabled("enterpriseHierarchy", "enterprise", false)).toBe(false);
-  });
+  it("resolves user overrides before organization, env, and registry defaults", async () => {
+    const { resolveFlag } = await import("@/lib/flags");
+    await expect(resolveFlag("profit_optimizations")).resolves.toBe(true);
 
-  it("resolves a feature flag from the org plan", async () => {
-    mocks.getOrganization.mockResolvedValue({
-      id: "org_1",
-      plan: "enterprise",
-      parentOrganizationId: null,
-      isPersonal: false,
-    });
-
-    const enabled = await getFeatureFlag("org_1", "enterpriseHierarchy");
-    expect(enabled).toBe(true);
-  });
-
-  it("lists all features with their effective values", async () => {
-    mocks.getOrganization.mockResolvedValue({
-      id: "org_1",
-      plan: "agency",
-      parentOrganizationId: null,
-      isPersonal: false,
-    });
-    mocks.from.mockReturnValue(
-      makeQuery({
-        data: [{ flag: "enterpriseHierarchy", enabled: true }],
-      })
+    state.flags = state.flags.filter((row) => row.user_id === null);
+    const { listOrgFlags } = await import("@/lib/flags");
+    await expect(listOrgFlags()).resolves.toEqual(
+      expect.arrayContaining([
+        { key: "profit_optimizations", enabled: false, source: "organization" },
+        { key: "speed_optimizations", enabled: false, source: "env" },
+        { key: "churn_save_offer", enabled: true, source: "default" },
+      ])
     );
-
-    const flags = await listFeatureFlags("org_1");
-    const hierarchy = flags.find((f) => f.flag === "enterpriseHierarchy")!;
-    expect(hierarchy.enabled).toBe(true);
-    expect(hierarchy.source).toBe("override");
   });
 
-  it("persists a feature override", async () => {
-    mocks.getOrganization.mockResolvedValue({
-      id: "org_1",
-      plan: "enterprise",
-      parentOrganizationId: null,
-      isPersonal: false,
-    });
-    const upsertMock = vi.fn().mockResolvedValue({ error: null });
-    mocks.from.mockReturnValue({ upsert: upsertMock });
+  it("requires an organization admin and records an audit entry when setting a flag", async () => {
+    state.role = "member";
+    const { setOrgFlag } = await import("@/lib/flags");
+    await expect(setOrgFlag("profit_optimizations", true)).rejects.toThrow(/admins/);
 
-    const res = await setFeatureFlag("org_1", "siemExport" as FeatureFlag, true, "SOC 2 requirement");
-
-    expect(res).toEqual({ ok: true });
-    expect(upsertMock).toHaveBeenCalledWith(
-      expect.objectContaining({ organization_id: "org_1", flag: "siemExport", enabled: true }),
-      expect.anything()
-    );
+    state.role = "admin";
+    await setOrgFlag("profit_optimizations", true);
+    expect(state.audit).toEqual([
+      expect.objectContaining({
+        organization_id: "org-1",
+        flag_key: "profit_optimizations",
+        previous_enabled: false,
+        new_enabled: true,
+        actor_user_id: "user-1",
+      }),
+    ]);
   });
 });

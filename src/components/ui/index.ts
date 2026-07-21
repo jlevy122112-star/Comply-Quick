@@ -8,6 +8,7 @@ export type { ClassValue } from "./cn";
 export { Button } from "./Button";
 export type { ButtonProps, ButtonVariant, ButtonSize } from "./Button";
 export { Card, CardHeader, CardBody } from "./Card";
+export type { CardProps, CardVariant } from "./Card";
 export { Input, Textarea, Select, CheckboxRow } from "./Field";
 export type { InputProps, TextareaProps, SelectProps } from "./Field";
 export { ProgressBar, toneForScore } from "./ProgressBar";

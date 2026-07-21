@@ -111,4 +111,31 @@ describe("organization sharing correctness", () => {
       expect.objectContaining({ project_id: "project-1", organization_id: "org-project" })
     );
   });
+
+  it("leaves alert impacts unscoped for a legacy null-organization project", async () => {
+    const projectMaybeSingle = vi.fn().mockResolvedValue({ data: { organization_id: null } });
+    const projectQuery = {
+      select: () => projectQuery,
+      eq: () => projectQuery,
+      maybeSingle: projectMaybeSingle,
+    };
+    const adminInsert = vi.fn().mockResolvedValue({ error: null });
+    const admin = {
+      from: (table: string) => (table === "projects" ? projectQuery : { insert: adminInsert }),
+    };
+    const { recordAlertImpact } = await import("@/lib/regulations/alert-impacts");
+
+    await recordAlertImpact(admin as never, {
+      userId: "owner-personal",
+      projectId: "project-legacy",
+      versionId: null,
+      regulationId: "regulation-1",
+      regulationName: "Test regulation",
+      riskLevel: "low",
+    });
+
+    expect(adminInsert).toHaveBeenCalledWith(
+      expect.objectContaining({ project_id: "project-legacy", organization_id: null })
+    );
+  });
 });

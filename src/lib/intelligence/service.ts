@@ -7,7 +7,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getEntitlement } from "@/lib/entitlements";
+import { getOrgEntitlement } from "@/lib/entitlements";
 import { paidPlansLabel } from "@/lib/tier-copy";
 import { getAiClient, type AiClient } from "@/services/ai";
 import { logger } from "@/services";
@@ -49,7 +49,7 @@ export interface AlertRecord {
 
 /** Whether the current user may use proactive monitoring (paid-plan gate). */
 export async function canUseIntelligence(): Promise<boolean> {
-  const entitlement = await getEntitlement();
+  const entitlement = await getOrgEntitlement();
   return entitlement.isPremium;
 }
 

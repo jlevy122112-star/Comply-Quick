@@ -8,10 +8,18 @@ import { switchActiveOrganizationAction } from "@/app/dashboard/actions";
 import { uploadBrandLogo, validateLogoFile } from "@/lib/storage/brand";
 import type { Tier } from "@/lib/entitlements";
 import { tierLabel } from "@/lib/tier-copy";
-import type { Agency, AgencyClient, AgencyDomain, ClientStats, AgencyMember } from "@/lib/agency/service";
+import type {
+  Agency,
+  AgencyClient,
+  AgencyClientAssignment,
+  AgencyDomain,
+  ClientStats,
+  AgencyMember,
+} from "@/lib/agency/service";
 import type { AgencyPortfolioAnalytics } from "@/lib/agency/analytics";
 import PortfolioAnalytics from "./PortfolioAnalytics";
 import type { BillingSummary } from "@/lib/billing/usage";
+import { AGENCY_ROLE_DESCRIPTIONS, AGENCY_ROLE_LABELS, AGENCY_ROLES, type AgencyRole } from "@/lib/agency/roles";
 
 interface Props {
   agency: Agency;
@@ -24,6 +32,8 @@ interface Props {
   billing: BillingSummary;
   managedClientLimit: number | null;
   portfolioAnalytics: AgencyPortfolioAnalytics;
+  agencyRole: AgencyRole;
+  assignments: Record<string, AgencyClientAssignment[]>;
 }
 
 type Tab = "clients" | "portfolio" | "team" | "branding" | "domains";
@@ -55,6 +65,8 @@ export default function AgencyPortalView({
   billing,
   managedClientLimit,
   portfolioAnalytics,
+  agencyRole,
+  assignments,
 }: Props) {
   const [tab, setTab] = useState<Tab>("clients");
   const [agency, setAgency] = useState(initialAgency);
@@ -62,6 +74,10 @@ export default function AgencyPortalView({
   const [domains, setDomains] = useState(initialDomains);
   const [members, setMembers] = useState(initialMembers);
   const headerLogo = safeImageSrc(agency.logoUrl);
+  const canManageAgency = agencyRole === "owner" || agencyRole === "admin";
+  const tabs: Tab[] = canManageAgency
+    ? ["clients", "portfolio", "team", "branding", "domains"]
+    : ["clients", "portfolio"];
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100" style={{ ["--brand" as string]: agency.primaryColor }}>
@@ -107,7 +123,7 @@ export default function AgencyPortalView({
 
         {/* Tabs */}
         <div className="flex gap-1 border-b border-gray-800" role="tablist" aria-label="Agency portal sections">
-          {(["clients", "portfolio", "team", "branding", "domains"] as Tab[]).map((t) => (
+          {tabs.map((t) => (
             <button
               key={t}
               type="button"
@@ -124,11 +140,30 @@ export default function AgencyPortalView({
         </div>
 
         {tab === "clients" && (
-          <ClientsTab clients={clients} setClients={setClients} stats={stats} managedClientLimit={managedClientLimit} />
+          <ClientsTab
+            clients={clients}
+            setClients={setClients}
+            stats={stats}
+            managedClientLimit={managedClientLimit}
+            canManage={agencyRole !== "client_viewer"}
+            agencyRole={agencyRole}
+            canManageAgency={canManageAgency}
+            members={members}
+            assignments={assignments}
+          />
         )}
         {tab === "portfolio" && <PortfolioAnalytics analytics={portfolioAnalytics} />}
         {tab === "team" && (
-          <TeamTab members={members} setMembers={setMembers} billing={billing} ownerId={agency.ownerId} />
+          <TeamTab
+            members={members}
+            setMembers={setMembers}
+            billing={billing}
+            ownerId={agency.ownerId}
+            canManage={agencyRole === "owner" || agencyRole === "admin"}
+            assignableRoles={
+              agencyRole === "owner" || agencyRole === "admin" ? AGENCY_ROLES.filter((r) => r !== "owner") : []
+            }
+          />
         )}
         {tab === "branding" && <BrandingTab agency={agency} setAgency={setAgency} />}
         {tab === "domains" && (
@@ -165,15 +200,20 @@ function TeamTab({
   setMembers,
   billing,
   ownerId,
+  canManage,
+  assignableRoles,
 }: {
   members: AgencyMember[];
   setMembers: React.Dispatch<React.SetStateAction<AgencyMember[]>>;
   billing: BillingSummary;
   ownerId: string;
+  canManage: boolean;
+  assignableRoles: AgencyRole[];
 }) {
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [role, setRole] = useState<AgencyRole>("client_viewer");
 
   const seatsUsed = members.length;
   const seatLabel = Number.isFinite(billing.seats.limit) ? String(billing.seats.limit) : "Unlimited";
@@ -188,7 +228,7 @@ function TeamTab({
       const res = await fetch("/api/agency/members", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, role }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message ?? "Could not add member.");
@@ -199,12 +239,26 @@ function TeamTab({
     } finally {
       setBusy(false);
     }
-  }, [email, setMembers]);
+  }, [email, role, setMembers]);
 
   const removeMember = useCallback(
     async (userId: string) => {
       setMembers((prev) => prev.filter((m) => m.userId !== userId));
       await fetch(`/api/agency/members/${userId}`, { method: "DELETE" });
+    },
+    [setMembers]
+  );
+
+  const changeRole = useCallback(
+    async (userId: string, nextRole: AgencyRole) => {
+      const res = await fetch(`/api/agency/members/${userId}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ role: nextRole }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setMembers((prev) => prev.map((member) => (member.userId === userId ? data.member : member)));
     },
     [setMembers]
   );
@@ -255,11 +309,28 @@ function TeamTab({
           <button
             type="button"
             onClick={addMember}
-            disabled={busy || email.trim().length === 0}
+            disabled={!canManage || busy || email.trim().length === 0}
             className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors disabled:opacity-40"
           >
             {busy ? "Adding…" : "Add seat"}
           </button>
+          {canManage && (
+            <label className="text-xs text-gray-400">
+              Role
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value as AgencyRole)}
+                className="ml-2 rounded bg-gray-950 border border-gray-700 px-2 py-2 text-sm text-white"
+              >
+                {assignableRoles.map((r) => (
+                  <option key={r} value={r}>
+                    {AGENCY_ROLE_LABELS[r]}
+                  </option>
+                ))}
+              </select>
+              <span className="block mt-1 text-gray-500">{AGENCY_ROLE_DESCRIPTIONS[role]}</span>
+            </label>
+          )}
         </div>
         {error && <p className="text-sm text-red-400 mt-3">{error}</p>}
         <p className="text-xs text-gray-500 mt-3">They must already have a Comply-Quick account.</p>
@@ -274,18 +345,37 @@ function TeamTab({
           >
             <div className="min-w-0">
               <p className="text-sm text-white truncate">{m.email ?? m.userId}</p>
-              <p className="text-xs text-gray-500 capitalize">{m.role}</p>
+              <p className="text-xs text-gray-500" title={m.roleDescription}>
+                {m.roleLabel}
+              </p>
             </div>
             {m.userId === ownerId ? (
               <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-xs text-indigo-300">Owner</span>
             ) : (
-              <button
-                type="button"
-                onClick={() => removeMember(m.userId)}
-                className="text-xs text-gray-400 hover:text-red-400 transition-colors"
-              >
-                Remove
-              </button>
+              <div className="flex items-center gap-3">
+                {canManage && (
+                  <select
+                    value={m.role === "member" ? "client_viewer" : m.role}
+                    onChange={(e) => changeRole(m.userId, e.target.value as AgencyRole)}
+                    className="rounded bg-gray-950 border border-gray-700 px-2 py-1 text-xs text-white"
+                    aria-label={`Role for ${m.email ?? m.userId}`}
+                  >
+                    {assignableRoles.map((r) => (
+                      <option key={r} value={r}>
+                        {AGENCY_ROLE_LABELS[r]}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <button
+                  type="button"
+                  onClick={() => removeMember(m.userId)}
+                  disabled={!canManage}
+                  className="text-xs text-gray-400 hover:text-red-400 transition-colors disabled:opacity-40"
+                >
+                  Remove
+                </button>
+              </div>
             )}
           </div>
         ))}
@@ -301,11 +391,21 @@ function ClientsTab({
   setClients,
   stats,
   managedClientLimit,
+  canManage,
+  agencyRole,
+  canManageAgency,
+  members,
+  assignments: initialAssignments,
 }: {
   clients: AgencyClient[];
   setClients: React.Dispatch<React.SetStateAction<AgencyClient[]>>;
   stats: Record<string, ClientStats>;
   managedClientLimit: number | null;
+  canManage: boolean;
+  agencyRole: AgencyRole;
+  canManageAgency: boolean;
+  members: AgencyMember[];
+  assignments: Record<string, AgencyClientAssignment[]>;
 }) {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -316,8 +416,12 @@ function ClientsTab({
   const [provisioning, setProvisioning] = useState<Record<string, boolean>>({});
   const [provisionError, setProvisionError] = useState<string | null>(null);
   const [openingWorkspace, setOpeningWorkspace] = useState<string | null>(null);
+  const [assignments, setAssignments] = useState(initialAssignments);
+  const [assignmentBusy, setAssignmentBusy] = useState<string | null>(null);
+  const [assignmentError, setAssignmentError] = useState<string | null>(null);
   const activeClientCount = clients.filter((client) => client.status === "active").length;
   const clientCapReached = managedClientLimit !== null && activeClientCount >= managedClientLimit;
+  const accountManagers = members.filter((member) => member.role === "account_manager");
 
   const addClient = useCallback(async () => {
     if (name.trim().length === 0) return;
@@ -350,54 +454,102 @@ function ClientsTab({
     [setClients]
   );
 
+  const assignManager = async (clientId: string, userId: string) => {
+    if (!userId) return;
+    setAssignmentBusy(clientId);
+    setAssignmentError(null);
+    try {
+      const res = await fetch(`/api/agency/clients/${clientId}/account-managers`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? "Could not assign the Account Manager.");
+      setAssignments((current) => ({ ...current, [clientId]: [...(current[clientId] ?? []), data.assignment] }));
+    } catch (e) {
+      setAssignmentError(e instanceof Error ? e.message : "Could not assign the Account Manager.");
+    } finally {
+      setAssignmentBusy(null);
+    }
+  };
+
+  const unassignManager = async (clientId: string, userId: string) => {
+    setAssignmentBusy(`${clientId}:${userId}`);
+    setAssignmentError(null);
+    try {
+      const res = await fetch(`/api/agency/clients/${clientId}/account-managers`, {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? "Could not unassign the Account Manager.");
+      setAssignments((current) => ({
+        ...current,
+        [clientId]: (current[clientId] ?? []).filter((assignment) => assignment.userId !== userId),
+      }));
+    } catch (e) {
+      setAssignmentError(e instanceof Error ? e.message : "Could not unassign the Account Manager.");
+    } finally {
+      setAssignmentBusy(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <section className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-        <h2 className="text-sm font-semibold text-white mb-3">Add a client</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <input
-            aria-label="Client name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Client name *"
-            className="px-3 py-2 rounded-lg bg-gray-950 border border-gray-700 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none"
-          />
-          <input
-            aria-label="Client website"
-            value={website}
-            onChange={(e) => setWebsite(e.target.value)}
-            placeholder="https://client-site.com"
-            className="px-3 py-2 rounded-lg bg-gray-950 border border-gray-700 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none"
-          />
-          <input
-            aria-label="Client contact email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="contact@client.com"
-            className="px-3 py-2 rounded-lg bg-gray-950 border border-gray-700 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none"
-          />
-        </div>
-        <div className="flex items-center gap-3 mt-3">
-          <button
-            type="button"
-            onClick={addClient}
-            disabled={busy || clientCapReached || name.trim().length === 0}
-            className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors disabled:opacity-40"
-          >
-            {busy ? "Adding…" : "Add client"}
-          </button>
-          {error && <span className="text-sm text-red-400">{error}</span>}
-        </div>
-        {clientCapReached && (
-          <p className="mt-3 text-xs text-amber-300" role="status">
-            Your plan has reached its {managedClientLimit}-client limit. Archive a client or upgrade to add another.
-          </p>
-        )}
-      </section>
+      {canManage && (
+        <section className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+          <h2 className="text-sm font-semibold text-white mb-3">Add a client</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <input
+              aria-label="Client name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Client name *"
+              className="px-3 py-2 rounded-lg bg-gray-950 border border-gray-700 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none"
+            />
+            <input
+              aria-label="Client website"
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              placeholder="https://client-site.com"
+              className="px-3 py-2 rounded-lg bg-gray-950 border border-gray-700 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none"
+            />
+            <input
+              aria-label="Client contact email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="contact@client.com"
+              className="px-3 py-2 rounded-lg bg-gray-950 border border-gray-700 text-sm text-white placeholder-gray-500 focus:border-indigo-500 focus:outline-none"
+            />
+          </div>
+          <div className="flex items-center gap-3 mt-3">
+            <button
+              type="button"
+              onClick={addClient}
+              disabled={busy || clientCapReached || name.trim().length === 0}
+              className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors disabled:opacity-40"
+            >
+              {busy ? "Adding…" : "Add client"}
+            </button>
+            {error && <span className="text-sm text-red-400">{error}</span>}
+          </div>
+          {clientCapReached && (
+            <p className="mt-3 text-xs text-amber-300" role="status">
+              Your plan has reached its {managedClientLimit}-client limit. Archive a client or upgrade to add another.
+            </p>
+          )}
+        </section>
+      )}
 
       {clients.length === 0 ? (
         <div className="bg-gray-900 border border-gray-800 border-dashed rounded-xl p-8 text-center text-sm text-gray-500">
-          No clients yet. Add your first client above to start managing their compliance.
+          {agencyRole === "owner" || agencyRole === "admin"
+            ? "No clients yet. Add your first client above to start managing their compliance."
+            : agencyRole === "account_manager"
+              ? "No clients are assigned to you yet. Ask an Agency Admin to assign a client portfolio."
+              : "No clients are available in this agency portfolio."}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -469,7 +621,8 @@ function ClientsTab({
                   <button
                     type="button"
                     onClick={() => removeClient(c.id)}
-                    className="text-xs text-gray-500 hover:text-red-400 transition-colors"
+                    disabled={!canManage}
+                    className="text-xs text-gray-500 hover:text-red-400 transition-colors disabled:opacity-40"
                   >
                     Remove
                   </button>
@@ -483,7 +636,7 @@ function ClientsTab({
                       <button
                         type="button"
                         onClick={openWorkspace}
-                        disabled={openingWorkspace === c.id}
+                        disabled={!canManage || openingWorkspace === c.id}
                         className="mt-2 text-xs font-medium text-indigo-400 hover:text-indigo-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:opacity-50"
                       >
                         {openingWorkspace === c.id ? "Opening…" : "Open workspace →"}
@@ -495,7 +648,7 @@ function ClientsTab({
                       <button
                         type="button"
                         onClick={provision}
-                        disabled={isProvisioning}
+                        disabled={!canManage || isProvisioning}
                         aria-label={`Provision workspace for ${c.name}`}
                         className="mt-2 text-xs font-medium text-indigo-400 hover:text-indigo-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:opacity-50"
                       >
@@ -504,6 +657,57 @@ function ClientsTab({
                     </>
                   )}
                 </div>
+                {canManageAgency && (
+                  <div className="mt-3 border-t border-gray-800 pt-3">
+                    <p className="text-xs font-medium text-gray-300">Account Managers</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {(assignments[c.id] ?? []).map((assignment) => (
+                        <span
+                          key={assignment.userId}
+                          className="inline-flex items-center gap-1 rounded-full bg-indigo-500/10 px-2 py-1 text-xs text-indigo-200"
+                        >
+                          {assignment.email ?? assignment.userId}
+                          <button
+                            type="button"
+                            aria-label={`Unassign ${assignment.email ?? "Account Manager"} from ${c.name}`}
+                            onClick={() => unassignManager(c.id, assignment.userId)}
+                            disabled={assignmentBusy === `${c.id}:${assignment.userId}`}
+                            className="text-indigo-300 hover:text-white disabled:opacity-40"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                      {(assignments[c.id] ?? []).length === 0 && (
+                        <span className="text-xs text-gray-500">No Account Managers assigned.</span>
+                      )}
+                    </div>
+                    <label className="mt-2 block">
+                      <span className="sr-only">Assign an Account Manager to {c.name}</span>
+                      <select
+                        aria-label={`Assign an Account Manager to ${c.name}`}
+                        value=""
+                        onChange={(event) => assignManager(c.id, event.target.value)}
+                        disabled={assignmentBusy === c.id || accountManagers.length === 0}
+                        className="w-full rounded-lg border border-gray-700 bg-gray-950 px-2 py-1.5 text-xs text-gray-200 disabled:opacity-40"
+                      >
+                        <option value="">
+                          {accountManagers.length === 0 ? "No Account Managers available" : "Assign Account Manager…"}
+                        </option>
+                        {accountManagers
+                          .filter(
+                            (member) =>
+                              !(assignments[c.id] ?? []).some((assignment) => assignment.userId === member.userId)
+                          )
+                          .map((member) => (
+                            <option key={member.userId} value={member.userId}>
+                              {member.email ?? member.userId}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -512,6 +716,11 @@ function ClientsTab({
       {provisionError && (
         <p className="text-sm text-red-400" role="alert" aria-live="polite">
           {provisionError}
+        </p>
+      )}
+      {assignmentError && (
+        <p className="text-sm text-red-400" role="alert" aria-live="polite">
+          {assignmentError}
         </p>
       )}
     </div>

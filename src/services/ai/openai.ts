@@ -45,7 +45,7 @@ export class OpenAiClient implements AiClient {
         if (status === 429 || status >= 500) {
           throw new ServiceUnavailableError(`OpenAI unavailable (${status || "network"}).`);
         }
-        throw new InternalError(`OpenAI error ${status}: ${String(err.message).slice(0, 200)}`);
+        throw new InternalError(`OpenAI error ${status}: ${err.code || err.type || "unknown"}`);
       }
       throw new ServiceUnavailableError("OpenAI request failed to send.");
     }

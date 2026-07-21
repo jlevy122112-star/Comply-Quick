@@ -50,6 +50,7 @@ describe("theme tokens", () => {
       smtpReplyToEmail: "support@acme.com",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      kind: null,
     };
     const brand = tenantBrandFromOrganization(org);
     expect(brand.name).toBe("Acme Agency");

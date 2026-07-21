@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Clarity } from "@/components/analytics/Clarity";
@@ -12,8 +12,8 @@ import "./globals.css";
 const GSC_TOKEN = process.env.NEXT_PUBLIC_GSC_VERIFICATION;
 const GSC_VERIFICATION = GSC_TOKEN && /^[A-Za-z0-9_-]{1,128}$/.test(GSC_TOKEN) ? GSC_TOKEN : undefined;
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
@@ -21,6 +21,16 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+const themeScript = `
+  (() => {
+    try {
+      if (localStorage.getItem("comply-quick-theme") === "dark") {
+        document.documentElement.classList.add("dark");
+      }
+    } catch {}
+  })();
+`;
 
 export const metadata: Metadata = {
   title: {
@@ -73,7 +83,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html lang="en" className={`${inter.variable} ${geistMono.variable} h-full antialiased`}>
+      <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       <body className="min-h-full flex flex-col">
         {children}
         <WebVitalsReporter />
