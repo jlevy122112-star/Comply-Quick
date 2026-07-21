@@ -27,15 +27,15 @@ export function HierarchyPanel({
   orgs,
   currentOrgId,
   role,
-  isEnterprise,
+  isEnabled,
 }: {
   orgs: Organization[];
   currentOrgId: string;
   role: Role;
-  isEnterprise: boolean;
+  isEnabled: boolean;
 }) {
   const router = useRouter();
-  const canManage = can(role, "org:update") && isEnterprise;
+  const canManage = can(role, "org:update") && isEnabled;
   const [newName, setNewName] = useState("");
   const [selectedParent, setSelectedParent] = useState<string>(currentOrgId);
   const [busy, setBusy] = useState<string | null>(null);
@@ -122,7 +122,7 @@ export function HierarchyPanel({
 
   return (
     <div className="space-y-6">
-      {!isEnterprise && (
+      {!isEnabled && (
         <Card>
           <CardBody>
             <p className="text-sm text-gray-300">

@@ -12,6 +12,7 @@ import {
   createChildOrganization,
   moveOrganization,
 } from "@/lib/organizations-db";
+import { setFeatureFlag, type FeatureFlag } from "@/lib/feature-flags";
 import { createWorkspace, renameWorkspace, deleteWorkspace } from "@/lib/workspaces-db";
 import { createSsoConnection, setSsoEnabled, deleteSsoConnection, type SsoProtocol } from "@/lib/sso-db";
 import { createScimToken, revokeScimToken } from "@/lib/scim/tokens";
@@ -181,6 +182,18 @@ export async function moveOrganizationAction(
     }
   }
   const res = await moveOrganization(orgId, newParentId);
+  revalidatePath(PATH);
+  return res.ok ? { ok: true } : { ok: false, error: res.error };
+}
+
+export async function setFeatureFlagAction(
+  orgId: string,
+  flag: FeatureFlag,
+  enabled: boolean
+): Promise<{ ok: true } | Denied> {
+  const gate = await authorize(orgId, "org:update");
+  if (!gate.ok) return gate;
+  const res = await setFeatureFlag(orgId, flag, enabled);
   revalidatePath(PATH);
   return res.ok ? { ok: true } : { ok: false, error: res.error };
 }
