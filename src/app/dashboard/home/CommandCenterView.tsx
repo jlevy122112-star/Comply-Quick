@@ -84,6 +84,13 @@ const QUICK_TOOLS: QuickTool[] = [
     available: true,
   },
   {
+    label: "Platform Integrations",
+    description: "Install on Shopify, Wix, Webflow, and more",
+    icon: "🌐",
+    href: "/dashboard/tools/platforms",
+    available: true,
+  },
+  {
     label: "DPA Template Builder",
     description: "Data processing agreements",
     icon: "📄",
