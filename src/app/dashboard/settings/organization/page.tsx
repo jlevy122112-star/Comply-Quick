@@ -11,7 +11,7 @@ import { listScimUsers } from "@/lib/scim/provisioning";
 import { getFeatureFlag, listFeatureFlags } from "@/lib/feature-flags";
 import { listMyOrganizations } from "@/lib/organizations-db";
 import { OrgProfilePanel } from "./OrgProfilePanel";
-import { BrandLogoPanel } from "./BrandLogoPanel";
+import { WhiteLabelPanel } from "./WhiteLabelPanel";
 import { MembersPanel } from "./MembersPanel";
 import { WorkspacesPanel } from "./WorkspacesPanel";
 import { SsoPanel } from "./SsoPanel";
@@ -97,7 +97,7 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
         {tab === "profile" && (
           <div className="space-y-6">
             <OrgProfilePanel org={org} canManage={can(role, "org:update")} />
-            <BrandLogoPanel />
+            <WhiteLabelPanel key={`${org.id}-${org.updatedAt}`} org={org} canManage={can(role, "org:update")} />
           </div>
         )}
         {tab === "members" && <MembersPanel orgId={org.id} role={role} members={members} />}

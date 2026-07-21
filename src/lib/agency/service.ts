@@ -85,7 +85,15 @@ function mapOrganization(row: Record<string, unknown>): Organization {
     plan: (row.plan as Organization["plan"]) ?? "team",
     parentOrganizationId: (row.parent_organization_id as string | null) ?? null,
     isPersonal: (row.is_personal as boolean | null) ?? false,
+    logoUrl: (row.logo_url as string | null) ?? null,
+    faviconUrl: (row.favicon_url as string | null) ?? null,
+    primaryColor: (row.primary_color as string) ?? "#4f46e5",
+    themePalette: ((row.theme_palette as string) ?? "indigo") as Organization["themePalette"],
+    supportEmail: (row.support_email as string | null) ?? null,
+    smtpFromEmail: (row.smtp_from_email as string | null) ?? null,
+    smtpReplyToEmail: (row.smtp_reply_to_email as string | null) ?? null,
     createdAt: row.created_at as string,
+    updatedAt: (row.updated_at as string) ?? (row.created_at as string),
   };
 }
 

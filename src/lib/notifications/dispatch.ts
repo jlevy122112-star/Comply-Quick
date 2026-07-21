@@ -12,6 +12,7 @@
 // works in every environment and light up as secrets are added.
 
 import { logger } from "@/services";
+import type { TenantSender } from "@/lib/email/tenant-sender";
 
 const log = logger.child({ module: "notifications:dispatch" });
 
@@ -55,6 +56,7 @@ type Env = Record<string, string | undefined>;
 export interface DispatchDeps {
   fetchImpl?: Fetch;
   env?: Env;
+  tenant?: TenantSender;
 }
 
 /**
@@ -71,23 +73,28 @@ async function sendEmail(
   recipient: NotificationRecipient,
   event: NotificationEvent,
   fetchImpl: Fetch,
-  env: Env
+  env: Env,
+  tenant?: TenantSender
 ): Promise<ChannelResult> {
   const apiKey = env.RESEND_API_KEY;
-  const from = env.NOTIFICATIONS_FROM_EMAIL;
+  const from = tenant?.from ?? env.NOTIFICATIONS_FROM_EMAIL;
   if (!apiKey || !from) return { channel: "email", delivered: false, reason: "not_configured" };
   if (!recipient.email) return { channel: "email", delivered: false, reason: "no_address" };
 
   try {
+    const body: Record<string, unknown> = {
+      from,
+      to: recipient.email,
+      subject: event.title,
+      text: event.url ? `${event.body}\n\n${event.url}` : event.body,
+    };
+    const replyTo = tenant?.replyTo;
+    if (replyTo) body.reply_to = replyTo;
+
     const res = await fetchImpl("https://api.resend.com/emails", {
       method: "POST",
       headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
-      body: JSON.stringify({
-        from,
-        to: recipient.email,
-        subject: event.title,
-        text: event.url ? `${event.body}\n\n${event.url}` : event.body,
-      }),
+      body: JSON.stringify(body),
     });
     if (!res.ok) return { channel: "email", delivered: false, reason: `http_${res.status}` };
     return { channel: "email", delivered: true };
@@ -134,13 +141,14 @@ export async function dispatchNotification(
 ): Promise<DispatchResult> {
   const fetchImpl = deps.fetchImpl ?? fetch;
   const env = deps.env ?? process.env;
+  const tenant = deps.tenant;
 
   if ((recipient.mutedCategories ?? []).includes(event.category)) {
     return { category: event.category, muted: true, results: [] };
   }
 
   const results = await Promise.all([
-    sendEmail(recipient, event, fetchImpl, env),
+    sendEmail(recipient, event, fetchImpl, env, tenant),
     sendPush(recipient, event, fetchImpl, env),
   ]);
 

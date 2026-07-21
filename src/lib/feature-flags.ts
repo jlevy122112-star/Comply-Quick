@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { getOrganization, type Organization } from "@/lib/organizations-db";
+import { getOrganization } from "@/lib/organizations-db";
+import type { Organization } from "@/lib/organizations";
 import type { Tier } from "@/lib/pricing";
 
 /** Maps the organizations.plan column to the billing/entitlement tier model. */

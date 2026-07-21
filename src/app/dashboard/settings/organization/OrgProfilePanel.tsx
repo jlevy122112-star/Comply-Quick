@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, CardBody, Input, Select } from "@/components/ui";
-import type { Organization } from "@/lib/organizations-db";
+import type { Organization } from "@/lib/organizations";
 import { updateOrgAction } from "./actions";
 
 const PLANS: Organization["plan"][] = ["free", "team", "enterprise"];

@@ -16,8 +16,9 @@ import IntelligencePanel from "./IntelligencePanel";
 import NpsSurvey from "./NpsSurvey";
 import { alertsForRegions, regionsFromProjects, type RegulatoryAlert } from "@/lib/regulations/alerts";
 import type { QuickToolKey } from "@/lib/tools/usage";
-import type { Organization } from "@/lib/organizations-db";
+import type { Organization } from "@/lib/organizations";
 import { OrganizationSwitcher } from "@/components/organizations/OrganizationSwitcher";
+import { primaryBackgroundStyle } from "@/lib/theme";
 
 // ─── Framework Display Map ──────────────────────────────────────────────────
 
@@ -147,6 +148,10 @@ export default function CommandCenterView({
   const projectsNeedingAttention = projects.filter((p) => p.status !== "current").length;
   // Only surface regulatory alerts that touch the jurisdictions this account targets.
   const alerts = useMemo(() => alertsForRegions(regionsFromProjects(projects)), [projects]);
+  const activeOrg = useMemo(
+    () => organizations.find((o) => o.id === activeOrganizationId) ?? null,
+    [organizations, activeOrganizationId]
+  );
 
   const handleDeleteProject = useCallback((id: string) => {
     startTransition(() => {
@@ -186,7 +191,24 @@ export default function CommandCenterView({
       <header className="border-b border-gray-800/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Logo href="/" tone="dark" size="md" />
+            {activeOrg ? (
+              <Link href="/dashboard/home" className="inline-flex items-center gap-2.5">
+                <div
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white"
+                  style={primaryBackgroundStyle(activeOrg)}
+                >
+                  {activeOrg.logoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={activeOrg.logoUrl} alt="" className="h-5 w-5 object-contain" />
+                  ) : (
+                    activeOrg.name.charAt(0).toUpperCase()
+                  )}
+                </div>
+                <span className="font-semibold text-white">{activeOrg.name}</span>
+              </Link>
+            ) : (
+              <Logo href="/" tone="dark" size="md" />
+            )}
             <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-xs font-medium text-indigo-300">
               Command Center
             </span>

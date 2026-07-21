@@ -5,6 +5,10 @@ import { can, isRole, assignableRoles, type Permission, type Role } from "@/lib/
 import {
   getMyOrgRole,
   updateOrganization,
+  updateOrganizationBranding,
+  updateOrganizationSmtp,
+  type OrganizationBrandingPatch,
+  type OrganizationSmtpPatch,
   addOrgMemberByEmail,
   updateOrgMemberRole,
   removeOrgMember,
@@ -39,6 +43,28 @@ export async function updateOrgAction(
   const ok = await updateOrganization(orgId, patch);
   revalidatePath(PATH);
   return ok ? { ok: true } : { ok: false, error: "Could not update the organization." };
+}
+
+export async function updateOrganizationBrandingAction(
+  orgId: string,
+  patch: OrganizationBrandingPatch
+): Promise<{ ok: true } | Denied> {
+  const gate = await authorize(orgId, "org:update");
+  if (!gate.ok) return gate;
+  const ok = await updateOrganizationBranding(orgId, patch);
+  revalidatePath(PATH);
+  return ok ? { ok: true } : { ok: false, error: "Could not update branding." };
+}
+
+export async function updateOrganizationSmtpAction(
+  orgId: string,
+  patch: OrganizationSmtpPatch
+): Promise<{ ok: true } | Denied> {
+  const gate = await authorize(orgId, "org:update");
+  if (!gate.ok) return gate;
+  const ok = await updateOrganizationSmtp(orgId, patch);
+  revalidatePath(PATH);
+  return ok ? { ok: true } : { ok: false, error: "Could not update email settings." };
 }
 
 export async function addMemberAction(orgId: string, email: string, role: string): Promise<{ ok: true } | Denied> {

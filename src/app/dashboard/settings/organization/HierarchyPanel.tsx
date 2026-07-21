@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, CardBody, CardHeader, Input, Select } from "@/components/ui";
 import { can, type Role } from "@/lib/rbac";
-import type { Organization } from "@/lib/organizations-db";
+import type { Organization } from "@/lib/organizations";
 import { createChildOrganizationAction, moveOrganizationAction } from "./actions";
 
 function buildTree(orgs: Organization[], parentId: string | null): Organization[] {

@@ -10,6 +10,16 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Tenant brand tokens (overridden per-organization by the dashboard layout). */
+  --color-brand-primary: var(--brand-primary, #4f46e5);
+  --color-brand-primary-hover: var(--brand-primary-hover, #4338ca);
+  --color-brand-primary-foreground: var(--brand-primary-foreground, #ffffff);
+  --color-brand-accent: var(--brand-accent, #10b981);
+  --color-brand-accent-foreground: var(--brand-accent-foreground, #ffffff);
+  --color-brand-surface: var(--brand-surface, #0a0a0a);
+  --color-brand-surface-foreground: var(--brand-surface-foreground, #ededed);
+  --color-brand-ring: var(--brand-ring, #6366f1);
 }
 
 @media (prefers-color-scheme: dark) {

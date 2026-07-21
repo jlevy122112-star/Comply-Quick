@@ -13,17 +13,9 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isRole, type Role } from "@/lib/rbac";
+import { THEME_PALETTES, type ThemePalette, type Organization } from "@/lib/organizations";
 
-export interface Organization {
-  id: string;
-  ownerId: string;
-  name: string;
-  slug: string;
-  plan: "free" | "team" | "enterprise";
-  parentOrganizationId: string | null;
-  isPersonal: boolean;
-  createdAt: string;
-}
+export { THEME_PALETTES, type ThemePalette, type Organization };
 
 export interface OrgMember {
   id: string;
@@ -42,7 +34,15 @@ interface OrgRow {
   plan: Organization["plan"];
   parent_organization_id: string | null;
   is_personal: boolean;
+  logo_url: string | null;
+  favicon_url: string | null;
+  primary_color: string;
+  theme_palette: string;
+  support_email: string | null;
+  smtp_from_email: string | null;
+  smtp_reply_to_email: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 interface MemberRow {
@@ -54,6 +54,10 @@ interface MemberRow {
 
 export const ACTIVE_ORGANIZATION_COOKIE = "cq-active-organization";
 
+function isThemePalette(value: string): value is ThemePalette {
+  return (THEME_PALETTES as readonly string[]).includes(value);
+}
+
 function mapOrg(row: OrgRow): Organization {
   return {
     id: row.id,
@@ -63,7 +67,15 @@ function mapOrg(row: OrgRow): Organization {
     plan: row.plan,
     parentOrganizationId: row.parent_organization_id ?? null,
     isPersonal: row.is_personal ?? false,
+    logoUrl: row.logo_url ?? null,
+    faviconUrl: row.favicon_url ?? null,
+    primaryColor: row.primary_color ?? "#4f46e5",
+    themePalette: isThemePalette(row.theme_palette) ? row.theme_palette : "indigo",
+    supportEmail: row.support_email ?? null,
+    smtpFromEmail: row.smtp_from_email ?? null,
+    smtpReplyToEmail: row.smtp_reply_to_email ?? null,
     createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }
 
@@ -189,6 +201,20 @@ export async function countOrgMembers(orgId: string): Promise<number> {
   return count ?? 0;
 }
 
+export interface OrganizationBrandingPatch {
+  name?: string;
+  logoUrl?: string | null;
+  faviconUrl?: string | null;
+  primaryColor?: string;
+  themePalette?: ThemePalette;
+  supportEmail?: string | null;
+}
+
+export interface OrganizationSmtpPatch {
+  smtpFromEmail?: string | null;
+  smtpReplyToEmail?: string | null;
+}
+
 export async function updateOrganization(
   id: string,
   patch: { name?: string; plan?: Organization["plan"] }
@@ -197,6 +223,28 @@ export async function updateOrganization(
   const update: Record<string, string> = { updated_at: new Date().toISOString() };
   if (patch.name !== undefined) update.name = patch.name.trim().slice(0, 120) || "My Organization";
   if (patch.plan !== undefined) update.plan = patch.plan;
+  const { error } = await supabase.from("organizations").update(update).eq("id", id);
+  return !error;
+}
+
+export async function updateOrganizationBranding(id: string, patch: OrganizationBrandingPatch): Promise<boolean> {
+  const supabase = await createClient();
+  const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (patch.name !== undefined) update.name = patch.name.trim().slice(0, 120) || "My Organization";
+  if (patch.logoUrl !== undefined) update.logo_url = patch.logoUrl;
+  if (patch.faviconUrl !== undefined) update.favicon_url = patch.faviconUrl;
+  if (patch.primaryColor !== undefined) update.primary_color = patch.primaryColor;
+  if (patch.themePalette !== undefined) update.theme_palette = patch.themePalette;
+  if (patch.supportEmail !== undefined) update.support_email = patch.supportEmail;
+  const { error } = await supabase.from("organizations").update(update).eq("id", id);
+  return !error;
+}
+
+export async function updateOrganizationSmtp(id: string, patch: OrganizationSmtpPatch): Promise<boolean> {
+  const supabase = await createClient();
+  const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (patch.smtpFromEmail !== undefined) update.smtp_from_email = patch.smtpFromEmail;
+  if (patch.smtpReplyToEmail !== undefined) update.smtp_reply_to_email = patch.smtpReplyToEmail;
   const { error } = await supabase.from("organizations").update(update).eq("id", id);
   return !error;
 }

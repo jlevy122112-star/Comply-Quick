@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { switchActiveOrganizationAction } from "@/app/dashboard/actions";
-import type { Organization } from "@/lib/organizations-db";
+import type { Organization } from "@/lib/organizations";
 
 export function OrganizationSwitcher({
   organizations,
