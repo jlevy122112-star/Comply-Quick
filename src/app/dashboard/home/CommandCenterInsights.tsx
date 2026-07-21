@@ -7,7 +7,7 @@ import type { QuickToolKey } from "@/lib/tools/usage";
 import type { ComplianceScore } from "@/components/ClauseEngine";
 import type { Tier } from "@/lib/entitlements";
 import { Badge, Card, CardBody, CardHeader, ProgressBar, UpsellCta } from "@/components/ui";
-import { ARTIFACT_VALUES, computeRoi, formatUsd } from "@/lib/roi/value";
+import { computeRoi, formatUsd } from "@/lib/roi/value";
 
 interface OnboardingStep {
   key: string;
@@ -46,11 +46,13 @@ export default function CommandCenterInsights({
   tier,
   aggregateScore,
   completedTools,
+  showNextAction = true,
 }: {
   projects: DbProject[];
   tier: Tier;
   aggregateScore: ComplianceScore | null;
   completedTools: QuickToolKey[];
+  showNextAction?: boolean;
 }) {
   const steps = useMemo(() => buildSteps(projects, completedTools), [projects, completedTools]);
   const doneCount = steps.filter((s) => s.done).length;
@@ -66,51 +68,52 @@ export default function CommandCenterInsights({
   const roi = useMemo(() => computeRoi({ compliance_package: projects.length }), [projects.length]);
 
   return (
-    <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-      {/* Next best action + onboarding progress */}
-      <Card className="lg:col-span-2">
-        <CardHeader
-          title="Your next step"
-          description="Complete your compliance setup — you're never left guessing."
-          icon="🎯"
-          actions={<Badge tone="indigo">{onboardingPct}% set up</Badge>}
-        />
-        <CardBody className="space-y-4">
-          <ProgressBar value={onboardingPct} tone="indigo" />
-          {nextStep ? (
-            <div className="flex flex-col gap-3 rounded-xl border border-indigo-500/25 bg-indigo-500/10 p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-semibold text-white">{nextStep.label}</p>
-                <p className="mt-0.5 text-xs text-indigo-200/80">Recommended next action for your account.</p>
-              </div>
-              <Link
-                href={nextStep.href}
-                className="shrink-0 rounded-lg bg-indigo-600 px-4 py-2 text-center text-sm font-semibold text-white transition-colors hover:bg-indigo-500"
-              >
-                Do it now &rarr;
-              </Link>
-            </div>
-          ) : (
-            <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 p-4">
-              <p className="text-sm font-semibold text-emerald-200">🎉 You&apos;ve completed the core setup.</p>
-              <p className="mt-0.5 text-xs text-emerald-300/70">Keep your packages current as regulations change.</p>
-            </div>
-          )}
-          <ul className="space-y-1.5">
-            {steps.map((s) => (
-              <li key={s.key} className="flex items-center gap-2 text-sm">
-                <span className={s.done ? "text-emerald-400" : "text-gray-600"}>{s.done ? "✓" : "○"}</span>
+    <section className={`grid grid-cols-1 gap-4 ${showNextAction ? "lg:grid-cols-3" : ""}`}>
+      {showNextAction && (
+        <Card className="lg:col-span-2">
+          <CardHeader
+            title="Your next step"
+            description="Complete your compliance setup — you're never left guessing."
+            icon="🎯"
+            actions={<Badge tone="indigo">{onboardingPct}% set up</Badge>}
+          />
+          <CardBody className="space-y-4">
+            <ProgressBar value={onboardingPct} tone="indigo" />
+            {nextStep ? (
+              <div className="flex flex-col gap-3 rounded-xl border border-indigo-500/25 bg-indigo-500/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-white">{nextStep.label}</p>
+                  <p className="mt-0.5 text-xs text-indigo-200/80">Recommended next action for your account.</p>
+                </div>
                 <Link
-                  href={s.href}
-                  className={s.done ? "text-gray-400 line-through" : "text-gray-300 hover:text-white"}
+                  href={nextStep.href}
+                  className="shrink-0 rounded-lg bg-indigo-600 px-4 py-2 text-center text-sm font-semibold text-white transition-colors hover:bg-indigo-500"
                 >
-                  {s.label}
+                  Do it now &rarr;
                 </Link>
-              </li>
-            ))}
-          </ul>
-        </CardBody>
-      </Card>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 p-4">
+                <p className="text-sm font-semibold text-emerald-200">🎉 You&apos;ve completed the core setup.</p>
+                <p className="mt-0.5 text-xs text-emerald-300/70">Keep your packages current as regulations change.</p>
+              </div>
+            )}
+            <ul className="space-y-1.5">
+              {steps.map((s) => (
+                <li key={s.key} className="flex items-center gap-2 text-sm">
+                  <span className={s.done ? "text-emerald-400" : "text-gray-600"}>{s.done ? "✓" : "○"}</span>
+                  <Link
+                    href={s.href}
+                    className={s.done ? "text-gray-400 line-through" : "text-gray-300 hover:text-white"}
+                  >
+                    {s.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </CardBody>
+        </Card>
+      )}
 
       {/* ROI + coverage + upsell */}
       <div className="space-y-4">
@@ -129,8 +132,7 @@ export default function CommandCenterInsights({
               <>
                 <p className="text-2xl font-bold text-white">Start saving</p>
                 <p className="text-xs text-gray-400">
-                  Generate your first package to save ~{formatUsd(ARTIFACT_VALUES.compliance_package.attorneyCost)} in
-                  legal fees.
+                  Your value tracking will appear here once your compliance workspace is active.
                 </p>
               </>
             )}

@@ -16,6 +16,8 @@ import NpsSurvey from "./NpsSurvey";
 import { alertsForRegions, regionsFromProjects, type RegulatoryAlert } from "@/lib/regulations/alerts";
 import type { QuickToolKey } from "@/lib/tools/usage";
 import type { Organization } from "@/lib/organizations-db";
+import type { ScanUsage } from "@/lib/billing/usage";
+import HeroStatusPanel from "@/components/dashboard/HeroStatusPanel";
 
 // ─── Framework Display Map ──────────────────────────────────────────────────
 
@@ -128,6 +130,7 @@ interface CommandCenterViewProps {
   activeOrganizationId: string | null;
   userEmail: string | null;
   isLegalAdmin?: boolean;
+  scanUsage: ScanUsage | null;
 }
 
 export default function CommandCenterView({
@@ -139,6 +142,7 @@ export default function CommandCenterView({
   activeOrganizationId,
   userEmail,
   isLegalAdmin,
+  scanUsage,
 }: CommandCenterViewProps) {
   const [isPending, startTransition] = useTransition();
   const projectsNeedingAttention = projects.filter((p) => p.status !== "current").length;
@@ -171,38 +175,20 @@ export default function CommandCenterView({
     >
       <NpsSurvey />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* ── Guided Next-Best-Action + ROI + Coverage ── */}
+        <HeroStatusPanel
+          projects={projects}
+          aggregateScore={aggregateScore}
+          completedTools={completedTools}
+          scanUsage={scanUsage}
+        />
+
         <CommandCenterInsights
           projects={projects}
           tier={tier}
           aggregateScore={aggregateScore}
           completedTools={completedTools}
+          showNextAction={false}
         />
-
-        {/* ── Score Overview ── */}
-        {aggregateScore ? (
-          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            <ScoreCard label="Overall Score" score={aggregateScore.overall} large />
-            <ScoreCard label="Contract Protection" score={aggregateScore.contractProtection} />
-            <ScoreCard label="Privacy Coverage" score={aggregateScore.privacyCoverage} />
-            <ScoreCard label="Pre-Launch Ready" score={aggregateScore.preLaunchReadiness} />
-            <ScoreCard label="Regulatory Breadth" score={aggregateScore.regulatoryBreadth} />
-          </section>
-        ) : (
-          <section className="bg-gray-900 border border-gray-800 rounded-2xl p-8 text-center">
-            <p className="text-2xl mb-2">📊</p>
-            <h2 className="text-lg font-semibold text-white mb-2">No projects yet</h2>
-            <p className="text-sm text-gray-400 mb-4">
-              Generate your first compliance package to see your score overview.
-            </p>
-            <Link
-              href="/dashboard"
-              className="inline-block px-5 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors"
-            >
-              Generate Your First Package
-            </Link>
-          </section>
-        )}
 
         {/* ── Attention Banner ── */}
         {projectsNeedingAttention > 0 && (
@@ -255,7 +241,9 @@ export default function CommandCenterView({
             </div>
 
             {/* Compliance Intelligence — proactive monitoring + alerts */}
-            <IntelligencePanel isPremium={tier !== "free"} />
+            <div id="intelligence" className="scroll-mt-8">
+              <IntelligencePanel isPremium={tier !== "free"} />
+            </div>
 
             {/* Quick-Launch Tools */}
             <section>
@@ -348,26 +336,6 @@ export default function CommandCenterView({
 }
 
 // ─── Sub-Components ─────────────────────────────────────────────────────────
-
-function ScoreCard({ label, score, large }: { label: string; score: number; large?: boolean }) {
-  const color = score >= 80 ? "text-emerald-400" : score >= 60 ? "text-yellow-400" : "text-red-400";
-  const bgColor = score >= 80 ? "bg-emerald-500/10" : score >= 60 ? "bg-yellow-500/10" : "bg-red-500/10";
-
-  return (
-    <div className={`${bgColor} border border-gray-800 rounded-xl p-4 ${large ? "sm:col-span-2 lg:col-span-1" : ""}`}>
-      <p className="text-xs text-gray-400 mb-1">{label}</p>
-      <p className={`${large ? "text-3xl" : "text-2xl"} font-bold ${color}`}>{score}</p>
-      <div className="mt-2 h-1.5 bg-gray-800 rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all duration-500 ${
-            score >= 80 ? "bg-emerald-400" : score >= 60 ? "bg-yellow-400" : "bg-red-400"
-          }`}
-          style={{ width: `${score}%` }}
-        />
-      </div>
-    </div>
-  );
-}
 
 function ProjectCard({
   project,
