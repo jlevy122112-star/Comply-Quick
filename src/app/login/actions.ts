@@ -18,23 +18,21 @@ async function safeInternalPath(raw: FormDataEntryValue | null): Promise<string>
   }
 }
 
-function loginError(message: string, mode: "signin" | "signup") {
-  redirect(`/login?mode=${mode}&error=${encodeURIComponent(message)}`);
-}
-
-export async function loginAction(formData: FormData) {
+export async function loginAction(formData: FormData): Promise<{ error: string } | void> {
   const supabase = await createClient();
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
   const redirectTo = await safeInternalPath(formData.get("redirect"));
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) loginError(error.message, "signin");
+  if (error) return { error: error.message };
 
   redirect(redirectTo);
 }
 
-export async function signupAction(formData: FormData) {
+export async function signupAction(
+  formData: FormData
+): Promise<{ error: string } | { notice: "confirm"; email: string } | void> {
   const supabase = await createClient();
   const fullName = String(formData.get("fullName") ?? "");
   const companyName = String(formData.get("companyName") ?? "");
@@ -43,8 +41,8 @@ export async function signupAction(formData: FormData) {
   const confirmPassword = String(formData.get("confirmPassword") ?? "");
   const redirectTo = await safeInternalPath(formData.get("redirect"));
 
-  if (password.length < 8) loginError("Password must be at least 8 characters.", "signup");
-  if (password !== confirmPassword) loginError("Passwords don't match.", "signup");
+  if (password.length < 8) return { error: "Password must be at least 8 characters." };
+  if (password !== confirmPassword) return { error: "Passwords don't match." };
 
   const origin = (await headers()).get("origin") ?? "http://localhost:3000";
   const emailRedirectTo = `${origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}&channel=signup`;
@@ -58,8 +56,8 @@ export async function signupAction(formData: FormData) {
     },
   });
 
-  if (error) loginError(error.message, "signup");
+  if (error) return { error: error.message };
   if (data.session && data.user) redirect(redirectTo);
 
-  redirect(`/login?mode=signin&notice=confirm&email=${encodeURIComponent(email)}`);
+  return { notice: "confirm", email };
 }

@@ -71,6 +71,36 @@ function AuthPage() {
     [resetTransientState, searchParams]
   );
 
+  const isRedirectError = useCallback((err: unknown): boolean => {
+    return err instanceof Error && /NEXT_REDIRECT/.test(err.message);
+  }, []);
+
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      setBusy(true);
+      setError("");
+      setNotice("none");
+      try {
+        const formData = new FormData(e.currentTarget);
+        const action = mode === "signin" ? loginAction : signupAction;
+        const result = await action(formData);
+        if (result && "error" in result) {
+          setError(result.error);
+        } else if (result && "notice" in result) {
+          setNoticeEmail(result.email);
+          setNotice(result.notice);
+        }
+      } catch (err) {
+        if (isRedirectError(err)) throw err;
+        setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      } finally {
+        setBusy(false);
+      }
+    },
+    [mode, isRedirectError]
+  );
+
   const oauth = useCallback(
     async (provider: "google" | "github") => {
       setBusy(true);
@@ -188,7 +218,7 @@ function AuthPage() {
                 <span className="h-px flex-1 bg-gray-800" />
               </div>
 
-              <form action={mode === "signin" ? loginAction : signupAction} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <input type="hidden" name="redirect" value={redirectTo} />
                 {mode === "signup" && (
                   <>

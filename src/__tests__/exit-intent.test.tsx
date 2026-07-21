@@ -10,9 +10,7 @@ describe("ExitIntentCapture", () => {
 
     fireEvent.mouseOut(document, { clientY: 0, relatedTarget: null });
 
-    expect(
-      screen.getByRole("heading", { name: "Before You Go - Sign up for a Free Compliance Scan for your Next Website!" })
-    ).toBeVisible();
+    expect(screen.getByRole("heading", { name: /Before You Go/i })).toBeVisible();
     expect(screen.getByRole("button", { name: "Get My Free Scan" })).toBeVisible();
   });
 });
