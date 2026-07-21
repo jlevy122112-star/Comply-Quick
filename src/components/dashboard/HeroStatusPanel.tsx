@@ -3,7 +3,7 @@ import type { ComplianceScore } from "@/components/ClauseEngine";
 import type { DbProject } from "@/lib/projects-db";
 import type { QuickToolKey } from "@/lib/tools/usage";
 import type { ScanUsage } from "@/lib/billing/usage";
-import { Button, Card, CardBody, CardHeader, ProgressBar, ScoreRing } from "@/components/ui";
+import { Card, CardBody, CardHeader, ProgressBar, ScoreRing } from "@/components/ui";
 import { selectRecommendation, setupCompletion } from "./recommendation";
 
 function scoreLabel(score: number) {
@@ -83,9 +83,12 @@ export default function HeroStatusPanel({
                     {recommendation.ctaLabel}
                   </Link>
                 ) : (
-                  <Button type="button" onClick={() => (window.location.href = recommendation.href)}>
+                  <Link
+                    href={recommendation.href}
+                    className="inline-flex rounded-xl bg-accent-primary px-5 py-2.5 text-sm font-medium text-text-inverse shadow-sm transition-all hover:-translate-y-px hover:bg-accent-primary-hover hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary focus-visible:ring-offset-2 focus-visible:ring-offset-page-bg"
+                  >
                     {recommendation.ctaLabel}
-                  </Button>
+                  </Link>
                 )}
               </div>
             </div>
@@ -153,7 +156,7 @@ function ScoreDetail({ label, value }: { label: string; value: number }) {
         <span className="text-text-muted">{label}</span>
         <span className="font-semibold tabular-nums text-text-primary">{value}</span>
       </div>
-      <ProgressBar value={value} className="mt-2" aria-label={`${label} score`} />
+      <ProgressBar value={value} className="mt-2" ariaLabel={`${label} score`} />
     </div>
   );
 }

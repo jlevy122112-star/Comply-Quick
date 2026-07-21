@@ -26,7 +26,7 @@ export default async function CommandCenterPage() {
     listCompletedTools(),
     listMyOrganizationsCached(),
     resolveActiveOrganizationId(),
-    getScanUsage(),
+    getScanUsage().catch(() => null),
   ]);
   const aggregateScore = getAggregateScore(projects);
 
