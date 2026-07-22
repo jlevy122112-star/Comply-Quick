@@ -24,11 +24,13 @@ export function ScoreRing({
   score,
   size = "md",
   label = "score",
+  tone = "default",
   className,
 }: {
   score: number;
   size?: Size;
   label?: string;
+  tone?: "default" | "surface";
   className?: string;
 }) {
   const clamped = Math.max(0, Math.min(100, Math.round(score)));
@@ -49,7 +51,7 @@ export function ScoreRing({
           r={radius}
           fill="none"
           strokeWidth={stroke}
-          className="text-gray-800"
+          className={tone === "surface" ? "text-border-default" : "text-gray-800"}
           stroke="currentColor"
         />
         <circle
@@ -71,8 +73,14 @@ export function ScoreRing({
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className={cn("font-semibold text-white tabular-nums", text)}>{clamped}</span>
-        <span className={cn("uppercase tracking-wide text-gray-500", sub)}>{label}</span>
+        <span
+          className={cn("font-semibold tabular-nums", tone === "surface" ? "text-text-primary" : "text-white", text)}
+        >
+          {clamped}
+        </span>
+        <span className={cn("uppercase tracking-wide", tone === "surface" ? "text-text-muted" : "text-gray-500", sub)}>
+          {label}
+        </span>
       </div>
     </div>
   );
