@@ -28,6 +28,8 @@ export interface ProgressBarProps {
   showValue?: boolean;
   /** Render the value as a percentage rather than raw "value/max". */
   asPercent?: boolean;
+  /** Accessible label for the progressbar element. */
+  ariaLabel?: string;
   className?: string;
 }
 
@@ -42,6 +44,7 @@ export function ProgressBar({
   label,
   showValue = false,
   asPercent = true,
+  ariaLabel,
   className,
 }: ProgressBarProps) {
   const safeMax = max <= 0 ? 100 : max;
@@ -63,7 +66,7 @@ export function ProgressBar({
         aria-valuenow={clamped}
         aria-valuemin={0}
         aria-valuemax={safeMax}
-        aria-label={label ?? "progress"}
+        aria-label={ariaLabel ?? label ?? "progress"}
         className="h-2 w-full overflow-hidden rounded-full bg-gray-800"
       >
         <div

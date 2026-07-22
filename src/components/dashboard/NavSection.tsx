@@ -6,6 +6,7 @@ import { cn } from "@/components/ui/cn";
 import type { DashboardNavGroup, DashboardNavItem } from "./navigation";
 
 function isActivePath(pathname: string, href: string) {
+  if (href.includes("#")) return false;
   const route = href.split("#")[0];
   return route === "/dashboard/home" ? pathname === route : pathname === route || pathname.startsWith(`${route}/`);
 }
