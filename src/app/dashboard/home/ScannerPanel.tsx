@@ -8,6 +8,7 @@ import { trackClientEvent, trackFunnel } from "@/lib/funnel/client";
 import { alertsForRegions } from "@/lib/regulations/alerts";
 import type { Tier } from "@/lib/pricing";
 import { scanAllowanceShort, tierLabel, upgradeTargetFor } from "@/lib/tier-copy";
+import { shareScanAction, emailScanAction } from "@/app/dashboard/home/actions";
 
 interface DetectedTool {
   id: string;
@@ -31,7 +32,18 @@ interface ScanRecord {
   detectedTools: DetectedTool[];
   findings: Finding[];
   summary: string;
+  organizationId: string | null;
+  clientId: string | null;
+  sharedToken: string | null;
+  sharedAt: string | null;
+  emailedAt: string | null;
   createdAt: string;
+}
+
+interface AgencyClientOption {
+  id: string;
+  name: string;
+  contactEmail: string | null;
 }
 
 interface Quota {
@@ -66,19 +78,32 @@ export default function ScannerPanel({ tier }: { tier: Tier }) {
   const [published, setPublished] = useState<{ scanId: string; slug: string } | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [clients, setClients] = useState<AgencyClientOption[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState("");
+  const [shareBusy, setShareBusy] = useState(false);
+  const [emailBusy, setEmailBusy] = useState(false);
   const unlimitedScanTarget = upgradeTargetFor(tier, "unlimitedScans");
 
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
-        const res = await fetch("/api/scanner/scans");
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!alive) return;
-        setHistory(data.scans ?? []);
-        setQuota(data.quota ?? null);
-        if ((data.scans ?? []).length > 0) setActive(data.scans[0]);
+        const [scanRes, clientRes] = await Promise.all([
+          fetch("/api/scanner/scans"),
+          fetch("/api/agency/clients").catch(() => null),
+        ]);
+        if (scanRes.ok) {
+          const data = await scanRes.json();
+          if (!alive) return;
+          setHistory(data.scans ?? []);
+          setQuota(data.quota ?? null);
+          if ((data.scans ?? []).length > 0) setActive(data.scans[0]);
+        }
+        if (clientRes?.ok) {
+          const data = await clientRes.json();
+          if (!alive) return;
+          setClients((data.clients ?? []).map((c: AgencyClientOption) => ({ id: c.id, name: c.name, contactEmail: c.contactEmail })));
+        }
       } catch {
         /* non-fatal */
       }
@@ -192,6 +217,64 @@ export default function ScannerPanel({ tier }: { tier: Tier }) {
     });
   }, [embedSnippet]);
 
+  const activeShareUrl = active?.sharedToken
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/share/scans/${active.sharedToken}`
+    : null;
+
+  const handleShareScan = useCallback(async () => {
+    if (!active?.id) return;
+    setShareBusy(true);
+    setError(null);
+    const res = await shareScanAction(active.id, selectedClientId || null);
+    if (res.ok) {
+      const updated: ScanRecord = {
+        ...active,
+        sharedToken: res.url.split("/").pop() ?? null,
+        sharedAt: new Date().toISOString(),
+        clientId: selectedClientId || active.clientId,
+      };
+      setActive(updated);
+      setHistory((prev) => prev.map((s) => (s.id === active.id ? updated : s)));
+    } else {
+      setError(res.error);
+    }
+    setShareBusy(false);
+  }, [active, selectedClientId]);
+
+  const handleEmailScan = useCallback(async () => {
+    if (!active?.id) return;
+    if (!active.clientId && !selectedClientId) {
+      setError("Select a client before emailing.");
+      return;
+    }
+    setEmailBusy(true);
+    setError(null);
+    // If a client was just selected and not yet saved on the scan, share first.
+    if (selectedClientId && selectedClientId !== active.clientId) {
+      const shareRes = await shareScanAction(active.id, selectedClientId);
+      if (!shareRes.ok) {
+        setError(shareRes.error);
+        setEmailBusy(false);
+        return;
+      }
+    }
+    const res = await emailScanAction(active.id);
+    if (res.ok) {
+      const updated: ScanRecord = { ...active, emailedAt: new Date().toISOString(), clientId: selectedClientId || active.clientId };
+      setActive(updated);
+      setHistory((prev) => prev.map((s) => (s.id === active.id ? updated : s)));
+    } else {
+      setError(res.error);
+    }
+    setEmailBusy(false);
+  }, [active, selectedClientId]);
+
+  const handlePrintScan = useCallback(() => {
+    if (typeof window !== "undefined") window.print();
+  }, []);
+
+  const canBrandAndShare = tier !== "free";
+
   return (
     <section>
       <div className="flex items-center justify-between mb-4">
@@ -252,6 +335,61 @@ export default function ScannerPanel({ tier }: { tier: Tier }) {
               )}
             </div>
             {active.summary && <p className="mt-2 text-xs text-gray-400">{active.summary}</p>}
+
+            {canBrandAndShare && (
+              <div className="mt-3 flex flex-col gap-2 rounded-lg border border-gray-800 bg-gray-950/50 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                  <label className="text-xs font-medium text-gray-400">Customer</label>
+                  <select
+                    value={selectedClientId}
+                    onChange={(e) => setSelectedClientId(e.target.value)}
+                    className="rounded-lg border border-gray-700 bg-gray-950 px-2 py-1 text-xs text-white focus:border-indigo-500 focus:outline-none"
+                  >
+                    <option value="">{clients.length > 0 ? "Select or leave blank" : "No customers"}</option>
+                    {clients.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {activeShareUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => navigator.clipboard.writeText(activeShareUrl)}
+                      className="rounded-lg border border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-300 hover:border-gray-500 hover:text-white"
+                    >
+                      Copy link
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleShareScan}
+                      disabled={shareBusy}
+                      className="rounded-lg border border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-300 hover:border-gray-500 hover:text-white disabled:opacity-50"
+                    >
+                      {shareBusy ? "Sharing…" : "Share"}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleEmailScan}
+                    disabled={emailBusy || (!active.clientId && !selectedClientId)}
+                    className="rounded-lg border border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-300 hover:border-gray-500 hover:text-white disabled:opacity-50"
+                  >
+                    {emailBusy ? "Emailing…" : "Email"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handlePrintScan}
+                    className="rounded-lg border border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-300 hover:border-gray-500 hover:text-white"
+                  >
+                    Print
+                  </button>
+                </div>
+              </div>
+            )}
 
             {active.detectedTools.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-1.5">

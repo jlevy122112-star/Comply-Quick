@@ -17,8 +17,12 @@ import { runScan } from "./pipeline";
 import { materializeScanFindings } from "@/lib/findings-db";
 import { normalizeScanUrl } from "./crawler";
 import type { DetectedTool, Finding } from "./analyzer";
+import { randomBytes } from "node:crypto";
+import { createSystemAuditLog } from "@/lib/audit";
 
 const log = logger.child({ module: "scanner" });
+
+const SCAN_COLUMNS = "id, url, status, score, detected_tools, findings, summary, error, organization_id, client_id, shared_token, shared_at, emailed_at, created_at";
 
 /**
  * Scan-cache window. A completed scan of the same (normalized) URL within this
@@ -42,6 +46,11 @@ export interface ScanRecord {
   findings: Finding[];
   summary: string;
   error: string | null;
+  organizationId: string | null;
+  clientId: string | null;
+  sharedToken: string | null;
+  sharedAt: string | null;
+  emailedAt: string | null;
   createdAt: string;
 }
 
@@ -52,26 +61,26 @@ export interface ScanQuota {
   remaining: number | null;
 }
 
-/** Reports the current user's scan quota for the current calendar month. */
+/** Reports the current account's scan quota for the current calendar month. */
 export async function getScanQuota(): Promise<ScanQuota> {
   const entitlement = await getOrgEntitlement();
-  if (entitlement.isPremium) {
-    return { isPremium: true, used: 0, limit: null, remaining: null };
-  }
+  const limit = scanLimit(entitlement.tier);
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new UnauthorizedError();
+  const organizationId = await getActiveOrganizationId();
   const { count } = await supabase
     .from("scans")
     .select("id", { count: "exact", head: true })
-    .eq("user_id", user.id)
+    .or(organizationReadFilter(user.id, organizationId))
     .gte("created_at", periodStartIso(currentPeriod()));
 
   const used = count ?? 0;
-  return { isPremium: false, used, limit: FREE_SCAN_QUOTA, remaining: Math.max(0, FREE_SCAN_QUOTA - used) };
+  const remaining = limit === null ? null : Math.max(0, limit - used);
+  return { isPremium: entitlement.isPremium, used, limit, remaining };
 }
 
 function mapRow(row: Record<string, unknown>): ScanRecord {
@@ -84,6 +93,11 @@ function mapRow(row: Record<string, unknown>): ScanRecord {
     findings: (row.findings as Finding[]) ?? [],
     summary: (row.summary as string) ?? "",
     error: (row.error as string | null) ?? null,
+    organizationId: (row.organization_id as string | null) ?? null,
+    clientId: (row.client_id as string | null) ?? null,
+    sharedToken: (row.shared_token as string | null) ?? null,
+    sharedAt: (row.shared_at as string | null) ?? null,
+    emailedAt: (row.emailed_at as string | null) ?? null,
     createdAt: row.created_at as string,
   };
 }
@@ -102,7 +116,7 @@ async function findRecentScan(
   const since = new Date(Date.now() - SCAN_CACHE_TTL_DAYS * 86_400_000).toISOString();
   const { data } = await supabase
     .from("scans")
-    .select("id, url, status, score, detected_tools, findings, summary, error, created_at")
+    .select(SCAN_COLUMNS)
     .or(organizationReadFilter(userId, organizationId))
     .eq("url", normalizedUrl)
     .eq("status", "completed")
@@ -124,7 +138,7 @@ export async function listProjectScans(projectId: string, limit = 50): Promise<S
 
   const { data, error } = await supabase
     .from("scans")
-    .select("id, url, status, score, detected_tools, findings, summary, error, created_at")
+    .select(SCAN_COLUMNS)
     .or(organizationReadFilter(user.id, organizationId))
     .eq("project_id", projectId)
     .order("created_at", { ascending: false })
@@ -144,7 +158,7 @@ export async function listScans(limit = 50): Promise<ScanRecord[]> {
 
   const { data, error } = await supabase
     .from("scans")
-    .select("id, url, status, score, detected_tools, findings, summary, error, created_at")
+    .select(SCAN_COLUMNS)
     .or(organizationReadFilter(user.id, organizationId))
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -162,7 +176,7 @@ export async function getScan(id: string): Promise<ScanRecord | null> {
 
   const { data, error } = await supabase
     .from("scans")
-    .select("id, url, status, score, detected_tools, findings, summary, error, created_at")
+    .select(SCAN_COLUMNS)
     .eq("id", id)
     .or(organizationReadFilter(user.id, organizationId))
     .maybeSingle();
@@ -184,7 +198,7 @@ export class QuotaExceededError extends Error {
  */
 export async function createScan(
   url: string,
-  opts: { force?: boolean; projectId?: string | null } = {}
+  opts: { force?: boolean; projectId?: string | null; ipAddress?: string } = {}
 ): Promise<ScanRecord> {
   const supabase = await createClient();
   const {
@@ -214,16 +228,42 @@ export async function createScan(
   }
 
   const quota = await getScanQuota();
-  if (!quota.isPremium && quota.remaining !== null && quota.remaining <= 0) {
+  if (quota.remaining !== null && quota.remaining <= 0) {
     analytics.track({
       event: "scan_limit_reached",
       userId: user.id,
       properties: { used: quota.used, limit: quota.limit ?? 0 },
     });
+    await createSystemAuditLog({
+      eventType: "SCAN_QUOTA_EXCEEDED",
+      actorType: "USER",
+      actorId: user.id,
+      organizationId,
+      targetResource: `scans/${url}`,
+      ipAddress: opts.ipAddress,
+      details: { used: quota.used, limit: quota.limit, url },
+    });
     throw new QuotaExceededError();
   }
 
-  const outcome = await runScan({ url, ai: getAiClient() });
+  let outcome;
+  try {
+    outcome = await runScan({ url, ai: getAiClient() });
+  } catch (err) {
+    await createSystemAuditLog({
+      eventType: "SCAN_FAILED",
+      actorType: "USER",
+      actorId: user.id,
+      organizationId,
+      targetResource: `scans/${url}`,
+      ipAddress: opts.ipAddress,
+      details: {
+        reason: err instanceof Error ? err.message : String(err),
+        url,
+      },
+    });
+    throw err;
+  }
 
   const { data, error } = await supabase
     .from("scans")
@@ -238,11 +278,23 @@ export async function createScan(
       summary: outcome.summary,
       ...(opts.projectId ? { project_id: opts.projectId } : {}),
     })
-    .select("id, url, status, score, detected_tools, findings, summary, error, created_at")
+    .select(SCAN_COLUMNS)
     .single();
 
   if (error || !data) {
     log.error("Failed to persist scan", { error: error?.message });
+    await createSystemAuditLog({
+      eventType: "SCAN_FAILED",
+      actorType: "USER",
+      actorId: user.id,
+      organizationId,
+      targetResource: "scans/pending",
+      ipAddress: opts.ipAddress,
+      details: {
+        reason: error?.message ?? "Persistence failed",
+        url: outcome.url,
+      },
+    });
     // Return the outcome even if persistence failed so the user still sees it.
     return {
       id: "",
@@ -253,6 +305,11 @@ export async function createScan(
       findings: outcome.findings,
       summary: outcome.summary,
       error: null,
+      organizationId: null,
+      clientId: null,
+      sharedToken: null,
+      sharedAt: null,
+      emailedAt: null,
       createdAt: new Date().toISOString(),
     };
   }
@@ -265,6 +322,21 @@ export async function createScan(
     event: "scan_run",
     userId: user.id,
     properties: { score: outcome.score ?? 0, tools: outcome.detectedTools.length },
+  });
+
+  await createSystemAuditLog({
+    eventType: "SCAN_COMPLETED",
+    actorType: "USER",
+    actorId: user.id,
+    organizationId,
+    targetResource: `scans/${data.id as string}`,
+    ipAddress: opts.ipAddress,
+    details: {
+      url: outcome.url,
+      score: outcome.score,
+      toolsCount: outcome.detectedTools.length,
+      findingsCount: outcome.findings.length,
+    },
   });
 
   // Promote this scan's findings into first-class, trackable rows (scan-first:
@@ -280,4 +352,83 @@ export async function createScan(
 
   log.info("Scan completed", { userId: user.id, score: outcome.score, tools: outcome.detectedTools.length });
   return mapRow(data);
+}
+
+function makeShareToken(): string {
+  return `scan_${randomBytes(16).toString("hex")}`;
+}
+
+export async function getScanBySharedToken(token: string): Promise<ScanRecord | null> {
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const { data, error } = await admin.from("scans").select(SCAN_COLUMNS).eq("shared_token", token).maybeSingle();
+  if (error || !data) return null;
+  return mapRow(data);
+}
+
+export async function shareScan(
+  id: string,
+  clientId?: string | null,
+  opts: { ipAddress?: string; log?: boolean } = {}
+): Promise<{ ok: true; token: string; url: string } | { ok: false; error: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Sign in required." };
+
+  const token = makeShareToken();
+  const { data, error } = await supabase
+    .from("scans")
+    .update({ shared_token: token, shared_at: new Date().toISOString(), client_id: clientId ?? null })
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .select(SCAN_COLUMNS)
+    .single();
+
+  if (error || !data) return { ok: false, error: error?.message ?? "Could not share scan" };
+
+  if (opts.log !== false) {
+    await createSystemAuditLog({
+      eventType: "SCAN_SHARED",
+      actorType: "USER",
+      actorId: user.id,
+      organizationId: (data.organization_id as string | null) ?? null,
+      targetResource: `scans/${id}`,
+      ipAddress: opts.ipAddress,
+      details: {
+        clientId: clientId ?? null,
+        url: data.url as string,
+        token,
+      },
+    });
+  }
+
+  const host = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  return { ok: true, token, url: `${host}/share/scans/${token}` };
+}
+
+export async function unshareScan(id: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Sign in required." };
+
+  const { error } = await supabase
+    .from("scans")
+    .update({ shared_token: null, shared_at: null })
+    .eq("id", id)
+    .eq("user_id", user.id);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+export async function markScanEmailed(id: string): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase.from("scans").update({ emailed_at: new Date().toISOString() }).eq("id", id).eq("user_id", user.id);
 }

@@ -1,0 +1,20 @@
+{
+    "organisation": "Comply-Quick LLC",
+    "contact": "support@comply-quick.com",
+    "gitConfig": {
+        "owner": "jlevy122112-star",
+        "repo": "Comply-Quick",
+        "branch": "main",
+        "publishUrl": "https://jlevy122112-star.github.io/Comply-Quick/"
+    },
+    "repoConfig": {
+        "assetFolderName": "δ steps",
+        "variableFolderName": "Ω variables",
+        "publishFolderName": "pub",
+        "docsFolderName": "docs",
+        "mapsFolderName": "tsmaps"
+    },
+    "devConfig": {
+        "forceJsDelivr": false
+    }
+}

@@ -6,7 +6,7 @@
 // and remediation planner are all unit-testable in isolation.
 
 /** Platforms the connector can integrate with (Shopify is the reference). */
-export type Platform = "shopify" | "gtm" | "woocommerce" | "webflow" | "bigcommerce" | "hubspot" | "ga4" | "klaviyo";
+export type Platform = "shopify" | "gtm" | "woocommerce" | "webflow" | "bigcommerce" | "hubspot" | "ga4" | "klaviyo" | "wordpress" | "github";
 
 /** Whether a platform integration can write back or only observe. */
 export type CapabilityClass = "read_write" | "monitor_only";

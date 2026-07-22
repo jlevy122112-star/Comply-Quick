@@ -15,7 +15,6 @@ import IntelligencePanel from "./IntelligencePanel";
 import NpsSurvey from "./NpsSurvey";
 import { alertsForRegions, regionsFromProjects, type RegulatoryAlert } from "@/lib/regulations/alerts";
 import type { QuickToolKey } from "@/lib/tools/usage";
-import type { Organization } from "@/lib/organizations-db";
 
 // ─── Framework Display Map ──────────────────────────────────────────────────
 
@@ -131,8 +130,6 @@ interface CommandCenterViewProps {
   tier: Tier;
   aggregateScore: ComplianceScore | null;
   completedTools: QuickToolKey[];
-  organizations: Organization[];
-  activeOrganizationId: string | null;
   userEmail: string | null;
   isLegalAdmin?: boolean;
 }
@@ -142,8 +139,6 @@ export default function CommandCenterView({
   tier,
   aggregateScore,
   completedTools,
-  organizations,
-  activeOrganizationId,
   userEmail,
   isLegalAdmin,
 }: CommandCenterViewProps) {
@@ -151,10 +146,6 @@ export default function CommandCenterView({
   const projectsNeedingAttention = projects.filter((p) => p.status !== "current").length;
   // Only surface regulatory alerts that touch the jurisdictions this account targets.
   const alerts = useMemo(() => alertsForRegions(regionsFromProjects(projects)), [projects]);
-  const activeOrg = useMemo(
-    () => organizations.find((o) => o.id === activeOrganizationId) ?? null,
-    [organizations, activeOrganizationId]
-  );
 
   const handleDeleteProject = useCallback((id: string) => {
     startTransition(() => {
@@ -175,8 +166,6 @@ export default function CommandCenterView({
   return (
     <AppShell
       tier={tier}
-      organizations={organizations}
-      activeOrganizationId={activeOrganizationId}
       userEmail={userEmail}
       isLegalAdmin={isLegalAdmin}
     >

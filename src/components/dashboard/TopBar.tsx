@@ -5,11 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell, ChevronDown, Menu, Plus, Search, UserCircle } from "lucide-react";
 import { signOutAction } from "@/app/dashboard/actions";
-import type { Organization } from "@/lib/organizations-db";
 import type { Tier } from "@/lib/entitlements";
 import { getTierConfig } from "@/lib/pricing";
 import { Logo } from "@/components/brand/Logo";
-import { OrganizationSwitcher } from "@/components/organizations/OrganizationSwitcher";
 import { cn } from "@/components/ui/cn";
 import { Button } from "@/components/ui/Button";
 import { DASHBOARD_NAV_GROUPS } from "./navigation";
@@ -17,14 +15,10 @@ import { ThemeToggle } from "./ThemeToggle";
 
 export function TopBar({
   tier,
-  organizations,
-  activeOrganizationId,
   userEmail,
   onMenuClick,
 }: {
   tier: Tier;
-  organizations: Organization[];
-  activeOrganizationId: string | null;
   userEmail: string | null;
   onMenuClick: () => void;
 }) {
@@ -115,11 +109,6 @@ export function TopBar({
         </form>
 
         <div className="ml-auto flex items-center gap-1">
-          <OrganizationSwitcher
-            organizations={organizations}
-            activeOrganizationId={activeOrganizationId}
-            tone="light"
-          />
           <span
             className={cn(
               "hidden rounded-full border px-2.5 py-1 text-xs font-semibold sm:inline-flex",
@@ -132,7 +121,7 @@ export function TopBar({
           >
             {tierConfig.label}
           </span>
-          {(tier === "agency" || tier === "enterprise") && (
+          {tier !== "free" && (
             <>
               <Link
                 href="/dashboard/agency"
@@ -192,7 +181,7 @@ export function TopBar({
                 >
                   Profile & organization
                 </Link>
-                {(tier === "agency" || tier === "enterprise") && (
+                {tier !== "free" && (
                   <button
                     type="button"
                     role="menuitem"

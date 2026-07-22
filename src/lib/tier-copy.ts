@@ -1,7 +1,7 @@
 import { ALL_TIERS, getTierConfig, isUnlimited, PAID_TIERS, type Tier } from "@/lib/pricing";
 
 export type UpgradeTier = Exclude<Tier, "free">;
-export type TierUpgradeFeature = "agencyPortal" | "enterpriseAlerts" | "unlimitedScans";
+export type TierUpgradeFeature = "agencyPortal" | "enterprisePortal" | "enterpriseAlerts" | "unlimitedScans";
 
 export function tierLabel(tier: Tier): string {
   return getTierConfig(tier).label;
@@ -28,8 +28,9 @@ export function nextTierUp(tier: Tier): UpgradeTier | null {
 }
 
 export function upgradeTargetFor(tier: Tier, feature?: TierUpgradeFeature): UpgradeTier | null {
-  if (feature === "agencyPortal" && tier !== "enterprise" && tier !== "agency") return "agency";
-  if (feature === "enterpriseAlerts" && tier !== "enterprise") return "enterprise";
+  if (feature === "agencyPortal" && tier === "free") return "solo";
+  if (feature === "agencyPortal" && tier !== "enterprise" && tier !== "agency" && tier !== "solo") return "agency";
+  if ((feature === "enterprisePortal" || feature === "enterpriseAlerts") && tier !== "enterprise") return "enterprise";
   if (feature === "unlimitedScans" && !isUnlimited(getTierConfig(tier).scanLimit)) return "agency";
   return nextTierUp(tier);
 }
@@ -41,7 +42,7 @@ export function tierUpgradeBenefit(tier: UpgradeTier): string {
   if (tier === "enterprise") {
     return `${scanAllowanceShort(tier)}, ${seats}, live regulatory monitoring, and audit-ready evidence.`;
   }
-  if (tier === "agency") {
+  if (tier === "agency" || tier === "solo") {
     return `${scanAllowanceShort(tier)}, ${seats}, white-label exports, and client portal access.`;
   }
   return `${scanAllowanceShort(tier)}, full document packages, and compliance API access.`;

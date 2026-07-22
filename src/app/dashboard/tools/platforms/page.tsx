@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getActiveOrganizationId } from "@/lib/organizations-db";
 import PlatformIntegrationsTool from "./PlatformIntegrationsTool";
+import CmsConnectionsPanel from "./CmsConnectionsPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +13,8 @@ export default async function PlatformIntegrationsPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?redirect=/dashboard/tools/platforms");
+
+  const organizationId = await getActiveOrganizationId();
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
@@ -27,6 +31,7 @@ export default async function PlatformIntegrationsPage() {
           </p>
         </div>
         <PlatformIntegrationsTool />
+        {organizationId ? <CmsConnectionsPanel organizationId={organizationId} /> : null}
       </div>
     </div>
   );

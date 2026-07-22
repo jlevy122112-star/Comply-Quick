@@ -172,7 +172,34 @@ export const canUseAgencyPortal = cache(async (): Promise<boolean> => {
     }
   }
   const entitlement = await getEntitlementForUser(ownerId ?? user.id);
-  return entitlement.isPremium && (entitlement.tier === "agency" || entitlement.tier === "enterprise");
+  return entitlement.isPremium && (entitlement.tier === "solo" || entitlement.tier === "agency" || entitlement.tier === "enterprise");
+});
+
+/** Whether the current user may use the Enterprise client portal.
+ *
+ * Stricter than the Agency gate:
+ *  - requires an active Enterprise subscription,
+ *  - requires the caller to be the agency owner (no delegated admins/managers),
+ *  - requires a confirmed email address.
+ */
+export const canUseEnterprisePortal = cache(async (): Promise<boolean> => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+  if (!user.email_confirmed_at) return false;
+
+  const { data: ownedAgency } = await supabase
+    .from("agencies")
+    .select("owner_id")
+    .eq("owner_id", user.id)
+    .maybeSingle();
+  const ownerId = (ownedAgency as { owner_id?: string } | null)?.owner_id;
+  if (!ownerId) return false;
+
+  const entitlement = await getEntitlementForUser(ownerId);
+  return entitlement.isEnterprise;
 });
 
 /** Turns an agency name into a URL-safe, reasonably-unique slug seed. */

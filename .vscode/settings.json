@@ -1,0 +1,134 @@
+{
+    "files.readonlyInclude": {
+        "pub/**/*": true
+    },
+    "editor.tokenColorCustomizations.textMateRules": [
+        {
+            "scope": "da.markdown.import.import",
+            "settings": {
+                "foreground": "#c586c0"
+            }
+        },
+        {
+            "scope": "da.markdown.import.from",
+            "settings": {
+                "foreground": "#c586c0"
+            }
+        },
+        {
+            "scope": "da.markdown.import.alias",
+            "settings": {
+                "foreground": "#3bc68e"
+            }
+        },
+        {
+            "scope": "da.markdown.import.path",
+            "settings": {
+                "foreground": "#ceb478"
+            }
+        },
+        {
+            "scope": "da.markdown.variable.def",
+            "settings": {
+                "foreground": "#1fa029"
+            }
+        },
+        {
+            "scope": "da.markdown.variable.body.link",
+            "settings": {
+                "foreground": "#b98cd3"
+            }
+        },
+        {
+            "scope": "da.markdown.alias.ref",
+            "settings": {
+                "foreground": "#3bc68e"
+            }
+        },
+        {
+            "scope": "da.markdown.variable.ref",
+            "settings": {
+                "foreground": "#1fa029"
+            }
+        },
+        {
+            "scope": "da.markdown.variable.ref.open",
+            "settings": {
+                "foreground": "#a384fc"
+            }
+        },
+        {
+            "scope": "da.markdown.variable.ref.close",
+            "settings": {
+                "foreground": "#a384fc"
+            }
+        },
+        {
+            "scope": "da.json.import.imports.keyword",
+            "settings": {
+                "foreground": "#c586c0"
+            }
+        },
+        {
+            "scope": "da.json.import.alias.keyword",
+            "settings": {
+                "foreground": "#c586c0"
+            }
+        },
+        {
+            "scope": "da.json.import.path.keyword",
+            "settings": {
+                "foreground": "#c586c0"
+            }
+        },
+        {
+            "scope": "da.json.import.alias",
+            "settings": {
+                "foreground": "#3bc68e"
+            }
+        },
+        {
+            "scope": "da.json.import.path",
+            "settings": {
+                "foreground": "#b8a743"
+            }
+        },
+        {
+            "scope": "da.json.alias.ref",
+            "settings": {
+                "foreground": "#3bc68e"
+            }
+        },
+        {
+            "scope": "da.json.variable.ref",
+            "settings": {
+                "foreground": "#1fa029"
+            }
+        },
+        {
+            "scope": "da.json.variable.ref.open",
+            "settings": {
+                "foreground": "#a384fc"
+            }
+        },
+        {
+            "scope": "da.json.variable.ref.close",
+            "settings": {
+                "foreground": "#a384fc"
+            }
+        }
+    ],
+    "editor.semanticTokenColorCustomizations": {
+        "enabled": true,
+        "rules": {
+            "dakeyword": "#c586c0",
+            "daalias": "#7bc67e",
+            "davariabledef": "#4fc1ff",
+            "davariableref": "#86bdb2",
+            "dapath": "#d8ad1f",
+            "daoperator": "#f0ef9e",
+            "daurl": "#ffa704"
+        }
+    },
+    "json.schemas": []
+}
