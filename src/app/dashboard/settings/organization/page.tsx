@@ -16,7 +16,7 @@ import { listSsoConnections, ssoEnabled } from "@/lib/sso-db";
 import { listScimTokens, scimEnabled } from "@/lib/scim/tokens";
 import { listScimUsers } from "@/lib/scim/provisioning";
 import { OrgProfilePanel } from "./OrgProfilePanel";
-import { BrandLogoPanel } from "./BrandLogoPanel";
+import { WhiteLabelPanel } from "./WhiteLabelPanel";
 import { MembersPanel } from "./MembersPanel";
 import { WorkspacesPanel } from "./WorkspacesPanel";
 import { SsoPanel } from "./SsoPanel";
@@ -54,7 +54,10 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
   // Cheap counts drive the tab badges on every load; the heavy list (member
   // email resolution, workspace project tallies, SSO rows) is fetched only for
   // the active tab so, e.g., viewing Profile never pays the members email cost.
-  const [memberCount, workspaceCount] = await Promise.all([countOrgMembers(org.id), countWorkspaces(org.id)]);
+  const [memberCount, workspaceCount] = await Promise.all([
+    countOrgMembers(org.id),
+    countWorkspaces(org.id),
+  ]);
   const members = tab === "members" ? await listOrgMembers(org.id) : [];
   const workspaces = tab === "workspaces" ? await listWorkspaces(org.id) : [];
   const sso = tab === "sso" ? await listSsoConnections(org.id) : [];
@@ -69,9 +72,9 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
     { key: "profile", label: "Profile" },
     { key: "members", label: "Members", count: memberCount },
     { key: "workspaces", label: "Workspaces", count: workspaceCount },
+    { key: "hierarchy", label: "Hierarchy" },
     { key: "sso", label: "SSO" },
     { key: "scim", label: "SCIM" },
-    { key: "hierarchy", label: "Hierarchy" },
     ...(flagsAdmin ? [{ key: "flags", label: "Feature flags" } satisfies TabItem] : []),
   ];
 
@@ -110,7 +113,7 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
         {tab === "profile" && (
           <div className="space-y-6">
             <OrgProfilePanel org={org} canManage={can(role, "org:update")} />
-            <BrandLogoPanel />
+            <WhiteLabelPanel key={`${org.id}-${org.updatedAt}`} org={org} canManage={can(role, "org:update")} />
           </div>
         )}
         {tab === "members" && <MembersPanel orgId={org.id} role={role} members={members} />}

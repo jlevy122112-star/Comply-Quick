@@ -98,7 +98,18 @@ function mapOrganization(row: Record<string, unknown>): Organization {
     name: row.name as string,
     slug: row.slug as string,
     plan: (row.plan as Organization["plan"]) ?? "team",
+    parentOrganizationId: (row.parent_organization_id as string | null) ?? null,
+    isPersonal: (row.is_personal as boolean | null) ?? false,
+    logoUrl: (row.logo_url as string | null) ?? null,
+    faviconUrl: (row.favicon_url as string | null) ?? null,
+    primaryColor: (row.primary_color as string) ?? "#4f46e5",
+    themePalette: ((row.theme_palette as string) ?? "indigo") as Organization["themePalette"],
+    supportEmail: (row.support_email as string | null) ?? null,
+    smtpFromEmail: (row.smtp_from_email as string | null) ?? null,
+    smtpReplyToEmail: (row.smtp_reply_to_email as string | null) ?? null,
     createdAt: row.created_at as string,
+    updatedAt: (row.updated_at as string) ?? (row.created_at as string),
+    kind: (row.kind as Organization["kind"] | null) ?? null,
   };
 }
 
@@ -161,7 +172,34 @@ export const canUseAgencyPortal = cache(async (): Promise<boolean> => {
     }
   }
   const entitlement = await getEntitlementForUser(ownerId ?? user.id);
-  return entitlement.isPremium && (entitlement.tier === "agency" || entitlement.tier === "enterprise");
+  return entitlement.isPremium && (entitlement.tier === "solo" || entitlement.tier === "agency" || entitlement.tier === "enterprise");
+});
+
+/** Whether the current user may use the Enterprise client portal.
+ *
+ * Stricter than the Agency gate:
+ *  - requires an active Enterprise subscription,
+ *  - requires the caller to be the agency owner (no delegated admins/managers),
+ *  - requires a confirmed email address.
+ */
+export const canUseEnterprisePortal = cache(async (): Promise<boolean> => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+  if (!user.email_confirmed_at) return false;
+
+  const { data: ownedAgency } = await supabase
+    .from("agencies")
+    .select("owner_id")
+    .eq("owner_id", user.id)
+    .maybeSingle();
+  const ownerId = (ownedAgency as { owner_id?: string } | null)?.owner_id;
+  if (!ownerId) return false;
+
+  const entitlement = await getEntitlementForUser(ownerId);
+  return entitlement.isEnterprise;
 });
 
 /** Turns an agency name into a URL-safe, reasonably-unique slug seed. */

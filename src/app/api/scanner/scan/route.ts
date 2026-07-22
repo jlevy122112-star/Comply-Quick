@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createScan, QuotaExceededError } from "@/lib/scanner/service";
 import { validateScanUrl } from "@/lib/security";
+import { getRequestIp } from "@/lib/audit/requests";
 import {
   createRateLimiter,
   getClientKey,
@@ -42,8 +43,9 @@ export async function POST(request: NextRequest) {
       throw new ValidationError("That URL cannot be scanned (must be a public http(s) address).");
     }
 
+    const ip = await getRequestIp(request.headers);
     try {
-      const scan = await createScan(url);
+      const scan = await createScan(url, { ipAddress: ip });
       return NextResponse.json({ scan }, { headers: rateHeaders });
     } catch (err) {
       if (err instanceof QuotaExceededError) throw new ForbiddenError(err.message);

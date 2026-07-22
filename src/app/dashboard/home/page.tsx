@@ -4,8 +4,8 @@ import { getEntitlement } from "@/lib/entitlements";
 import { listProjects, getAggregateScore } from "@/lib/projects-db";
 import { listCompletedTools } from "@/lib/tools/usage";
 import { getScanUsage } from "@/lib/billing/usage";
-import { isEmailPolicyAllowed } from "@/lib/access-policy";
 import { listMyOrganizationsCached, resolveActiveOrganizationId } from "@/lib/organizations-db";
+import { isEmailPolicyAllowed } from "@/lib/access-policy";
 import CommandCenterView from "./CommandCenterView";
 
 export const dynamic = "force-dynamic";

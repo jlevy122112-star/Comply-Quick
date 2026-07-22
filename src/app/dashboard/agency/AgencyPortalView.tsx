@@ -2,9 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { switchActiveOrganizationAction } from "@/app/dashboard/actions";
 import { uploadBrandLogo, validateLogoFile } from "@/lib/storage/brand";
 import type { Tier } from "@/lib/entitlements";
 import { tierLabel } from "@/lib/tier-copy";
@@ -20,6 +18,8 @@ import type { AgencyPortfolioAnalytics } from "@/lib/agency/analytics";
 import PortfolioAnalytics from "./PortfolioAnalytics";
 import type { BillingSummary } from "@/lib/billing/usage";
 import { AGENCY_ROLE_DESCRIPTIONS, AGENCY_ROLE_LABELS, AGENCY_ROLES, type AgencyRole } from "@/lib/agency/roles";
+import type { AgencyAlert } from "@/lib/agency/client-dashboard";
+import { DocumentsTab } from "./DocumentsTab";
 
 interface Props {
   agency: Agency;
@@ -34,9 +34,10 @@ interface Props {
   portfolioAnalytics: AgencyPortfolioAnalytics;
   agencyRole: AgencyRole;
   assignments: Record<string, AgencyClientAssignment[]>;
+  alerts: AgencyAlert[];
 }
 
-type Tab = "clients" | "portfolio" | "team" | "branding" | "domains";
+type Tab = "clients" | "portfolio" | "alerts" | "team" | "branding" | "domains" | "documents";
 
 /**
  * Only allow absolute http(s) image URLs. A pasted `javascript:`/`data:` value
@@ -67,6 +68,7 @@ export default function AgencyPortalView({
   portfolioAnalytics,
   agencyRole,
   assignments,
+  alerts,
 }: Props) {
   const [tab, setTab] = useState<Tab>("clients");
   const [agency, setAgency] = useState(initialAgency);
@@ -74,10 +76,13 @@ export default function AgencyPortalView({
   const [domains, setDomains] = useState(initialDomains);
   const [members, setMembers] = useState(initialMembers);
   const headerLogo = safeImageSrc(agency.logoUrl);
-  const canManageAgency = agencyRole === "owner" || agencyRole === "admin";
-  const tabs: Tab[] = canManageAgency
-    ? ["clients", "portfolio", "team", "branding", "domains"]
-    : ["clients", "portfolio"];
+  const isEnterprise = tier === "enterprise";
+  const isSolo = tier === "solo";
+  const canManageAgency = isEnterprise ? agencyRole === "owner" : agencyRole === "owner" || agencyRole === "admin";
+  const managerTabs: Tab[] = isSolo
+    ? ["clients", "portfolio", "alerts", "branding", "domains", "documents"]
+    : ["clients", "portfolio", "alerts", "team", "branding", "domains", "documents"];
+  const tabs: Tab[] = canManageAgency ? managerTabs : ["clients", "portfolio", "alerts"];
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100" style={{ ["--brand" as string]: agency.primaryColor }}>
@@ -87,8 +92,14 @@ export default function AgencyPortalView({
             <Link href="/dashboard/home" className="text-lg font-bold text-white tracking-tight">
               Comply-Quick
             </Link>
-            <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-xs font-medium text-indigo-300">
-              Agency Portal
+            <span
+              className={`hidden sm:inline-block px-2 py-0.5 rounded-full border text-xs font-medium ${
+                isEnterprise
+                  ? "bg-amber-500/15 border-amber-500/30 text-amber-300"
+                  : "bg-indigo-500/20 border-indigo-500/30 text-indigo-300"
+              }`}
+            >
+              {isEnterprise ? "Enterprise Portal" : "Agency Portal"}
             </span>
             <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-800 text-gray-300">
               {tierLabel(tier)}
@@ -150,9 +161,11 @@ export default function AgencyPortalView({
             canManageAgency={canManageAgency}
             members={members}
             assignments={assignments}
+            isEnterprise={isEnterprise}
           />
         )}
         {tab === "portfolio" && <PortfolioAnalytics analytics={portfolioAnalytics} />}
+        {tab === "alerts" && <AlertsTab alerts={alerts} />}
         {tab === "team" && (
           <TeamTab
             members={members}
@@ -165,6 +178,7 @@ export default function AgencyPortalView({
             }
           />
         )}
+        {tab === "documents" && <DocumentsTab agency={agency} clients={clients} canManage={canManageAgency} />}
         {tab === "branding" && <BrandingTab agency={agency} setAgency={setAgency} />}
         {tab === "domains" && (
           <DomainsTab domains={domains} setDomains={setDomains} slug={agency.slug} appHost={appHost} />
@@ -396,6 +410,7 @@ function ClientsTab({
   canManageAgency,
   members,
   assignments: initialAssignments,
+  isEnterprise,
 }: {
   clients: AgencyClient[];
   setClients: React.Dispatch<React.SetStateAction<AgencyClient[]>>;
@@ -406,16 +421,14 @@ function ClientsTab({
   canManageAgency: boolean;
   members: AgencyMember[];
   assignments: Record<string, AgencyClientAssignment[]>;
+  isEnterprise: boolean;
 }) {
-  const router = useRouter();
+  const dashboardPrefix = isEnterprise ? "/dashboard/enterprise" : "/dashboard/agency";
   const [name, setName] = useState("");
   const [website, setWebsite] = useState("");
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [provisioning, setProvisioning] = useState<Record<string, boolean>>({});
-  const [provisionError, setProvisionError] = useState<string | null>(null);
-  const [openingWorkspace, setOpeningWorkspace] = useState<string | null>(null);
   const [assignments, setAssignments] = useState(initialAssignments);
   const [assignmentBusy, setAssignmentBusy] = useState<string | null>(null);
   const [assignmentError, setAssignmentError] = useState<string | null>(null);
@@ -555,37 +568,6 @@ function ClientsTab({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {clients.map((c) => {
             const s = stats[c.id] ?? { monitors: 0, projects: 0, lowestScore: null };
-            const isProvisioning = provisioning[c.id] ?? false;
-            const provision = async () => {
-              setProvisionError(null);
-              setProvisioning((current) => ({ ...current, [c.id]: true }));
-              try {
-                const res = await fetch(`/api/agency/clients/${c.id}/organization`, { method: "POST" });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.message ?? "Could not provision the workspace.");
-                setClients((current) =>
-                  current.map((client) =>
-                    client.id === c.id ? { ...client, organizationId: data.organization.id } : client
-                  )
-                );
-              } catch (e) {
-                setProvisionError(e instanceof Error ? e.message : "Could not provision the workspace.");
-              } finally {
-                setProvisioning((current) => ({ ...current, [c.id]: false }));
-              }
-            };
-            const openWorkspace = async () => {
-              if (!c.organizationId) return;
-              setProvisionError(null);
-              setOpeningWorkspace(c.id);
-              const result = await switchActiveOrganizationAction(c.organizationId);
-              if (result.ok) {
-                router.push("/dashboard/home");
-              } else {
-                setProvisionError(result.error);
-              }
-              setOpeningWorkspace(null);
-            };
             return (
               <div
                 key={c.id}
@@ -611,12 +593,18 @@ function ClientsTab({
                     {s.lowestScore === null ? "—" : `${s.lowestScore}`}
                   </span>
                 </div>
-                <div className="mt-3 flex items-center justify-between">
+                <div className="mt-3 flex items-center justify-between gap-2">
                   <Link
-                    href={`/dashboard/agency/clients/${c.id}/intake`}
+                    href={`${dashboardPrefix}/clients/${c.id}`}
                     className="text-xs font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
                   >
-                    Onboarding intake →
+                    View dashboard →
+                  </Link>
+                  <Link
+                    href={`${dashboardPrefix}/clients/${c.id}/intake`}
+                    className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+                  >
+                    Intake
                   </Link>
                   <button
                     type="button"
@@ -626,36 +614,6 @@ function ClientsTab({
                   >
                     Remove
                   </button>
-                </div>
-                <div className="mt-3 rounded-lg border border-gray-800 bg-gray-950/70 p-3">
-                  {c.organizationId ? (
-                    <>
-                      <p className="text-xs text-emerald-300" role="status">
-                        Workspace provisioned
-                      </p>
-                      <button
-                        type="button"
-                        onClick={openWorkspace}
-                        disabled={!canManage || openingWorkspace === c.id}
-                        className="mt-2 text-xs font-medium text-indigo-400 hover:text-indigo-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:opacity-50"
-                      >
-                        {openingWorkspace === c.id ? "Opening…" : "Open workspace →"}
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-xs text-gray-400">Workspace not provisioned</p>
-                      <button
-                        type="button"
-                        onClick={provision}
-                        disabled={!canManage || isProvisioning}
-                        aria-label={`Provision workspace for ${c.name}`}
-                        className="mt-2 text-xs font-medium text-indigo-400 hover:text-indigo-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:opacity-50"
-                      >
-                        {isProvisioning ? "Provisioning…" : "Provision workspace"}
-                      </button>
-                    </>
-                  )}
                 </div>
                 {canManageAgency && (
                   <div className="mt-3 border-t border-gray-800 pt-3">
@@ -712,11 +670,6 @@ function ClientsTab({
             );
           })}
         </div>
-      )}
-      {provisionError && (
-        <p className="text-sm text-red-400" role="alert" aria-live="polite">
-          {provisionError}
-        </p>
       )}
       {assignmentError && (
         <p className="text-sm text-red-400" role="alert" aria-live="polite">
@@ -1074,6 +1027,60 @@ function DomainsTab({
                   )}
                 </div>
               )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AlertsTab({ alerts }: { alerts: AgencyAlert[] }) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-white">Cross-client alerts</h2>
+        <span className="text-sm text-gray-500">{alerts.length} unresolved</span>
+      </div>
+      {alerts.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-gray-800 bg-gray-900/40 px-6 py-12 text-center">
+          <p className="text-3xl" aria-hidden>🔔</p>
+          <h3 className="mt-3 text-sm font-semibold text-white">No unresolved alerts</h3>
+          <p className="text-sm text-gray-500">Alerts from all client monitors will appear here as aggregate counts.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {alerts.map((alert) => (
+            <div
+              key={alert.id}
+              className="flex flex-col gap-2 rounded-xl border border-gray-800 bg-gray-900 p-4 sm:flex-row sm:items-start sm:justify-between"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${
+                      alert.severity === "critical"
+                        ? "border-rose-500/30 bg-rose-500/15 text-rose-300"
+                        : alert.severity === "warning"
+                          ? "border-amber-500/30 bg-amber-500/15 text-amber-300"
+                          : "border-sky-500/30 bg-sky-500/15 text-sky-300"
+                    }`}
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        alert.severity === "critical" ? "bg-rose-400" : alert.severity === "warning" ? "bg-amber-400" : "bg-sky-400"
+                      }`}
+                    />
+                    {alert.severity === "critical" ? "Critical" : alert.severity === "warning" ? "Warning" : "Info"}
+                  </span>
+                  {!alert.read && <span className="rounded-full bg-sky-500/15 px-2 py-0.5 text-xs text-sky-300">New</span>}
+                </div>
+                <h4 className="mt-2 font-medium text-white">{alert.title}</h4>
+                <p className="text-sm text-gray-400">{alert.body}</p>
+              </div>
+              <span className="shrink-0 text-xs text-gray-500">
+                {new Date(alert.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+              </span>
             </div>
           ))}
         </div>

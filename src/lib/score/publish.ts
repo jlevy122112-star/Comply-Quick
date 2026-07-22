@@ -179,6 +179,34 @@ async function resolveAgencyBrand(
   return { name: agency.name, logoUrl: agency.logo_url ?? null, primaryColor: agency.primary_color };
 }
 
+async function resolveOrganizationBrand(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string
+): Promise<PublicScoreBrand | null> {
+  const { data: owned } = await admin
+    .from("organizations")
+    .select("name, logo_url, primary_color")
+    .eq("owner_id", userId)
+    .eq("is_personal", true)
+    .maybeSingle();
+
+  if (owned) {
+    return { name: owned.name, logoUrl: owned.logo_url ?? null, primaryColor: owned.primary_color };
+  }
+
+  const { data: membership } = await admin
+    .from("organization_members")
+    .select("organizations ( name, logo_url, primary_color )")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  const joined = membership?.organizations;
+  const org = Array.isArray(joined) ? (joined[0] ?? null) : (joined ?? null);
+  if (!org) return null;
+  return { name: org.name, logoUrl: org.logo_url ?? null, primaryColor: org.primary_color };
+}
+
 /**
  * Reads a live public score by slug for the anonymous public page / badge.
  * Uses the service-role client so it works without a session; returns null for
@@ -196,11 +224,10 @@ export const getPublicScore = cache(async (slug: string): Promise<PublicScore | 
     .maybeSingle();
   if (!data || data.revoked_at) return null;
 
-  // Resolve white-label branding: if the publishing user belongs to an agency
-  // workspace — as its owner OR as a team member (agency_members) — the shared
-  // brief carries the agency's logo + brand color rather than Comply-Quick's.
-  // Falls back to null (Comply-Quick branding) otherwise.
-  const brand = await resolveAgencyBrand(admin, data.user_id);
+  // Resolve white-label branding: agency workspace branding takes precedence;
+  // otherwise use the publishing user's organization branding. Falls back to null
+  // (Comply-Quick branding) when neither is configured.
+  const brand = (await resolveAgencyBrand(admin, data.user_id)) ?? (await resolveOrganizationBrand(admin, data.user_id));
 
   return {
     slug: data.slug,

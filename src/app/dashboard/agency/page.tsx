@@ -14,6 +14,7 @@ import {
 } from "@/lib/agency/service";
 import { getAgencyPortfolioAnalytics } from "@/lib/agency/analytics";
 import { getBillingSummary } from "@/lib/billing/usage";
+import { getAgencyAlerts } from "@/lib/agency/client-dashboard";
 import { canonicalAppHost } from "@/lib/appHost";
 import { tierLabel, upgradeTargetFor } from "@/lib/tier-copy";
 import { managedClientLimit } from "@/lib/pricing";
@@ -47,8 +48,9 @@ export default async function AgencyPortalPage() {
           <p className="text-4xl mb-4">🏢</p>
           <h1 className="text-2xl font-bold text-white mb-2">Agency Client Portal</h1>
           <p className="text-gray-400 mb-6">
-            Manage unlimited client workspaces, white-label the dashboard with your brand, and put it on your own
-            domain. Available on the <strong className="text-indigo-300">{tierLabel("agency")}</strong> and{" "}
+            Manage client workspaces, white-label the dashboard with your brand, and put it on your own domain.
+            Available on the <strong className="text-indigo-300">{tierLabel("solo")}</strong>,{" "}
+            <strong className="text-indigo-300">{tierLabel("agency")}</strong>, and{" "}
             <strong className="text-amber-300">{tierLabel("enterprise")}</strong> plans.
           </p>
           <Link
@@ -62,7 +64,7 @@ export default async function AgencyPortalPage() {
     );
   }
 
-  const [agency, clients, domains, stats, members, billing, portfolioAnalytics, access] = await Promise.all([
+  const [agency, clients, domains, stats, members, billing, portfolioAnalytics, access, alerts] = await Promise.all([
     getOrCreateAgency(),
     listClients(),
     listDomains(),
@@ -71,6 +73,7 @@ export default async function AgencyPortalPage() {
     getBillingSummary(),
     getAgencyPortfolioAnalytics(),
     getAgencyAccess(),
+    getAgencyAlerts(),
   ]);
   const assignments =
     access.role === "owner" || access.role === "admin"
@@ -91,6 +94,7 @@ export default async function AgencyPortalPage() {
       portfolioAnalytics={portfolioAnalytics}
       agencyRole={access.role}
       assignments={assignments}
+      alerts={alerts}
     />
   );
 }

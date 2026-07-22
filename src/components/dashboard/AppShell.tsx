@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import type { Organization } from "@/lib/organizations-db";
 import type { Tier } from "@/lib/entitlements";
 import { cn } from "@/components/ui/cn";
 import { Sidebar } from "./Sidebar";
@@ -13,15 +12,11 @@ const SIDEBAR_STORAGE_KEY = "comply-quick-sidebar-collapsed";
 export function AppShell({
   children,
   tier,
-  organizations,
-  activeOrganizationId,
   userEmail,
   isLegalAdmin,
 }: {
   children: ReactNode;
   tier: Tier;
-  organizations: Organization[];
-  activeOrganizationId: string | null;
   userEmail: string | null;
   isLegalAdmin?: boolean;
 }) {
@@ -56,8 +51,6 @@ export function AppShell({
       <div className={cn("min-h-screen transition-[padding] duration-200", collapsed ? "lg:pl-[76px]" : "lg:pl-64")}>
         <TopBar
           tier={tier}
-          organizations={organizations}
-          activeOrganizationId={activeOrganizationId}
           userEmail={userEmail}
           onMenuClick={() => setMobileOpen(true)}
         />

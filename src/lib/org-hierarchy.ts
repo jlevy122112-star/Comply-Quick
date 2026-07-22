@@ -9,6 +9,7 @@ export interface OrganizationTreeNode extends Organization {
 }
 
 function asOrganization(row: Record<string, unknown>): Organization {
+  const palette = (row.theme_palette as string) ?? "indigo";
   return {
     id: row.id as string,
     ownerId: row.owner_id as string,
@@ -19,6 +20,14 @@ function asOrganization(row: Record<string, unknown>): Organization {
     parentOrganizationId: (row.parent_organization_id as string | null | undefined) ?? null,
     kind: (row.kind as OrganizationKind | null | undefined) ?? null,
     isPersonal: Boolean(row.is_personal),
+    logoUrl: (row.logo_url as string | null | undefined) ?? null,
+    faviconUrl: (row.favicon_url as string | null | undefined) ?? null,
+    primaryColor: (row.primary_color as string) ?? "#4f46e5",
+    themePalette: palette as Organization["themePalette"],
+    supportEmail: (row.support_email as string | null | undefined) ?? null,
+    smtpFromEmail: (row.smtp_from_email as string | null | undefined) ?? null,
+    smtpReplyToEmail: (row.smtp_reply_to_email as string | null | undefined) ?? null,
+    updatedAt: (row.updated_at as string) ?? (row.created_at as string),
   };
 }
 

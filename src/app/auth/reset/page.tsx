@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { resetPasswordAction } from "./actions";
 import { Logo } from "@/components/brand/Logo";
 
 export default function ResetPasswordPage() {
@@ -42,10 +43,9 @@ export default function ResetPasswordPage() {
     setBusy(true);
     setError("");
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) {
-        setError(error.message);
+      const result = await resetPasswordAction(password);
+      if (result?.error) {
+        setError(result.error);
         return;
       }
       setDone(true);

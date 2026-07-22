@@ -83,6 +83,13 @@ const QUICK_TOOLS: QuickTool[] = [
     available: true,
   },
   {
+    label: "Platform Integrations",
+    description: "Install on Shopify, Wix, Webflow, and more",
+    icon: "🌐",
+    href: "/dashboard/tools/platforms",
+    available: true,
+  },
+  {
     label: "DPA Template Builder",
     description: "Data processing agreements",
     icon: "📄",
@@ -126,11 +133,11 @@ interface CommandCenterViewProps {
   tier: Tier;
   aggregateScore: ComplianceScore | null;
   completedTools: QuickToolKey[];
-  organizations: Organization[];
-  activeOrganizationId: string | null;
   userEmail: string | null;
   isLegalAdmin?: boolean;
   scanUsage: ScanUsage | null;
+  organizations?: Organization[];
+  activeOrganizationId?: string | null;
 }
 
 export default function CommandCenterView({
@@ -138,11 +145,11 @@ export default function CommandCenterView({
   tier,
   aggregateScore,
   completedTools,
-  organizations,
-  activeOrganizationId,
   userEmail,
   isLegalAdmin,
   scanUsage,
+  organizations,
+  activeOrganizationId,
 }: CommandCenterViewProps) {
   const [isPending, startTransition] = useTransition();
   const projectsNeedingAttention = projects.filter((p) => p.status !== "current").length;
@@ -168,8 +175,6 @@ export default function CommandCenterView({
   return (
     <AppShell
       tier={tier}
-      organizations={organizations}
-      activeOrganizationId={activeOrganizationId}
       userEmail={userEmail}
       isLegalAdmin={isLegalAdmin}
     >

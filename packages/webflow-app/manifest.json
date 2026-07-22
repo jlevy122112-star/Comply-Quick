@@ -1,0 +1,8 @@
+{
+  "name": "Comply-Quick",
+  "description": "Compliance monitoring, cookie consent, and policy pixels for Webflow sites.",
+  "version": "1.0.0",
+  "host": "https://app.webflow.com",
+  "apiVersion": "1.0.0",
+  "permissions": ["site:read", "site:write"]
+}

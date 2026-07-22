@@ -44,3 +44,22 @@ export async function uploadBrandLogo(userId: string, file: File): Promise<LogoU
   // Cache-bust so a re-upload to the same path shows immediately.
   return { ok: true, url: `${data.publicUrl}?v=${Date.now()}` };
 }
+
+/** Uploads a favicon to the same public brand-logos bucket under the user's uid. */
+export async function uploadBrandFavicon(userId: string, file: File): Promise<LogoUploadResult> {
+  const validationError = validateLogoFile(file);
+  if (validationError) return { ok: false, error: validationError };
+
+  const supabase = createClient();
+  const path = `${userId}/favicon`;
+
+  const { error } = await supabase.storage.from(BRAND_LOGO_BUCKET).upload(path, file, {
+    upsert: true,
+    contentType: file.type,
+    cacheControl: "3600",
+  });
+  if (error) return { ok: false, error: error.message };
+
+  const { data } = supabase.storage.from(BRAND_LOGO_BUCKET).getPublicUrl(path);
+  return { ok: true, url: `${data.publicUrl}?v=${Date.now()}` };
+}

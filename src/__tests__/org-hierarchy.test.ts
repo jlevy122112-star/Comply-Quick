@@ -18,6 +18,14 @@ const organization = (id: string, parentOrganizationId: string | null): Organiza
   parentOrganizationId,
   kind: "organization",
   isPersonal: false,
+  logoUrl: null,
+  faviconUrl: null,
+  primaryColor: "#4f46e5",
+  themePalette: "indigo",
+  supportEmail: null,
+  smtpFromEmail: null,
+  smtpReplyToEmail: null,
+  updatedAt: "2025-01-01T00:00:00.000Z",
 });
 
 describe("organization hierarchy", () => {

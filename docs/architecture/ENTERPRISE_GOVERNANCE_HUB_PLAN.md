@@ -304,3 +304,169 @@ dependencies** are external things I cannot self-provision.
 
 Recommended first PR: **Phase A**, because it is the prerequisite for a genuine
 "multi-tenant governance hub" and unblocks B and C immediately.
+
+---
+
+## 7. Enterprise Agency Pre-Launch Requirements (added 2026-07-21)
+
+> **Premium UI/UX standing requirement:** every user-facing engineering deliverable
+> below must follow the §3.5 standard — built on `src/components/ui` + Tailwind
+> tokens, fully responsive, WCAG 2.2 AA, with polished loading/empty/error states,
+> optimistic feedback, and consistent typography/spacing.
+
+These are the remaining features / go-live gates targeted at enterprise agency
+clients. Items marked **operational** are business/legal/process work; everything
+else is engineering scope.
+
+### 7.1 Security & Engineering
+
+- **Problem Validation** — documented evidence of target-user pain (operational).
+- **Competitor Matrix** — UVP analysis vs alternatives (operational).
+- **Incorporation Papers** — business registration (operational).
+- **Founders' Agreement** — equity, vesting, IP assignment (operational).
+- **Core Legal Policies** — marketing-site ToS & Privacy Policy (operational / legal).
+
+### 7.2 Product & Infrastructure
+
+- **Functional MVP** — stripped-down core problem solve; largely in place, needs the
+  remaining Phase A–C polish below before enterprise launch.
+- **Cloud Architecture** — secure/scalable hosting (operational; current Vercel +
+  Supabase stack is the target).
+- **CI/CD Pipeline** — automated deploy workflows (operational; GitHub Actions
+  baseline exists).
+- **Data Security & Encryption** — end-to-end encryption at rest/transit.
+  - *Engineering:* Phase A Option-A field-level envelope encryption plus TLS.
+- **System Monitoring** — inverted error-tracking + performance tooling.
+  - *Engineering:* Sentry is wired; OpenTelemetry (Phase J) and live-DB RLS leak
+    tests (Phase B) remain.
+
+### 7.3 Go-To-Market & Revenue System
+
+- **Pricing Strategy** — defined tiers (operational; `TIER_CONFIG` in
+  `src/lib/pricing.ts` already encodes free/solo/agency/enterprise).
+- **Billing Engine** — recurring payments + tax compliance.
+  - *Engineering:* Stripe checkout/webhook/metered usage exists; invoicing/ACH/PO
+    overrides (Phase E) remain.
+- **High-Converting Landing Page** — marketing site with social proof + CTA
+  (operational / content).
+- **Product Analytics** — Mixpanel/PostHog-style behavior tracking (operational).
+- **Lead Generation Channels** — SEO, outbound, ads (operational).
+
+### 7.4 Operations & Customer Support
+
+- **Corporate Bank Account** — linked to billing engine (operational).
+- **Help Desk & Knowledge Base** — ticketing + self-service articles (operational).
+- **Internal Communication** — team collaboration hubs (operational).
+- **Feedback Loop** — user-request capture → roadmap (operational).
+
+### 7.5 Tailored Bootstrapping Checklist
+
+#### Legal & Regulatory Foundation
+
+- **Liability-Limiting Terms of Service** — clarify generated clauses do not replace
+  legal counsel (operational / legal).
+- **Automated Data Processing Agreement (DPA)** — enterprise client data-handling
+  agreement (operational / legal; DPA tool page exists in `app/legal/dpa`).
+- **Single-Founder Incorporation** — LLC/C-Corp registration (operational).
+
+#### Lean Infrastructure & Trust Elements
+
+- **SOC 2 Type 1 Readiness** — logging, MFA, DB encryption for vendor reviews.
+  - *Engineering:* logging, RLS, encryption design present; formal readiness docs
+    and MFA hardening remain operational.
+- **Open-Source or Lean Compliance Tech Stack** — structured data + reliable legal
+  APIs over expensive LLM tokens (operational / architecture; already favored in
+  `src/lib/compliance` and `ClauseEngine`).
+- **Privacy-First Architecture** — monitor without scraping/storing end-user PII.
+  - *Engineering:* scanner already avoids PII storage; explicit PII scrubbing
+    policy remains to be documented/enforced.
+
+#### Enterprise-Ready Revenue Architecture
+
+- **B2B Billing Infrastructure** — Stripe/Paddle for self-serve + invoicing/ACH.
+  - *Engineering:* Stripe card subscriptions + metered usage exist; invoicing/ACH
+    (Phase E) remains.
+- **Tiered Permission Matrix** — RBAC for agency owners managing client profiles.
+  - *Engineering:* `src/lib/agency/roles.ts`, agency portal, hierarchy, and
+    `OrganizationSwitcher` cover the core; named role assignment UI and
+    cross-hierarchy permissions still need finishing.
+
+#### Zero-Dollar Go-To-Market Strategy
+
+- **Cold Vulnerability Audits** — manual/semi-automated checks emailed to agencies
+  (operational / GTM).
+- **Programmatic SEO Content** — keyword-targeted landing pages (operational /
+  content).
+- **Niche Communities** — free compliance advice in agency spaces (operational).
+
+### 7.6 In-App Quality & Agency UX Scenarios
+
+These are explicit product-quality gates for the agency dashboard. Each must be
+implemented with the §3.5 premium UI/UX standard.
+
+- **Workspace Swapping** — `OrganizationSwitcher` instantly refreshes all data,
+  metrics, and generated clauses without leaking cross-tenant cache.
+  - *Status:* component exists; full cache-invalidation story across all data libs
+    needs verification.
+- **Granular Team Permissions** — agency owner invites junior designer / client
+  viewer with read-only or clause-export-only access.
+  - *Status:* RBAC roles exist; UI for inviting with agency-specific roles and
+    capability-based gating remains.
+- **The "Out-of-Sync" State** — dashboard updates when a background scan detects
+  a violation while the user is viewing the screen.
+  - *Engineering:* real-time update stream / polling + optimistic UI; not yet
+    built.
+- **Notification Routing** — regulation alerts and monitoring failures show
+  dashboard callout banners with email fallback.
+  - *Engineering:* notification dispatch exists; dashboard callout integration and
+    per-tenant routing preferences remain.
+- **White Labeling & Exports** — exported compliance documents (PDF/TXT/web link)
+  carry agency or client branding.
+  - *Engineering:* `WhiteLabelPanel`, `theme.ts` tokens, and brand-logo storage
+    exist; per-tenant email templates and export branding wiring remain.
+- **Inline Clause Editing** — text editor lets users override autonomously
+  recommended clauses without crashing background monitoring sync.
+  - *Engineering:* `ClauseEngine` editing exists; sync robustness and conflict
+    resolution need hardening.
+- **Dynamic Limit Tracking** — usage counters ("3 of 5 client websites monitored")
+  and UI lockdown on tier exceedance.
+  - *Engineering:* `TIER_CONFIG`/`managedClientLimit` enforce limits; dashboard
+    limit widgets and paywall gating remain.
+- **Smooth Upgrade Prompts** — clicking a gated feature opens a modal/redirect to
+  Stripe/Paddle checkout; payment success unlocks feature without logout.
+  - *Engineering:* upgrade CTAs exist; end-to-end post-payment unlock without
+    re-auth needs verification.
+
+### 7.7 "Implement These For Sure" Engineering Features
+
+High-confidence, high-impact engineering deliverables for enterprise agencies.
+All must follow §3.5 premium UI/UX.
+
+1. **Headless JavaScript Snippet (The Pixel Method)**
+   - Serve a lightweight, minified JS bundle from a Next.js API route
+     (`/api/compliance-agent.js` or edge CDN).
+   - Telemetry is sent back to a Supabase Edge Function using a client-specific
+     API key.
+   - *New work:* pixel bundle, ingestion endpoint, client-key auth, RLS-isolated
+     telemetry table.
+
+2. **CMS Plugins & Native Integrations**
+   - Start with a Webflow App and/or WordPress plugin.
+   - Supabase Database Webhooks notify the Next.js app when an agency connects a
+     new native platform instance.
+   - *New work:* plugin packages, webhook handler, platform connection registry,
+     UI for connect/manage.
+
+3. **CI/CD & Source Code Access (GitHub Integration)**
+   - GitHub Action or Next.js OAuth flow requesting read-only repo access.
+   - Repo code parsed asynchronously via background workers (`src/lib/jobs`).
+   - *New work:* GitHub OAuth app, repo access grant, parser job, results mapped
+     to compliance findings.
+
+4. **Direct Document Upload (File Attachment)**
+   - Supabase Storage with strict RLS policies isolated by agency workspace.
+   - Drag-and-drop upload in the Next.js frontend (`@uppy/react` or native).
+   - Stream files directly to a private Supabase bucket via the client SDK.
+   - *New work:* storage bucket + RLS, upload UI, document-to-evidence pipeline.
+
+---

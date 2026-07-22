@@ -50,7 +50,7 @@ export default function CalendarView({
 
       {tier !== "enterprise" && (
         <div className="mb-6">
-          {tier === "agency" ? (
+          {tier === "agency" || tier === "solo" ? (
             <UpsellCta tier={tier} />
           ) : (
             <UpsellCta
