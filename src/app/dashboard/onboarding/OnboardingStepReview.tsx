@@ -25,7 +25,7 @@ export function OnboardingStepReview({
       <CardBody className="space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <Badge tone="sky">Recommended Setup</Badge>
+            <Badge tone="sky">Recommended setup</Badge>
             <h2 className="mt-2 text-lg font-semibold text-white">{rec.industryLabel}</h2>
             <p className="mt-1 text-sm text-gray-400">{rec.rationale}</p>
           </div>
