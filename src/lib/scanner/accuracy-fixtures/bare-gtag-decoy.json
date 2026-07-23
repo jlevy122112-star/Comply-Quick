@@ -1,0 +1,25 @@
+{
+  "id": "bare-gtag-decoy",
+  "description": "A generic snippet containing a bare gtag call but no Google vendor URL.",
+  "html": "<html><head><script>function gtag(){ window.dataLayer = window.dataLayer || []; window.dataLayer.push(arguments); } gtag(\"config\", \"internal-metrics\");</script></head><body><a href=\"/privacy\">Privacy Policy</a><a href=\"/terms\">Terms of Service</a></body></html>",
+  "requestUrls": [],
+  "jurisdictions": ["us_ca"],
+  "complianceState": {
+    "hasPrivacyPolicy": true,
+    "hasConsentMechanism": false,
+    "dpaWith": [],
+    "jointControllerArrangements": [],
+    "mentionsSccs": false,
+    "addressesPci": false
+  },
+  "expected": {
+    "tools": [],
+    "negativeTools": ["google"],
+    "analyzerFindings": [],
+    "lintFindings": [],
+    "obligations": [],
+    "detailed": [],
+    "knownGaps": ["bare_gtag_is_currently_a_google_false_positive"],
+    "knownGapTools": ["google"]
+  }
+}

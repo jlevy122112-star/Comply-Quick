@@ -1,0 +1,36 @@
+{
+  "id": "meta-joint-controller",
+  "description": "Meta Pixel with OneTrust in an EU deployment, proving Art. 26 mapping is distinct from processor DPA mapping.",
+  "html": "<html><head><script src=\"https://cdn.cookielaw.org/scripttemplates/otSDKStub.js\" data-domain-script=\"example\"></script><script src=\"https://connect.facebook.net/en_US/fbevents.js\"></script></head><body><a href=\"/privacy\">Privacy Policy</a><a href=\"/terms\">Terms of Service</a></body></html>",
+  "requestUrls": [],
+  "jurisdictions": ["eu"],
+  "complianceState": {
+    "hasPrivacyPolicy": true,
+    "hasConsentMechanism": true,
+    "dpaWith": [],
+    "jointControllerArrangements": [],
+    "mentionsSccs": false,
+    "addressesPci": false
+  },
+  "expected": {
+    "tools": ["meta", "onetrust"],
+    "negativeTools": ["google", "stripe"],
+    "analyzerFindings": ["consent_present"],
+    "lintFindings": [
+      { "id": "missing_dpa_onetrust", "severity": "error" },
+      { "id": "missing_jca_meta", "severity": "error" },
+      { "id": "transfers_without_sccs", "severity": "error" }
+    ],
+    "obligations": [
+      "gdpr.art13.privacy_notice",
+      "gdpr.art26.joint_controller",
+      "gdpr.art28.dpa",
+      "gdpr.art46.transfers",
+      "gdpr.art7.consent"
+    ],
+    "detailed": [
+      { "id": "meta", "layer": "html", "weakOnly": false, "minConfidence": 0.5 },
+      { "id": "onetrust", "layer": "html", "weakOnly": false, "minConfidence": 0.5 }
+    ]
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "runtime-only-pixels",
+  "description": "Static HTML is clean; browser-captured requests reveal injected ad and analytics pixels.",
+  "html": "<html><head><title>Runtime Shop</title></head><body><main>Products</main><a href=\"/privacy\">Privacy Policy</a><a href=\"/terms\">Terms of Service</a></body></html>",
+  "requestUrls": [
+    "https://www.facebook.com/tr?id=123&ev=PageView",
+    "https://analytics.tiktok.com/api/v2/pixel",
+    "https://region1.google-analytics.com/g/collect?v=2"
+  ],
+  "jurisdictions": ["us_ca"],
+  "complianceState": {
+    "hasPrivacyPolicy": true,
+    "hasConsentMechanism": false,
+    "dpaWith": [],
+    "jointControllerArrangements": [],
+    "mentionsSccs": false,
+    "addressesPci": false
+  },
+  "expected": {
+    "tools": ["meta", "google", "tiktok"],
+    "negativeTools": ["hotjar", "stripe"],
+    "analyzerFindings": ["trackers_without_consent"],
+    "lintFindings": [{ "id": "trackers_without_consent", "severity": "warning" }],
+    "obligations": ["ccpa.notice_at_collection", "cpra.opt_out_sale_share"],
+    "detailed": [
+      { "id": "meta", "layer": "runtime", "weakOnly": false, "minConfidence": 0.7 },
+      { "id": "google", "layer": "runtime", "weakOnly": false, "minConfidence": 0.7 },
+      { "id": "tiktok", "layer": "runtime", "weakOnly": false, "minConfidence": 0.7 }
+    ]
+  }
+}

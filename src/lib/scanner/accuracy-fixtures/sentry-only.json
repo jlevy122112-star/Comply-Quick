@@ -1,0 +1,23 @@
+{
+  "id": "sentry-only",
+  "description": "Error monitoring without behavioral analytics or advertising.",
+  "html": "<html><head><script src=\"https://browser.sentry-cdn.com/7.0.0/bundle.min.js\"></script><script>Sentry.init({ dsn: \"https://examplePublicKey@o0.ingest.sentry.io/0\" });</script></head><body><a href=\"/privacy\">Privacy Policy</a><a href=\"/terms\">Terms of Service</a></body></html>",
+  "requestUrls": [],
+  "jurisdictions": ["us_ca"],
+  "complianceState": {
+    "hasPrivacyPolicy": true,
+    "hasConsentMechanism": false,
+    "dpaWith": [],
+    "jointControllerArrangements": [],
+    "mentionsSccs": false,
+    "addressesPci": false
+  },
+  "expected": {
+    "tools": ["sentry"],
+    "negativeTools": ["google", "meta", "hotjar"],
+    "analyzerFindings": [],
+    "lintFindings": [],
+    "obligations": [],
+    "detailed": [{ "id": "sentry", "layer": "html", "weakOnly": false, "minConfidence": 0.5 }]
+  }
+}

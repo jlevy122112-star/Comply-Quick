@@ -1,0 +1,26 @@
+{
+  "id": "us-tracker-site",
+  "description": "The EU tracker fixture's stack and HTML, evaluated for a California/US jurisdiction.",
+  "html": "<html><head><script src=\"https://connect.facebook.net/en_US/fbevents.js\"></script><script async src=\"https://www.googletagmanager.com/gtag/js?id=G-US\"></script></head><body><a href=\"/privacy\">Privacy Policy</a><a href=\"/terms\">Terms of Service</a></body></html>",
+  "requestUrls": [],
+  "jurisdictions": ["us_ca"],
+  "complianceState": {
+    "hasPrivacyPolicy": true,
+    "hasConsentMechanism": false,
+    "dpaWith": [],
+    "jointControllerArrangements": [],
+    "mentionsSccs": false,
+    "addressesPci": false
+  },
+  "expected": {
+    "tools": ["meta", "google"],
+    "negativeTools": ["cookiebot", "stripe"],
+    "analyzerFindings": ["trackers_without_consent"],
+    "lintFindings": [{ "id": "trackers_without_consent", "severity": "warning" }],
+    "obligations": ["ccpa.notice_at_collection", "cpra.opt_out_sale_share"],
+    "detailed": [
+      { "id": "meta", "layer": "html", "weakOnly": false, "minConfidence": 0.5 },
+      { "id": "google", "layer": "html", "weakOnly": false, "minConfidence": 0.5 }
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "generic-decoy",
+  "description": "A self-hosted analytics wrapper using a generic Segment-like call shape.",
+  "html": "<html><head><script src=\"https://acme.example/js/site-metrics.js\"></script><script>analytics.track(\"Page Viewed\", { plan: \"pro\" });</script></head><body><a href=\"/privacy\">Privacy Policy</a><a href=\"/terms\">Terms of Service</a></body></html>",
+  "requestUrls": [],
+  "jurisdictions": ["us_ca"],
+  "complianceState": {
+    "hasPrivacyPolicy": true,
+    "hasConsentMechanism": false,
+    "dpaWith": [],
+    "jointControllerArrangements": [],
+    "mentionsSccs": false,
+    "addressesPci": false
+  },
+  "expected": {
+    "tools": [],
+    "negativeTools": ["segment", "google", "meta"],
+    "analyzerFindings": [],
+    "lintFindings": [],
+    "obligations": [],
+    "detailed": [{ "id": "segment", "layer": "html", "weakOnly": true, "maxConfidence": 0.3 }]
+  }
+}

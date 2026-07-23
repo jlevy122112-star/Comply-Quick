@@ -1,0 +1,27 @@
+{
+  "id": "consent-banner",
+  "description": "A Cookiebot CMP is present before Meta and Google tracking scripts.",
+  "html": "<html><head><script id=\"Cookiebot\" src=\"https://consent.cookiebot.com/uc.js\" data-cbid=\"00000000-0000-0000-0000-000000000000\"></script><script src=\"https://connect.facebook.net/en_US/fbevents.js\"></script><script async src=\"https://www.googletagmanager.com/gtag/js?id=G-EXAMPLE\"></script></head><body><a href=\"/privacy\">Privacy Policy</a><a href=\"/terms\">Terms of Service</a></body></html>",
+  "requestUrls": [],
+  "jurisdictions": ["us_ca"],
+  "complianceState": {
+    "hasPrivacyPolicy": true,
+    "hasConsentMechanism": true,
+    "dpaWith": [],
+    "jointControllerArrangements": [],
+    "mentionsSccs": false,
+    "addressesPci": false
+  },
+  "expected": {
+    "tools": ["meta", "google", "cookiebot"],
+    "negativeTools": ["hotjar", "stripe"],
+    "analyzerFindings": ["consent_present"],
+    "lintFindings": [],
+    "obligations": ["ccpa.notice_at_collection", "cpra.opt_out_sale_share"],
+    "detailed": [
+      { "id": "meta", "layer": "html", "weakOnly": false, "minConfidence": 0.5 },
+      { "id": "google", "layer": "html", "weakOnly": false, "minConfidence": 0.5 },
+      { "id": "cookiebot", "layer": "html", "weakOnly": false, "minConfidence": 0.5 }
+    ]
+  }
+}
