@@ -210,7 +210,7 @@ async function syncOrganizationInvoice(invoice: Stripe.Invoice, eventType: strin
   };
   const { error } = await admin.from("invoices").update(patch).eq("id", local.id);
   if (error) throw new Error(`Failed to sync organization invoice ${invoice.id}: ${error.message}`);
-  if (status !== local.status) {
+  if (status !== local.status || eventType === "invoice.payment_failed") {
     await createSystemAuditLog({
       eventType: eventType === "invoice.paid" ? "INVOICE_PAID" : "INVOICE_STATUS_CHANGED",
       actorType: "SYSTEM",
