@@ -17,13 +17,14 @@ import { runScan } from "./pipeline";
 import { materializeScanFindings } from "@/lib/findings-db";
 import { normalizeScanUrl } from "./crawler";
 import type { DetectedTool, Finding } from "./analyzer";
+import type { AccessibilityAnalysis } from "./accessibility";
 import { randomBytes } from "node:crypto";
 import { createSystemAuditLog } from "@/lib/audit";
 
 const log = logger.child({ module: "scanner" });
 
 const SCAN_COLUMNS =
-  "id, url, status, score, detected_tools, findings, summary, error, organization_id, client_id, shared_token, shared_at, emailed_at, created_at";
+  "id, url, status, score, detected_tools, findings, accessibility, summary, error, organization_id, client_id, shared_token, shared_at, emailed_at, created_at";
 
 /**
  * Scan-cache window. A completed scan of the same (normalized) URL within this
@@ -45,6 +46,7 @@ export interface ScanRecord {
   score: number | null;
   detectedTools: DetectedTool[];
   findings: Finding[];
+  accessibility: AccessibilityAnalysis | null;
   summary: string;
   error: string | null;
   organizationId: string | null;
@@ -93,6 +95,7 @@ function mapRow(row: Record<string, unknown>): ScanRecord {
     score: (row.score as number | null) ?? null,
     detectedTools: (row.detected_tools as DetectedTool[]) ?? [],
     findings: (row.findings as Finding[]) ?? [],
+    accessibility: (row.accessibility as AccessibilityAnalysis | null) ?? null,
     summary: (row.summary as string) ?? "",
     error: (row.error as string | null) ?? null,
     organizationId: (row.organization_id as string | null) ?? null,
@@ -277,6 +280,7 @@ export async function createScan(
       score: outcome.score,
       detected_tools: outcome.detectedTools,
       findings: outcome.findings,
+      accessibility: outcome.accessibility,
       summary: outcome.summary,
       ...(opts.projectId ? { project_id: opts.projectId } : {}),
     })
@@ -305,6 +309,7 @@ export async function createScan(
       score: outcome.score,
       detectedTools: outcome.detectedTools,
       findings: outcome.findings,
+      accessibility: outcome.accessibility,
       summary: outcome.summary,
       error: null,
       organizationId: null,

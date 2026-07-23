@@ -24,6 +24,10 @@ export interface AccessibilityAnalysis {
   source: "axe" | "static";
 }
 
+export function extractWcagCriteria(detail: string): string | undefined {
+  return detail.match(/WCAG success criteria:\s*([\s\S]*?)\.\s+\d+\s+affected node\(s\)/i)?.[1];
+}
+
 const IMPACT_SEVERITY: Record<Exclude<AccessibilityImpact, null | undefined>, Severity> = {
   critical: "critical",
   serious: "critical",

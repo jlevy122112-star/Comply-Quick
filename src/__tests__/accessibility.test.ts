@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import axeViolations from "@/lib/scanner/accessibility-fixtures/axe-violations.json";
-import { analyzeAccessibility, type AccessibilityViolation } from "@/lib/scanner/accessibility";
+import { analyzeAccessibility, extractWcagCriteria, type AccessibilityViolation } from "@/lib/scanner/accessibility";
 
 describe("analyzeAccessibility — static fallback", () => {
   it("finds deterministic WCAG signals in static HTML", () => {
@@ -47,6 +47,23 @@ describe("analyzeAccessibility — static fallback", () => {
 });
 
 describe("analyzeAccessibility — axe mapping", () => {
+  it("extracts complete dotted and comma-separated WCAG criteria for display", () => {
+    const result = analyzeAccessibility('<html lang="en"><title>Test</title></html>', [
+      {
+        id: "contrast",
+        impact: "serious",
+        description: "Text does not meet contrast requirements",
+        help: "Elements must meet minimum color contrast ratio thresholds",
+        helpUrl: "https://example.test/contrast",
+        tags: ["wcag143", "wcag247"],
+        nodes: [{ target: "#hero" }],
+      },
+    ]);
+    const detail = result.findings[0]?.detail;
+    expect(detail).toBeDefined();
+    expect(extractWcagCriteria(detail!)).toBe("1.4.3, 2.4.7");
+  });
+
   it("maps axe impact, WCAG tags, node selectors, and actionable remediation", () => {
     const result = analyzeAccessibility(
       '<html lang="en"><title>Test</title></html>',
