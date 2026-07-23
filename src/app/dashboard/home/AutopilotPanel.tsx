@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
+import { UpsellCta } from "@/components/ui";
+import type { Tier } from "@/lib/pricing";
 import { paidPlansLabel } from "@/lib/tier-copy";
 
 interface Proposal {
@@ -20,7 +21,7 @@ interface Proposal {
  * autopilot generated when a tracked regulation changed; the user accepts
  * (applies to the project) or rejects. Paid-plan gated - free users see an upsell.
  */
-export default function AutopilotPanel({ isPremium }: { isPremium: boolean }) {
+export default function AutopilotPanel({ isPremium, tier }: { isPremium: boolean; tier: Tier }) {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(isPremium);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -80,12 +81,7 @@ export default function AutopilotPanel({ isPremium }: { isPremium: boolean }) {
             Autopilot watches regulations and proposes document updates automatically - available on {paidPlansLabel()}{" "}
             plans.
           </p>
-          <Link
-            href="/#pricing"
-            className="text-xs font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
-          >
-            Upgrade &rarr;
-          </Link>
+          <UpsellCta tier={tier} title="Unlock Compliance Autopilot" />
         </div>
       ) : loading ? (
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 text-sm text-gray-500">Loading…</div>

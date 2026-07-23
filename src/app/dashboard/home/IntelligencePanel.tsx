@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
+import { UpsellCta } from "@/components/ui";
+import type { Tier } from "@/lib/pricing";
 import { paidPlansLabel } from "@/lib/tier-copy";
 
 interface Monitor {
@@ -41,7 +42,7 @@ const SEVERITY_STYLES: Record<string, { border: string; icon: string; text: stri
  * on increased risk. Each alert has a "Fix It" button that returns an
  * AI-generated remediation plan. Paid-plan gated - free users see an upsell.
  */
-export default function IntelligencePanel({ isPremium }: { isPremium: boolean }) {
+export default function IntelligencePanel({ isPremium, tier }: { isPremium: boolean; tier: Tier }) {
   const [monitors, setMonitors] = useState<Monitor[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(isPremium);
@@ -160,12 +161,7 @@ export default function IntelligencePanel({ isPremium }: { isPremium: boolean })
             Monitor client sites weekly and get real-time alerts when a new tracker appears or the compliance score
             drops - available on {paidPlansLabel()} plans.
           </p>
-          <Link
-            href="/#pricing"
-            className="text-xs font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
-          >
-            Upgrade &rarr;
-          </Link>
+          <UpsellCta tier={tier} title="Unlock Compliance Intelligence" />
         </div>
       ) : loading ? (
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 text-sm text-gray-500">Loading…</div>

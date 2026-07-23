@@ -18,6 +18,7 @@ import {
   ScanLine,
   Shield,
   Store,
+  CreditCard,
   Users,
   Wrench,
 } from "lucide-react";
@@ -80,6 +81,7 @@ export const DASHBOARD_NAV_GROUPS: DashboardNavGroup[] = [
   {
     label: "Settings",
     items: [
+      { label: "Plans & Billing", href: "/dashboard/settings/billing", icon: CreditCard },
       { label: "API & Developer", href: "/dashboard/api", icon: KeyRound },
       { label: "Security", href: "/dashboard/settings/security", icon: Lock },
       { label: "Privacy", href: "/dashboard/settings/privacy", icon: Shield },

@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
-import { Badge, Button, Card, CardBody, CardHeader } from "@/components/ui";
+import { Badge, Button, Card, CardBody, CardHeader, UpsellCta } from "@/components/ui";
 import type { TenantEncryptionStatus } from "@/lib/security/tenant-keys";
 
 interface Props {
@@ -56,12 +55,9 @@ export function DataEncryptionPanel({ isEnterprise, initialStatus }: Props) {
             Enterprise encryption keeps each organization&apos;s data-encryption key separate while your data remains
             protected by pooled-database RLS.
           </p>
-          <Link
-            href="/#pricing"
-            className="mt-5 inline-flex rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-400 focus-visible:outline-offset-2"
-          >
-            Explore Enterprise
-          </Link>
+          <div className="mt-5 max-w-sm">
+            <UpsellCta tier="agency" feature="enterprisePortal" title="Unlock tenant encryption" />
+          </div>
         </CardBody>
       </Card>
     );

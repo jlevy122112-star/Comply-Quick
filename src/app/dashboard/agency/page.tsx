@@ -16,8 +16,9 @@ import { getAgencyPortfolioAnalytics } from "@/lib/agency/analytics";
 import { getBillingSummary } from "@/lib/billing/usage";
 import { getAgencyAlerts } from "@/lib/agency/client-dashboard";
 import { canonicalAppHost } from "@/lib/appHost";
-import { tierLabel, upgradeTargetFor } from "@/lib/tier-copy";
+import { tierLabel } from "@/lib/tier-copy";
 import { managedClientLimit } from "@/lib/pricing";
+import { UpsellCta } from "@/components/ui";
 import AgencyPortalView from "./AgencyPortalView";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +32,6 @@ export default async function AgencyPortalPage() {
 
   const entitlement = await getEntitlement();
   if (!(await canUseAgencyPortal())) {
-    const upgradeTarget = upgradeTargetFor(entitlement.tier, "agencyPortal");
     return (
       <div className="min-h-screen bg-gray-950 text-gray-100">
         <header className="border-b border-gray-800/50">
@@ -53,12 +53,12 @@ export default async function AgencyPortalPage() {
             <strong className="text-indigo-300">{tierLabel("agency")}</strong>, and{" "}
             <strong className="text-amber-300">{tierLabel("enterprise")}</strong> plans.
           </p>
-          <Link
-            href="/#pricing"
-            className="inline-block px-6 py-3 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-500 transition-colors"
-          >
-            {upgradeTarget ? `Upgrade to ${tierLabel(upgradeTarget)} to unlock the portal` : "View portal access"}
-          </Link>
+          <UpsellCta
+            tier={entitlement.tier}
+            feature="agencyPortal"
+            title="Unlock the Agency Client Portal"
+            className="mx-auto max-w-sm text-left"
+          />
         </main>
       </div>
     );
