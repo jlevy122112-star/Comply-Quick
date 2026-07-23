@@ -6,6 +6,7 @@ import type { Tier } from "@/lib/entitlements";
 import type { ApiKeyRecord } from "@/lib/api/keys";
 import type { ApiUsageSummary } from "@/lib/api/usage";
 import { paidPlansLabel, tierLabel } from "@/lib/tier-copy";
+import { UpsellCta } from "@/components/ui";
 
 // ─── Display helpers ────────────────────────────────────────────────────────
 
@@ -139,12 +140,13 @@ function UpgradeGate({ tier }: { tier: Tier }) {
         You&rsquo;re on the <span className="font-medium">{tierLabel(tier)}</span> plan. Upgrade to {paidPlansLabel()}{" "}
         to issue API keys and integrate Comply-Quick into your stack.
       </p>
-      <Link
-        href="/#pricing"
-        className="inline-block px-5 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500 transition-colors"
-      >
-        View plans
-      </Link>
+      <div className="mx-auto mt-4 max-w-sm text-left">
+        <UpsellCta
+          tier={tier}
+          title="Unlock the Developer API"
+          benefit="Issue API keys and integrate compliance workflows into your stack."
+        />
+      </div>
     </section>
   );
 }

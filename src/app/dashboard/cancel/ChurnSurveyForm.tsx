@@ -63,7 +63,7 @@ export default function ChurnSurveyForm() {
             Many teams switch plans instead of canceling. Review the Solo and annual options before ending access.
           </p>
           <Link
-            href="/#pricing"
+            href="/dashboard/settings/billing"
             onClick={() => trackClientEvent("churn_save_offer_accepted", { surface: "cancel_page", offer: "pricing" })}
             className="mt-3 inline-block rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500"
           >

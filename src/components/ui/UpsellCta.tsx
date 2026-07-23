@@ -43,7 +43,7 @@ export function UpsellCta({ tier, title, benefit, feature, className }: UpsellCt
         <p className="text-sm font-semibold text-white">{title ?? `Unlock more with ${cfg.label}`}</p>
         <p className="text-xs text-gray-400">{benefit ?? tierUpgradeBenefit(next)}</p>
         <Link
-          href="/#pricing"
+          href="/dashboard/settings/billing"
           className="mt-1 block w-full rounded-lg bg-amber-500 px-4 py-2 text-center text-sm font-semibold text-gray-950 transition-colors hover:bg-amber-400"
         >
           Upgrade to {cfg.label} — {formatUsd(cfg.monthly)}/mo

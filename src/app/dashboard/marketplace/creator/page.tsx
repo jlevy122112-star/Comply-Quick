@@ -11,6 +11,7 @@ import {
 } from "@/lib/marketplace/service";
 import type { MarketplaceRevenue } from "@/lib/marketplace/shared";
 import { getPayoutStatus, isConnectConfigured } from "@/lib/marketplace/stripe-connect";
+import { UpsellCta } from "@/components/ui";
 import CreatorView from "./CreatorView";
 
 export const dynamic = "force-dynamic";
@@ -42,12 +43,13 @@ export default async function CreatorPage() {
             Publishing and selling compliance templates is available on any paid plan. Upgrade to start earning on every
             sale.
           </p>
-          <Link
-            href="/#pricing"
-            className="inline-block px-6 py-3 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-500 transition-colors"
-          >
-            Upgrade to sell
-          </Link>
+          <div className="mx-auto max-w-sm text-left">
+            <UpsellCta
+              tier="free"
+              title="Unlock creator selling"
+              benefit="Publish and sell compliance templates on any paid plan."
+            />
+          </div>
         </main>
       </div>
     );

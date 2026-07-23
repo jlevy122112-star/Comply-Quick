@@ -17,6 +17,7 @@ import { alertsForRegions, regionsFromProjects, type RegulatoryAlert } from "@/l
 import type { QuickToolKey } from "@/lib/tools/usage";
 import type { ScanUsage } from "@/lib/billing/usage";
 import HeroStatusPanel from "@/components/dashboard/HeroStatusPanel";
+import { UpsellCta } from "@/components/ui";
 
 // ─── Framework Display Map ──────────────────────────────────────────────────
 
@@ -238,7 +239,7 @@ export default function CommandCenterView({
 
             {/* Compliance Intelligence — proactive monitoring + alerts */}
             <div id="intelligence" className="scroll-mt-8">
-              <IntelligencePanel isPremium={tier !== "free"} />
+              <IntelligencePanel isPremium={tier !== "free"} tier={tier} />
             </div>
 
             {/* Quick-Launch Tools */}
@@ -254,7 +255,7 @@ export default function CommandCenterView({
 
           {/* Right: Alerts Feed */}
           <div className="space-y-8">
-            <AutopilotPanel isPremium={tier !== "free"} />
+            <AutopilotPanel isPremium={tier !== "free"} tier={tier} />
             <section>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-white">Regulatory Alerts</h2>
@@ -294,12 +295,11 @@ export default function CommandCenterView({
                     <p className="text-xs text-gray-400 mb-2">
                       Regulatory alerts are available on the {tierLabel("enterprise")} plan.
                     </p>
-                    <Link
-                      href="/#pricing"
-                      className="text-xs font-medium text-amber-400 hover:text-amber-300 transition-colors"
-                    >
-                      Upgrade to {tierLabel("enterprise")} &rarr;
-                    </Link>
+                    <UpsellCta
+                      tier={tier}
+                      feature="enterpriseAlerts"
+                      title={`Unlock ${tierLabel("enterprise")} alerts`}
+                    />
                   </div>
                 </div>
               )}

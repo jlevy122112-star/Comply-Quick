@@ -9,6 +9,7 @@ import { alertsForRegions } from "@/lib/regulations/alerts";
 import type { Tier } from "@/lib/pricing";
 import { scanAllowanceShort, tierLabel, upgradeTargetFor } from "@/lib/tier-copy";
 import { shareScanAction, emailScanAction } from "@/app/dashboard/home/actions";
+import { UpsellCta } from "@/components/ui";
 
 interface DetectedTool {
   id: string;
@@ -323,13 +324,11 @@ export default function ScannerPanel({ tier }: { tier: Tier }) {
           <p className="mt-3 text-xs text-gray-400">
             You&apos;ve used your free scans this month.{" "}
             <Link
-              href="/#pricing"
+              href="/dashboard/settings/billing"
               onClick={() => trackClientEvent("expansion_nudge_clicked", { surface: "scanner_quota_limit" })}
               className="text-indigo-400 hover:text-indigo-300"
             >
-              {unlimitedScanTarget
-                ? `Upgrade to ${tierLabel(unlimitedScanTarget)} for unlimited scans`
-                : "Unlimited scans available"}{" "}
+              {unlimitedScanTarget ? `Review ${tierLabel(unlimitedScanTarget)} for unlimited scans` : "Review plans"}{" "}
               &rarr;
             </Link>
           </p>
@@ -444,16 +443,12 @@ export default function ScannerPanel({ tier }: { tier: Tier }) {
                     </div>
                   ))}
                 </div>
-                <Link
-                  href="/#pricing"
-                  onClick={() => {
-                    trackFunnel("upgrade_cta_clicked", { surface: "scanner" });
-                    trackClientEvent("expansion_nudge_clicked", { surface: "scanner_findings" });
-                  }}
-                  className="mt-3 inline-block px-4 py-2 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-500 transition-colors"
-                >
-                  Upgrade to fix these &rarr;
-                </Link>
+                <UpsellCta
+                  tier={tier}
+                  title="Turn findings into a remediation plan"
+                  benefit="Review plans and unlock the capacity to keep every client site current."
+                  className="mt-3"
+                />
               </div>
             )}
 
@@ -530,16 +525,12 @@ export default function ScannerPanel({ tier }: { tier: Tier }) {
                     <p className="mt-2 text-xs text-gray-400">
                       Live regulatory monitoring tracks your jurisdictions and surfaces changes here.
                     </p>
-                    <Link
-                      href="/#pricing"
-                      onClick={() => {
-                        trackFunnel("upgrade_cta_clicked", { surface: "scanner_regwatch" });
-                        trackClientEvent("expansion_nudge_clicked", { surface: "scanner_regwatch" });
-                      }}
-                      className="mt-2 inline-block text-xs font-semibold text-amber-300 hover:text-amber-200"
-                    >
-                      Upgrade to {tierLabel("enterprise")} &rarr;
-                    </Link>
+                    <UpsellCta
+                      tier={tier}
+                      feature="enterpriseAlerts"
+                      title="Unlock live regulatory monitoring"
+                      className="mt-2"
+                    />
                   </div>
                 )}
               </div>
