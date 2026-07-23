@@ -73,10 +73,11 @@ export async function getScanQuota(): Promise<ScanQuota> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new UnauthorizedError();
+  const organizationId = await getActiveOrganizationId();
   const { count } = await supabase
     .from("scans")
     .select("id", { count: "exact", head: true })
-    .eq("user_id", user.id)
+    .or(organizationReadFilter(user.id, organizationId))
     .gte("created_at", periodStartIso(currentPeriod()));
 
   const used = count ?? 0;
