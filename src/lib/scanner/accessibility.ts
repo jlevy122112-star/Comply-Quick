@@ -113,7 +113,7 @@ function textWithoutMarkup(value: string): string {
 }
 
 function hasNonEmptyAttribute(attrs: string, name: string): boolean {
-  return new RegExp(`\\b${name}\\s*=\\s*["'][^"']*\\S[^"']*["']`, "i").test(attrs);
+  return new RegExp(`(?:^|\\s)${name}\\s*=\\s*["'][^"']*\\S[^"']*["']`, "i").test(attrs);
 }
 
 function hasReferencedAccessibleName(attrs: string, html: string): boolean {
