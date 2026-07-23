@@ -138,7 +138,11 @@ export async function deleteProjectDocument(documentId: string): Promise<{ ok: t
   // Use admin to read the document (RLS would still allow owner/project owner),
   // then remove from storage and table.
   const admin = createAdminClient();
-  const { data: doc, error: findError } = await admin.from("project_documents").select("id, storage_path").eq("id", documentId).single();
+  const { data: doc, error: findError } = await admin
+    .from("project_documents")
+    .select("id, storage_path")
+    .eq("id", documentId)
+    .single();
   if (findError || !doc) return { ok: false, error: "Document not found." };
 
   const row = doc as { storage_path: string };

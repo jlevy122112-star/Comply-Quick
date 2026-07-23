@@ -216,7 +216,7 @@ describe("agency client organizations", () => {
   it("defines the Agency and Enterprise managed-client limits", () => {
     expect(managedClientLimit("agency")).toBe(50);
     expect(managedClientLimit("enterprise")).toBe(Infinity);
-    expect(managedClientLimit("solo")).toBeNull();
+    expect(managedClientLimit("solo")).toBe(20);
   });
 
   it("rejects Agency client creation once 50 active clients exist", async () => {

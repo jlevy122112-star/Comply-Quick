@@ -445,7 +445,13 @@ export async function getOrganizationPath(orgId: string): Promise<Organization[]
   const { data, error } = await supabase.rpc("get_org_ancestors", { o_id: orgId });
   if (error || !data) return [];
   const ids = data as { id: string }[];
-  const { data: rows } = await supabase.from("organizations").select("*").in("id", ids.map((r) => r.id));
+  const { data: rows } = await supabase
+    .from("organizations")
+    .select("*")
+    .in(
+      "id",
+      ids.map((r) => r.id)
+    );
   if (!rows) return [];
   const byId = new Map((rows as OrgRow[]).map((r) => [r.id, mapOrg(r)]));
   return ids.map((r) => byId.get(r.id)).filter((o): o is Organization => o !== undefined);

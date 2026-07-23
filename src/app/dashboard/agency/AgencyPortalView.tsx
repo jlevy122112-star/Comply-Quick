@@ -1044,7 +1044,9 @@ function AlertsTab({ alerts }: { alerts: AgencyAlert[] }) {
       </div>
       {alerts.length === 0 ? (
         <div className="rounded-xl border border-dashed border-gray-800 bg-gray-900/40 px-6 py-12 text-center">
-          <p className="text-3xl" aria-hidden>🔔</p>
+          <p className="text-3xl" aria-hidden>
+            🔔
+          </p>
           <h3 className="mt-3 text-sm font-semibold text-white">No unresolved alerts</h3>
           <p className="text-sm text-gray-500">Alerts from all client monitors will appear here as aggregate counts.</p>
         </div>
@@ -1068,12 +1070,18 @@ function AlertsTab({ alerts }: { alerts: AgencyAlert[] }) {
                   >
                     <span
                       className={`h-1.5 w-1.5 rounded-full ${
-                        alert.severity === "critical" ? "bg-rose-400" : alert.severity === "warning" ? "bg-amber-400" : "bg-sky-400"
+                        alert.severity === "critical"
+                          ? "bg-rose-400"
+                          : alert.severity === "warning"
+                            ? "bg-amber-400"
+                            : "bg-sky-400"
                       }`}
                     />
                     {alert.severity === "critical" ? "Critical" : alert.severity === "warning" ? "Warning" : "Info"}
                   </span>
-                  {!alert.read && <span className="rounded-full bg-sky-500/15 px-2 py-0.5 text-xs text-sky-300">New</span>}
+                  {!alert.read && (
+                    <span className="rounded-full bg-sky-500/15 px-2 py-0.5 text-xs text-sky-300">New</span>
+                  )}
                 </div>
                 <h4 className="mt-2 font-medium text-white">{alert.title}</h4>
                 <p className="text-sm text-gray-400">{alert.body}</p>

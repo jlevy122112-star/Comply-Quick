@@ -102,7 +102,13 @@ export default function ScannerPanel({ tier }: { tier: Tier }) {
         if (clientRes?.ok) {
           const data = await clientRes.json();
           if (!alive) return;
-          setClients((data.clients ?? []).map((c: AgencyClientOption) => ({ id: c.id, name: c.name, contactEmail: c.contactEmail })));
+          setClients(
+            (data.clients ?? []).map((c: AgencyClientOption) => ({
+              id: c.id,
+              name: c.name,
+              contactEmail: c.contactEmail,
+            }))
+          );
         }
       } catch {
         /* non-fatal */
@@ -260,7 +266,11 @@ export default function ScannerPanel({ tier }: { tier: Tier }) {
     }
     const res = await emailScanAction(active.id);
     if (res.ok) {
-      const updated: ScanRecord = { ...active, emailedAt: new Date().toISOString(), clientId: selectedClientId || active.clientId };
+      const updated: ScanRecord = {
+        ...active,
+        emailedAt: new Date().toISOString(),
+        clientId: selectedClientId || active.clientId,
+      };
       setActive(updated);
       setHistory((prev) => prev.map((s) => (s.id === active.id ? updated : s)));
     } else {

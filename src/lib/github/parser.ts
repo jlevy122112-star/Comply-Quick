@@ -74,14 +74,7 @@ function* scanFileForTrackers(file: RepoFile): Generator<RepoFinding> {
 }
 
 function* scanFileForConsentSnippet(file: RepoFile): Generator<RepoFinding> {
-  const consentPatterns = [
-    /cookieconsent/i,
-    /onetrust/i,
-    /cookiebot/i,
-    /osano/i,
-    /consent-manager/i,
-    /gdpr.*consent/i,
-  ];
+  const consentPatterns = [/cookieconsent/i, /onetrust/i, /cookiebot/i, /osano/i, /consent-manager/i, /gdpr.*consent/i];
   for (const pattern of consentPatterns) {
     if (pattern.test(file.content)) {
       yield {

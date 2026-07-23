@@ -15,10 +15,7 @@ export interface PlatformSnippetResult {
 }
 
 /** Wraps the generic Comply-Quick banner with platform-native framing. */
-export function generatePlatformSnippet(
-  platformId: string,
-  input: PlatformSnippetInput
-): PlatformSnippetResult | null {
+export function generatePlatformSnippet(platformId: string, input: PlatformSnippetInput): PlatformSnippetResult | null {
   const platform = getPlatform(platformId);
   if (!platform) return null;
 
@@ -52,16 +49,10 @@ export function generatePlatformSnippet(
     case "plugin":
       if (platformId === "wordpress") {
         language = "php";
-        snippet = [
-          `<?php // Add to footer.php or use a code-snippets plugin ?>`,
-          snippet,
-        ].join("\n");
+        snippet = [`<?php // Add to footer.php or use a code-snippets plugin ?>`, snippet].join("\n");
       } else if (platformId === "joomla") {
         language = "php";
-        snippet = [
-          `<?php // Add to a Custom HTML module or template index.php before </body> ?>`,
-          snippet,
-        ].join("\n");
+        snippet = [`<?php // Add to a Custom HTML module or template index.php before </body> ?>`, snippet].join("\n");
       }
       break;
 

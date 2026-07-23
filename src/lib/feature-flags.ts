@@ -122,10 +122,7 @@ export async function listFeatureFlags(orgId: string): Promise<FeatureFlagStatus
   if (!org) return [];
 
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("organization_features")
-    .select("flag, enabled")
-    .eq("organization_id", orgId);
+  const { data } = await supabase.from("organization_features").select("flag, enabled").eq("organization_id", orgId);
 
   const overrides = new Map<FeatureFlag, boolean>(
     (data ?? []).map((row) => [row.flag as FeatureFlag, (row as { enabled: boolean }).enabled])

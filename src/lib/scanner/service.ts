@@ -12,7 +12,7 @@ import { getAiClient } from "@/services/ai";
 import { analytics, logger } from "@/services";
 import { UnauthorizedError } from "@/services/errors";
 import { recordScanUsage, currentPeriod, periodStartIso } from "@/lib/billing/usage";
-import { scanLimit } from "@/lib/pricing";
+import { isUnlimited, scanLimit } from "@/lib/pricing";
 import { runScan } from "./pipeline";
 import { materializeScanFindings } from "@/lib/findings-db";
 import { normalizeScanUrl } from "./crawler";
@@ -65,11 +65,8 @@ export interface ScanQuota {
 /** Reports the current account's scan quota for the current calendar month. */
 export async function getScanQuota(): Promise<ScanQuota> {
   const entitlement = await getOrgEntitlement();
-  const tier = entitlement.tier ?? (entitlement.isPremium ? "agency" : "free");
-  const limit = scanLimit(tier);
-  if (limit === Infinity) {
-    return { isPremium: entitlement.isPremium, used: 0, limit: null, remaining: null };
-  }
+  const limit = scanLimit(entitlement.tier);
+  const quotaLimit = isUnlimited(limit) ? null : limit;
 
   const supabase = await createClient();
   const {
@@ -83,8 +80,8 @@ export async function getScanQuota(): Promise<ScanQuota> {
     .gte("created_at", periodStartIso(currentPeriod()));
 
   const used = count ?? 0;
-  const remaining = limit === null ? null : Math.max(0, limit - used);
-  return { isPremium: entitlement.isPremium, used, limit, remaining };
+  const remaining = quotaLimit === null ? null : Math.max(0, quotaLimit - used);
+  return { isPremium: entitlement.isPremium, used, limit: quotaLimit, remaining };
 }
 
 function mapRow(row: Record<string, unknown>): ScanRecord {

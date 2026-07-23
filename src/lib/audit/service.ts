@@ -52,7 +52,7 @@ export interface ArchiveResult {
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
-interface AuditLogRow {
+interface SystemAuditLogRow {
   id: string;
   created_at: string;
   event_type: string;
@@ -66,8 +66,10 @@ interface AuditLogRow {
 
 interface ArchiveFile {
   name: string;
-  created_at: string;
-  metadata?: { size?: number };
+  created_at: string | null;
+  metadata?: {
+    size?: number | string;
+  } | null;
 }
 
 /**
@@ -102,11 +104,13 @@ export async function createSystemAuditLog(input: CreateSystemAuditLogInput): Pr
 export async function listSystemAuditLogs(opts: ListSystemAuditLogsOptions = {}): Promise<SystemAuditLogRecord[]> {
   try {
     const admin = createAdminClient();
+    const limit = opts.limit ?? 100;
+    const offset = opts.offset ?? 0;
     let query = admin
       .from("system_audit_logs")
       .select("id, created_at, event_type, actor_id, actor_type, target_resource, ip_address, details, organization_id")
       .order("created_at", { ascending: false })
-      .range(opts.offset ?? 0, (opts.offset ?? 0) + (opts.limit ?? 100) - 1);
+      .range(offset, offset + limit - 1);
 
     if (opts.organizationId) query = query.eq("organization_id", opts.organizationId);
     if (opts.eventType) query = query.eq("event_type", opts.eventType);
@@ -190,10 +194,15 @@ export async function getArchivedAuditLogFiles(
       log.warn("Failed to list audit log archives", { error: error.message });
       return [];
     }
-    return ((data ?? []) as ArchiveFile[]).map((f) => ({
+    return (data ?? []).map((f: ArchiveFile) => ({
       name: f.name as string,
-      createdAt: f.created_at as string,
-      size: typeof f.metadata?.size === "number" ? f.metadata.size : undefined,
+      createdAt: f.created_at ?? "",
+      size:
+        typeof f.metadata?.size === "number"
+          ? f.metadata.size
+          : typeof f.metadata?.size === "string"
+            ? Number(f.metadata.size)
+            : undefined,
     }));
   } catch (err) {
     log.error("getArchivedAuditLogFiles threw", { error: err instanceof Error ? err.message : String(err) });
@@ -202,7 +211,7 @@ export async function getArchivedAuditLogFiles(
   }
 }
 
-function mapRow(row: AuditLogRow): SystemAuditLogRecord {
+function mapRow(row: SystemAuditLogRow): SystemAuditLogRecord {
   return {
     id: row.id as string,
     createdAt: row.created_at as string,
@@ -211,7 +220,7 @@ function mapRow(row: AuditLogRow): SystemAuditLogRecord {
     actorType: row.actor_type as AuditActorType,
     targetResource: row.target_resource ?? null,
     ipAddress: row.ip_address ?? null,
-    details: (row.details as Record<string, unknown>) ?? {},
+    details: row.details ?? {},
     organizationId: row.organization_id ?? null,
   };
 }
