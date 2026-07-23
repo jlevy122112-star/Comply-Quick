@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import {
   applyManualOverrideAction as applyOverride,
   createDraftInvoiceAction as createDraft,
+  ensureStripeCustomerAction as ensureStripeCustomer,
+  finalizeStripeInvoiceAction as finalizeStripeInvoice,
+  prepareAchSetupAction as prepareAchSetup,
+  pushInvoiceToStripeAction as pushInvoiceToStripe,
   updateDraftInvoiceAction as updateDraft,
   saveBillingAccountAction as saveAccount,
   transitionInvoiceAction as transitionInvoice,
@@ -71,4 +75,25 @@ export async function applyManualOverride(formData: FormData): Promise<void> {
     expiresAt: String(formData.get("expiresAt") ?? ""),
   });
   revalidatePath(PATH);
+}
+
+export async function linkStripeCustomer(formData: FormData): Promise<void> {
+  await ensureStripeCustomer(String(formData.get("organizationId")));
+  revalidatePath(PATH);
+}
+
+export async function sendInvoiceToStripe(formData: FormData): Promise<void> {
+  await pushInvoiceToStripe(String(formData.get("organizationId")), String(formData.get("invoiceId")));
+  revalidatePath(PATH);
+}
+
+export async function finalizeInvoiceOnStripe(formData: FormData): Promise<void> {
+  await finalizeStripeInvoice(String(formData.get("organizationId")), String(formData.get("invoiceId")));
+  revalidatePath(PATH);
+}
+
+export async function setupAch(formData: FormData): Promise<{ clientSecret: string }> {
+  const result = await prepareAchSetup(String(formData.get("organizationId")));
+  revalidatePath(PATH);
+  return result;
 }

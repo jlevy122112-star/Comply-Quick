@@ -32,7 +32,12 @@ export default async function BillingAdminPage({ searchParams }: { searchParams:
             Back to Command Center
           </Link>
         </header>
-        <BillingOpsView tenants={tenants} detail={detail} selectedId={selectedId} />
+        <BillingOpsView
+          tenants={tenants}
+          detail={detail}
+          selectedId={selectedId}
+          stripeConfigured={Boolean(process.env.STRIPE_SECRET_KEY)}
+        />
       </div>
     </main>
   );

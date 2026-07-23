@@ -7,7 +7,11 @@ import type { Invoice, TenantSummary } from "@/lib/billing/admin";
 import {
   applyManualOverride,
   createDraftInvoice,
+  finalizeInvoiceOnStripe,
+  linkStripeCustomer,
   saveBillingAccount,
+  sendInvoiceToStripe,
+  setupAch,
   transitionInvoiceStatus,
   updateDraftInvoice,
 } from "./actions";
@@ -16,6 +20,7 @@ interface Props {
   tenants: TenantSummary[];
   detail: { tenant: TenantSummary | null; invoices: Invoice[] };
   selectedId: string | null;
+  stripeConfigured: boolean;
 }
 
 const money = (cents: number, currency = "usd") =>
@@ -28,9 +33,10 @@ function tone(status: string): "gray" | "emerald" | "amber" | "rose" {
   return "gray";
 }
 
-export default function BillingOpsView({ tenants, detail, selectedId }: Props) {
+export default function BillingOpsView({ tenants, detail, selectedId, stripeConfigured }: Props) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [achReady, setAchReady] = useState(false);
   const account = detail.tenant?.billingAccount;
   const tenant = detail.tenant;
   const submit = (action: (formData: FormData) => Promise<void>, formData: FormData) => {
@@ -104,12 +110,81 @@ export default function BillingOpsView({ tenants, detail, selectedId }: Props) {
               {error}
             </div>
           )}
+          {!stripeConfigured && (
+            <div
+              className="rounded-xl border border-border-default bg-surface-elevated px-4 py-3 text-sm text-text-secondary"
+              role="status"
+            >
+              Stripe billing is not configured for this environment. Local billing records remain available, while
+              customer linking, ACH setup, and Stripe invoice actions are disabled.
+            </div>
+          )}
           <Card>
             <CardHeader
               title={tenant.name}
               description={`Current organization tier: ${tenant.plan} · subscription ${tenant.subscriptionStatus}`}
             />
             <CardBody>
+              <div className="mb-5 flex flex-col gap-4 rounded-xl border border-border-default bg-surface-elevated/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-text-primary">Stripe billing account</p>
+                  <p className="mt-1 text-xs text-text-secondary">
+                    {account?.stripeCustomerId
+                      ? `Customer linked: ${account.stripeCustomerId}`
+                      : "No Stripe customer is linked yet. Linking is idempotent and does not charge the customer."}
+                  </p>
+                  {account?.achStatus && (
+                    <p className="mt-2 text-xs text-text-secondary">
+                      ACH setup <Badge tone={tone(account.achStatus)}>{account.achStatus}</Badge>
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <form action={(formData) => submit(linkStripeCustomer, formData)}>
+                    <input type="hidden" name="organizationId" value={tenant.id} />
+                    <Button
+                      type="submit"
+                      variant="secondary"
+                      size="sm"
+                      disabled={pending || !stripeConfigured || Boolean(account?.stripeCustomerId)}
+                    >
+                      {account?.stripeCustomerId ? "Customer linked" : "Link Stripe customer"}
+                    </Button>
+                  </form>
+                  <form
+                    action={(formData) => {
+                      setAchReady(false);
+                      startTransition(async () => {
+                        try {
+                          await setupAch(formData);
+                          setAchReady(true);
+                        } catch (err) {
+                          setError(err instanceof Error ? err.message : "ACH setup failed.");
+                        }
+                      });
+                    }}
+                  >
+                    <input type="hidden" name="organizationId" value={tenant.id} />
+                    <Button
+                      type="submit"
+                      variant="ghost"
+                      size="sm"
+                      disabled={pending || !stripeConfigured || !account?.stripeCustomerId}
+                    >
+                      Set up ACH
+                    </Button>
+                  </form>
+                </div>
+              </div>
+              {achReady && (
+                <p
+                  className="mb-5 rounded-lg border border-border-default bg-surface-elevated px-4 py-3 text-sm text-text-secondary"
+                  role="status"
+                >
+                  ACH setup is ready for the secure Stripe bank-account confirmation step. No bank details are stored
+                  here.
+                </p>
+              )}
               <form action={(formData) => submit(saveBillingAccount, formData)} className="grid gap-4 sm:grid-cols-2">
                 <input type="hidden" name="organizationId" value={tenant.id} />
                 <label className="text-sm text-gray-300">
@@ -230,7 +305,10 @@ export default function BillingOpsView({ tenants, detail, selectedId }: Props) {
           </Card>
 
           <Card>
-            <CardHeader title="Invoices" description="Records only in this slice; no Stripe invoice calls are made." />
+            <CardHeader
+              title="Invoices"
+              description="Local invoice records can be sent to Stripe explicitly and finalized separately."
+            />
             <CardBody className="space-y-5">
               {detail.invoices.length === 0 && <p className="text-sm text-gray-500">No invoices yet.</p>}
               {detail.invoices.map((invoice) => (
@@ -244,6 +322,9 @@ export default function BillingOpsView({ tenants, detail, selectedId }: Props) {
                     </div>
                     <div className="flex items-center gap-3">
                       <Badge tone={tone(invoice.status)}>{invoice.status}</Badge>
+                      {invoice.stripeInvoiceStatus && (
+                        <Badge tone={tone(invoice.stripeInvoiceStatus)}>{invoice.stripeInvoiceStatus}</Badge>
+                      )}
                       <span className="font-medium text-gray-200">{money(invoice.totalCents, invoice.currency)}</span>
                     </div>
                   </div>
@@ -313,6 +394,39 @@ export default function BillingOpsView({ tenants, detail, selectedId }: Props) {
                   {invoice.status === "draft" || invoice.status === "open" ? (
                     <div className="mt-4 flex flex-wrap gap-2">
                       {invoice.status === "draft" && (
+                        <InvoiceStripeAction
+                          label={invoice.stripeInvoiceId ? "Sent to Stripe" : "Send to Stripe"}
+                          action={sendInvoiceToStripe}
+                          invoice={invoice}
+                          organizationId={tenant.id}
+                          submit={submit}
+                          pending={pending}
+                          disabled={Boolean(invoice.stripeInvoiceId) || !stripeConfigured}
+                          stripeConfigured={stripeConfigured}
+                        />
+                      )}
+                      {invoice.stripeInvoiceId && invoice.status === "draft" && (
+                        <InvoiceStripeAction
+                          label="Finalize / send"
+                          action={finalizeInvoiceOnStripe}
+                          invoice={invoice}
+                          organizationId={tenant.id}
+                          submit={submit}
+                          pending={pending}
+                          stripeConfigured={stripeConfigured}
+                        />
+                      )}
+                      {invoice.hostedInvoiceUrl && (
+                        <a
+                          href={invoice.hostedInvoiceUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center rounded-lg border border-border-default px-3 py-1.5 text-xs font-medium text-text-secondary transition hover:border-border-strong hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary"
+                        >
+                          Open hosted invoice
+                        </a>
+                      )}
+                      {invoice.status === "draft" && !invoice.stripeInvoiceId && (
                         <InvoiceAction
                           label="Open invoice"
                           status="open"
@@ -474,6 +588,36 @@ function InvoiceAction({
       <input type="hidden" name="invoiceId" value={invoice.id} />
       <input type="hidden" name="status" value={status} />
       <Button type="submit" variant="secondary" disabled={pending}>
+        {label}
+      </Button>
+    </form>
+  );
+}
+
+function InvoiceStripeAction({
+  label,
+  action,
+  invoice,
+  organizationId,
+  submit,
+  pending,
+  disabled,
+  stripeConfigured,
+}: {
+  label: string;
+  action: (formData: FormData) => Promise<void>;
+  invoice: Invoice;
+  organizationId: string;
+  submit: (action: (formData: FormData) => Promise<void>, formData: FormData) => void;
+  pending: boolean;
+  disabled?: boolean;
+  stripeConfigured: boolean;
+}) {
+  return (
+    <form action={(formData) => submit(action, formData)}>
+      <input type="hidden" name="organizationId" value={organizationId} />
+      <input type="hidden" name="invoiceId" value={invoice.id} />
+      <Button type="submit" variant="secondary" disabled={pending || disabled || !stripeConfigured}>
         {label}
       </Button>
     </form>
