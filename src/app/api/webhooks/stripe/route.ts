@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe, logger, analytics } from "@/services";
 import { isPaidTier, normalizeTierKey, type PaidTier, type Tier } from "@/lib/pricing";
 import { recordReferralCommission } from "@/lib/partners/service";
+import { createSystemAuditLog } from "@/lib/audit/service";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -181,6 +182,50 @@ async function userIdForCustomer(customerId: string): Promise<string | undefined
   return data?.user_id ?? undefined;
 }
 
+async function syncOrganizationInvoice(invoice: Stripe.Invoice, eventType: string): Promise<boolean> {
+  if (!invoice.id) return false;
+  const admin = createAdminClient();
+  const { data: local } = await admin
+    .from("invoices")
+    .select("id, organization_id, status")
+    .eq("stripe_invoice_id", invoice.id)
+    .maybeSingle();
+  if (!local) return false;
+  const status =
+    eventType === "invoice.paid"
+      ? "paid"
+      : eventType === "invoice.payment_failed"
+        ? "open"
+        : eventType === "invoice.finalized"
+          ? "open"
+          : local.status;
+  const patch = {
+    status,
+    amount_paid_cents: invoice.amount_paid ?? 0,
+    stripe_invoice_status: invoice.status ?? null,
+    hosted_invoice_url: invoice.hosted_invoice_url ?? null,
+    issued_at: eventType === "invoice.finalized" ? new Date().toISOString() : undefined,
+    paid_at: eventType === "invoice.paid" ? new Date().toISOString() : undefined,
+    updated_at: new Date().toISOString(),
+  };
+  const { error } = await admin.from("invoices").update(patch).eq("id", local.id);
+  if (error) throw new Error(`Failed to sync organization invoice ${invoice.id}: ${error.message}`);
+  await createSystemAuditLog({
+    eventType: eventType === "invoice.paid" ? "INVOICE_PAID" : "INVOICE_STATUS_CHANGED",
+    actorType: "SYSTEM",
+    organizationId: local.organization_id,
+    targetResource: `organization/${local.organization_id}/billing/invoice/${local.id}`,
+    details: {
+      invoiceId: local.id,
+      stripeInvoiceId: invoice.id,
+      status,
+      amountPaidCents: invoice.amount_paid ?? 0,
+      stripeEvent: eventType,
+    },
+  });
+  return true;
+}
+
 export async function POST(request: NextRequest) {
   const stripe = getStripe();
 
@@ -276,6 +321,7 @@ export async function POST(request: NextRequest) {
 
       case "invoice.payment_succeeded": {
         const invoice = event.data.object;
+        if (await syncOrganizationInvoice(invoice, "invoice.paid")) break;
         await accrueReferralCommission(invoice);
         const customer = customerIdOf(invoice.customer);
         if (customer) {
@@ -302,6 +348,7 @@ export async function POST(request: NextRequest) {
 
       case "invoice.payment_failed": {
         const invoice = event.data.object;
+        if (await syncOrganizationInvoice(invoice, "invoice.payment_failed")) break;
         const customer = customerIdOf(invoice.customer);
         if (customer) {
           const admin = createAdminClient();
@@ -322,6 +369,16 @@ export async function POST(request: NextRequest) {
           attempt: invoice.attempt_count,
           invoice: invoice.id,
         });
+        break;
+      }
+
+      case "invoice.finalized": {
+        await syncOrganizationInvoice(event.data.object, "invoice.finalized");
+        break;
+      }
+
+      case "invoice.paid": {
+        await syncOrganizationInvoice(event.data.object, "invoice.paid");
         break;
       }
 
