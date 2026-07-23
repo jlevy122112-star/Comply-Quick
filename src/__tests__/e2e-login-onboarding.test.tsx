@@ -231,7 +231,7 @@ describe("E2E Onboarding Wizard Workflow", () => {
     expect(getRecBtn).toBeEnabled();
 
     // Toggle one of the industry flags
-    const toggleBtn = screen.getByText("We sell online / take payments");
+    const toggleBtn = screen.getByText("We Sell Online / Take Payments");
     await userEvent.click(toggleBtn);
 
     // Request recommendation
