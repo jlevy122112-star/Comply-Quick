@@ -37,12 +37,15 @@ export default function HeroStatusPanel({
     <section aria-labelledby="compliance-status-title" className="space-y-4">
       <Card variant="elevated" className="overflow-hidden border-accent-primary/20 bg-surface-elevated">
         <CardBody className="p-5 sm:p-7">
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:items-center">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-center">
             <div className="flex items-center gap-5 sm:gap-7">
               <ScoreRing score={score} size="lg" label="overall score" tone="surface" />
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">Tier 1 · Hero</p>
-                <h1 id="compliance-status-title" className="type-h1 mt-2 text-text-primary">
+                <h1
+                  id="compliance-status-title"
+                  className="type-h1 mt-2 max-w-full break-words text-[clamp(1.75rem,3.2vw,2.5rem)] text-text-primary [overflow-wrap:anywhere]"
+                >
                   Your Compliance Status
                 </h1>
                 {aggregateScore ? (
