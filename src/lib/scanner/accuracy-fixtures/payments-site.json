@@ -1,0 +1,23 @@
+{
+  "id": "payments-site",
+  "description": "A Stripe Elements payment page with no tracker and no PCI scope evidence.",
+  "html": "<html><head><script src=\"https://js.stripe.com/v3/\"></script></head><body><form id=\"checkout\"><div id=\"card-element\"></div><button>Pay</button></form><a href=\"/privacy\">Privacy Policy</a><a href=\"/terms\">Terms of Service</a><script>const stripe = Stripe(\"pk_live_example\");</script></body></html>",
+  "requestUrls": [],
+  "jurisdictions": ["us_ca"],
+  "complianceState": {
+    "hasPrivacyPolicy": true,
+    "hasConsentMechanism": false,
+    "dpaWith": [],
+    "jointControllerArrangements": [],
+    "mentionsSccs": false,
+    "addressesPci": false
+  },
+  "expected": {
+    "tools": ["stripe"],
+    "negativeTools": ["google", "meta", "paypal"],
+    "analyzerFindings": [],
+    "lintFindings": [{ "id": "pci_not_addressed", "severity": "warning" }],
+    "obligations": ["pci_dss.saq_scope"],
+    "detailed": [{ "id": "stripe", "layer": "html", "weakOnly": false, "minConfidence": 0.5 }]
+  }
+}

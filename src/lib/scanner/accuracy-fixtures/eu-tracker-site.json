@@ -1,0 +1,37 @@
+{
+  "id": "eu-tracker-site",
+  "description": "The same Meta and Google stack as the US case, serving EU visitors without consent or transfer safeguards.",
+  "html": "<html><head><script src=\"https://connect.facebook.net/en_US/fbevents.js\"></script><script async src=\"https://www.googletagmanager.com/gtag/js?id=G-EU\"></script></head><body><a href=\"/privacy\">Privacy Policy</a><a href=\"/terms\">Terms of Service</a></body></html>",
+  "requestUrls": [],
+  "jurisdictions": ["eu"],
+  "complianceState": {
+    "hasPrivacyPolicy": true,
+    "hasConsentMechanism": false,
+    "dpaWith": [],
+    "jointControllerArrangements": [],
+    "mentionsSccs": false,
+    "addressesPci": false
+  },
+  "expected": {
+    "tools": ["meta", "google"],
+    "negativeTools": ["cookiebot", "stripe"],
+    "analyzerFindings": ["trackers_without_consent"],
+    "lintFindings": [
+      { "id": "missing_dpa_google", "severity": "error" },
+      { "id": "missing_jca_meta", "severity": "error" },
+      { "id": "trackers_without_consent", "severity": "error" },
+      { "id": "transfers_without_sccs", "severity": "error" }
+    ],
+    "obligations": [
+      "gdpr.art13.privacy_notice",
+      "gdpr.art26.joint_controller",
+      "gdpr.art28.dpa",
+      "gdpr.art46.transfers",
+      "gdpr.art7.consent"
+    ],
+    "detailed": [
+      { "id": "meta", "layer": "html", "weakOnly": false, "minConfidence": 0.5 },
+      { "id": "google", "layer": "html", "weakOnly": false, "minConfidence": 0.5 }
+    ]
+  }
+}
