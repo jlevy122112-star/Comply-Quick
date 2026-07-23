@@ -13,8 +13,10 @@
 //                    auth: Authorization: Bearer $SCANNER_WORKER_SECRET (if set)
 
 import { createServer } from "node:http";
+import axe from "axe-core";
 import { chromium } from "playwright";
 
+const { source: axeSource } = axe;
 const PORT = Number(process.env.PORT ?? 8080);
 const SECRET = process.env.SCANNER_WORKER_SECRET;
 const NAV_TIMEOUT_MS = Number(process.env.SCAN_NAV_TIMEOUT_MS ?? 30_000);
@@ -73,9 +75,31 @@ async function renderPage(rawUrl) {
     status = response ? response.status() : 0;
     // Let late-firing tags (consent-gated pixels, deferred analytics) settle.
     await page.waitForTimeout(SETTLE_MS);
+    const axeResults = await page.evaluate(async (source) => {
+      // axe-core is injected into the page context so it evaluates the rendered
+      // DOM, including content and controls created by client-side JavaScript.
+      eval(source);
+      return window.axe.run(document, {
+        runOnly: {
+          type: "tag",
+          values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"],
+        },
+      });
+    }, axeSource);
+    const accessibilityViolations = axeResults.violations.map((violation) => ({
+      id: violation.id,
+      impact: violation.impact,
+      description: violation.description,
+      help: violation.help,
+      helpUrl: violation.helpUrl,
+      tags: violation.tags,
+      nodes: violation.nodes.map((node) => ({
+        target: node.target,
+      })),
+    }));
     let html = await page.content();
     if (html.length > MAX_BYTES) html = html.slice(0, MAX_BYTES);
-    return { url: page.url(), status, html, requestUrls };
+    return { url: page.url(), status, html, requestUrls, accessibilityViolations };
   } finally {
     await context.close();
   }

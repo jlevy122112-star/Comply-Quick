@@ -12,6 +12,7 @@
     "postinstall": "playwright install chromium"
   },
   "dependencies": {
+    "axe-core": "4.10.2",
     "playwright": "1.55.1"
   }
 }

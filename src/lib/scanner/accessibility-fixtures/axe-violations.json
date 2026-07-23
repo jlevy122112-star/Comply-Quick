@@ -1,0 +1,29 @@
+[
+  {
+    "id": "image-alt",
+    "impact": "critical",
+    "description": "Images must have alternate text",
+    "help": "Images must have alternate text",
+    "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/image-alt",
+    "tags": ["cat.name-role-value", "wcag2a", "wcag111", "wcag412", "section508", "section508.22.a"],
+    "nodes": [{ "target": ["main img.hero"] }, { "target": ["footer img.logo"] }]
+  },
+  {
+    "id": "color-contrast",
+    "impact": "serious",
+    "description": "Elements must meet minimum color contrast ratio thresholds",
+    "help": "Elements must meet minimum color contrast ratio thresholds",
+    "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/color-contrast",
+    "tags": ["cat.color", "wcag2aa", "wcag143", "ACT"],
+    "nodes": [{ "target": ["button.primary"] }]
+  },
+  {
+    "id": "heading-order",
+    "impact": "moderate",
+    "description": "Heading levels should only increase by one",
+    "help": "Heading levels should only increase by one",
+    "helpUrl": "https://dequeuniversity.com/rules/axe/4.10/heading-order",
+    "tags": ["cat.semantics", "wcag2a", "wcag131"],
+    "nodes": [{ "target": ["h4"] }]
+  }
+]

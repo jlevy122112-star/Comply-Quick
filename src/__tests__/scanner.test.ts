@@ -193,6 +193,17 @@ describe("renderPageViaWorker", () => {
           status: 200,
           html: CLEAN_PAGE,
           requestUrls: ["https://www.facebook.com/tr?id=1"],
+          accessibilityViolations: [
+            {
+              id: "image-alt",
+              impact: "critical",
+              description: "Images must have alternate text",
+              help: "Images must have alternate text",
+              helpUrl: "https://dequeuniversity.com/rules/axe/4.10/image-alt",
+              tags: ["wcag2a", "wcag111"],
+              nodes: [{ target: ["img"] }],
+            },
+          ],
         }),
         { status: 200 }
       );
@@ -200,6 +211,7 @@ describe("renderPageViaWorker", () => {
     const page = await renderPageViaWorker("example.com", "https://worker.test", "sekret", workerFetch);
     expect(page.rendered).toBe(true);
     expect(page.requestUrls).toContain("https://www.facebook.com/tr?id=1");
+    expect(page.accessibilityViolations).toHaveLength(1);
   });
 
   it("throws ServiceUnavailableError when the worker errors", async () => {
@@ -255,6 +267,8 @@ describe("runScan", () => {
     expect(outcome.score).toBeLessThan(60);
     expect(outcome.detectedTools.length).toBeGreaterThan(0);
     expect(outcome.summary).toContain("Compliance score");
+    expect(outcome.accessibility.score).toBe(64);
+    expect(outcome.accessibility.findings.length).toBeGreaterThan(0);
   });
 
   it("uses a live AI client's summary when available", async () => {
