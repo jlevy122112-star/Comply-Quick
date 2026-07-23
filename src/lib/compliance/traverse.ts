@@ -6,7 +6,7 @@
 // provenance. This is pure and deterministic — the same inputs always yield the
 // same obligations in the same order — so results are reproducible and auditable.
 
-import { getObligation, type JurisdictionId, type ObligationNode, type Provenance } from "./graph";
+import { getObligation, type DataCategory, type JurisdictionId, type ObligationNode, type Provenance } from "./graph";
 import { getService, type ServiceCatalogEntry } from "./catalog";
 
 export interface ObligationResult {
@@ -22,6 +22,8 @@ export interface TraversalInput {
   /** Detected service ids (scanner fingerprint ids). */
   services: string[];
   jurisdictions: JurisdictionId[];
+  /** Explicit contextual signals supplied by the scan or site configuration. */
+  dataCategories?: DataCategory[];
 }
 
 const SEVERITY_ORDER: Record<ObligationNode["severity"], number> = { critical: 0, warning: 1, info: 2 };
@@ -63,6 +65,25 @@ export function deriveObligations(input: TraversalInput): ObligationResult[] {
     }
   }
 
+  const contextualCategories = new Set(input.dataCategories ?? []);
+  const addContextualObligation = (id: string) => {
+    const node = getObligation(id);
+    if (!node || !appliesInJurisdiction(node, active)) return;
+    const services = input.services
+      .map((id) => getService(id))
+      .filter((entry): entry is ServiceCatalogEntry => entry !== undefined);
+    hits.set(id, { node, services });
+  };
+
+  // COPPA is conditional: a public scan cannot determine whether a site is
+  // child-directed, so it is derived only when the caller explicitly supplies
+  // the children data category.
+  if (contextualCategories.has("children")) addContextualObligation("coppa.child_directed_privacy");
+
+  // CAN-SPAM is likewise contextual rather than a generic tracker obligation:
+  // the caller must identify an email-marketing data flow.
+  if (contextualCategories.has("email")) addContextualObligation("can_spam.commercial_email");
+
   // Cross-border transfer safeguards (Art. 46 / SCCs) are derived, not hard-coded
   // per service: they apply only when EU/UK data actually leaves the EEA — i.e.
   // when at least one detected vendor is outside the EU. This keeps the catalog
@@ -85,10 +106,11 @@ export function deriveObligations(input: TraversalInput): ObligationResult[] {
   const results: ObligationResult[] = [];
   for (const { node, services } of hits.values()) {
     const names = Array.from(new Set(services.map((s) => s.name)));
+    const triggerNames = names.length > 0 ? names : ["Declared data context"];
     results.push({
       obligation: node,
-      triggeredBy: names,
-      path: `${names.join(", ")} → ${frameworkLabel(node.framework)} ${node.reference} → ${node.title} → ${pathTerminal(node, services)}`,
+      triggeredBy: triggerNames,
+      path: `${triggerNames.join(", ")} → ${frameworkLabel(node.framework)} ${node.reference} → ${node.title} → ${pathTerminal(node, services)}`,
       provenance: node.provenance,
     });
   }
@@ -111,6 +133,13 @@ const FRAMEWORK_LABELS: Record<ObligationNode["framework"], string> = {
   iso27001: "ISO 27001",
   eu_ai_act: "EU AI Act",
   pipeda: "PIPEDA",
+  vcdpa: "VCDPA",
+  cpa: "Colorado CPA",
+  ctdpa: "CTDPA",
+  tdpsa: "Texas TDPSA",
+  ucpa: "Utah UCPA",
+  coppa: "COPPA",
+  can_spam: "CAN-SPAM",
 };
 
 function frameworkLabel(f: ObligationNode["framework"]): string {

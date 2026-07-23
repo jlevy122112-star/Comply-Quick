@@ -51,6 +51,18 @@ const US_TRACKER_OBLIGATIONS = [
   "gdpr.art28.dpa",
   "ccpa.notice_at_collection",
   "cpra.opt_out_sale_share",
+  "vcdpa.privacy_notice",
+  "vcdpa.opt_out_targeted_advertising",
+  "cpa.privacy_notice",
+  "cpa.opt_out_targeted_advertising",
+  "cpa.universal_opt_out",
+  "ctdpa.privacy_notice",
+  "ctdpa.opt_out_targeted_advertising",
+  "ctdpa.universal_opt_out",
+  "tdpsa.privacy_notice",
+  "tdpsa.opt_out_targeted_advertising",
+  "ucpa.privacy_notice",
+  "ucpa.opt_out_targeted_advertising",
 ];
 
 // A non-tracker processor (payment gateway, tag container, consent CMP, error
@@ -58,7 +70,17 @@ const US_TRACKER_OBLIGATIONS = [
 // disclosed to a third party — so it must be named in the privacy notice and
 // covered by a DPA. It does NOT trigger Art. 7 consent or the CCPA/CPRA
 // sale/share notices, which are specific to behavioral tracking.
-const PROCESSOR_DISCLOSURE_OBLIGATIONS = ["gdpr.art13.privacy_notice", "gdpr.art28.dpa"];
+const PROCESSOR_DISCLOSURE_OBLIGATIONS = [
+  "gdpr.art13.privacy_notice",
+  "gdpr.art28.dpa",
+  "vcdpa.privacy_notice",
+  "cpa.privacy_notice",
+  "ctdpa.privacy_notice",
+  "tdpsa.privacy_notice",
+  "ucpa.privacy_notice",
+];
+
+const PAYMENT_OBLIGATIONS = [...PROCESSOR_DISCLOSURE_OBLIGATIONS, "pci_dss.saq_scope"];
 
 // A joint controller (e.g. Meta Pixel, per CJEU C-40/17 Fashion ID) requires an
 // Art. 26 joint-controller arrangement rather than an Art. 28 processor DPA.
@@ -68,6 +90,18 @@ const US_JOINT_CONTROLLER_OBLIGATIONS = [
   "gdpr.art26.joint_controller",
   "ccpa.notice_at_collection",
   "cpra.opt_out_sale_share",
+  "vcdpa.privacy_notice",
+  "vcdpa.opt_out_targeted_advertising",
+  "cpa.privacy_notice",
+  "cpa.opt_out_targeted_advertising",
+  "cpa.universal_opt_out",
+  "ctdpa.privacy_notice",
+  "ctdpa.opt_out_targeted_advertising",
+  "ctdpa.universal_opt_out",
+  "tdpsa.privacy_notice",
+  "tdpsa.opt_out_targeted_advertising",
+  "ucpa.privacy_notice",
+  "ucpa.opt_out_targeted_advertising",
 ];
 
 export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
@@ -237,7 +271,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     vendorRegion: "us",
     dataCategories: ["identifiers", "financial"],
     dpaUrl: "https://stripe.com/legal/dpa",
-    triggersObligations: ["gdpr.art13.privacy_notice", "gdpr.art28.dpa", "pci_dss.saq_scope"],
+    triggersObligations: PAYMENT_OBLIGATIONS,
   },
   {
     id: "paypal",
@@ -248,7 +282,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     vendorRegion: "us",
     dataCategories: ["identifiers", "financial"],
     dpaUrl: "https://www.paypal.com/us/legalhub/paypal/data-protection-agreement-full",
-    triggersObligations: ["gdpr.art13.privacy_notice", "gdpr.art28.dpa", "pci_dss.saq_scope"],
+    triggersObligations: PAYMENT_OBLIGATIONS,
   },
   {
     id: "square",
@@ -258,7 +292,7 @@ export const SERVICE_CATALOG: readonly ServiceCatalogEntry[] = [
     role: "processor",
     vendorRegion: "us",
     dataCategories: ["identifiers", "financial"],
-    triggersObligations: ["gdpr.art13.privacy_notice", "gdpr.art28.dpa", "pci_dss.saq_scope"],
+    triggersObligations: PAYMENT_OBLIGATIONS,
   },
   {
     id: "gtm",

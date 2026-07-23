@@ -9,12 +9,49 @@
 // linting) treats this graph as the single source of truth.
 
 export type FrameworkId =
-  "gdpr" | "ccpa" | "cpra" | "lgpd" | "hipaa" | "pci_dss" | "soc2" | "iso27001" | "eu_ai_act" | "pipeda";
+  | "gdpr"
+  | "ccpa"
+  | "cpra"
+  | "vcdpa"
+  | "cpa"
+  | "ctdpa"
+  | "tdpsa"
+  | "ucpa"
+  | "coppa"
+  | "can_spam"
+  | "lgpd"
+  | "hipaa"
+  | "pci_dss"
+  | "soc2"
+  | "iso27001"
+  | "eu_ai_act"
+  | "pipeda";
 
-export type JurisdictionId = "eu" | "uk" | "us_general" | "us_ca" | "br" | "ca" | "au" | "global";
+export type JurisdictionId =
+  | "eu"
+  | "uk"
+  | "us_general"
+  | "us_ca"
+  | "us_va"
+  | "us_co"
+  | "us_ct"
+  | "us_tx"
+  | "us_ut"
+  | "br"
+  | "ca"
+  | "au"
+  | "global";
 
 export type DataCategory =
-  "identifiers" | "online_activity" | "device" | "location" | "financial" | "health" | "biometric" | "children";
+  | "identifiers"
+  | "online_activity"
+  | "device"
+  | "location"
+  | "financial"
+  | "health"
+  | "biometric"
+  | "children"
+  | "email";
 
 export type ObligationSeverity = "critical" | "warning" | "info";
 
@@ -48,13 +85,202 @@ export interface ObligationNode {
   jurisdictions: JurisdictionId[];
   severity: ObligationSeverity;
   provenance: Provenance;
+  /** True when applicability requires an input the public scan cannot prove. */
+  conditional?: boolean;
 }
 
 const EURLEX = (celex: string): string => `https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:${celex}`;
+const VIRGINIA_VCDPA = "https://law.lis.virginia.gov/vacode/title59.1/chapter53.1/";
+const COLORADO_CPA = "https://leg.colorado.gov/bills/sb21-190";
+const CONNECTICUT_CTDPA = "https://www.cga.ct.gov/2022/ACT/PA/PDF/2022PA-00015-R00SB-00006-PA.PDF";
+const TEXAS_TDPSA = "https://statutes.capitol.texas.gov/Docs/BC/htm/BC.541.htm";
+const UTAH_UCPA = "https://le.utah.gov/~2022/bills/static/SB0227.html";
+const COPPA = "https://www.ecfr.gov/current/title-16/chapter-I/subchapter-C/part-312";
+const CAN_SPAM = "https://www.govinfo.gov/content/pkg/USCODE-2023-title15/html/USCODE-2023-title15-chap103.htm";
+
+const US_STATE_OBLIGATION_NODES: readonly ObligationNode[] = [
+  {
+    id: "vcdpa.privacy_notice",
+    framework: "vcdpa",
+    reference: "Va. Code § 59.1-574(A)(1)",
+    title: "Virginia privacy notice",
+    obligation:
+      "Provide Virginia consumers with a reasonably accessible privacy notice describing the categories and purposes of personal-data processing.",
+    evidence: ["Published privacy policy", "Category-to-purpose mapping"],
+    jurisdictions: ["us_va"],
+    severity: "critical",
+    provenance: { source: "Virginia Code", url: VIRGINIA_VCDPA, lastUpdated: "2026-07-23" },
+  },
+  {
+    id: "vcdpa.opt_out_targeted_advertising",
+    framework: "vcdpa",
+    reference: "Va. Code § 59.1-573(A)(5)",
+    title: "Virginia targeted-advertising opt-out",
+    obligation:
+      "Provide a mechanism for Virginia consumers to opt out of targeted advertising and profiling in furtherance of consequential decisions.",
+    evidence: ["Targeted-advertising opt-out control", "Opt-out request handling"],
+    jurisdictions: ["us_va"],
+    severity: "critical",
+    provenance: { source: "Virginia Code", url: VIRGINIA_VCDPA, lastUpdated: "2026-07-23" },
+  },
+  {
+    id: "cpa.privacy_notice",
+    framework: "cpa",
+    reference: "Colo. Rev. Stat. § 6-1-1308",
+    title: "Colorado privacy notice",
+    obligation:
+      "Provide Colorado consumers with a reasonably accessible notice describing personal-data categories, purposes, rights, and disclosures.",
+    evidence: ["Published privacy policy", "Category-to-purpose mapping"],
+    jurisdictions: ["us_co"],
+    severity: "critical",
+    provenance: { source: "Colorado Revised Statutes", url: COLORADO_CPA, lastUpdated: "2026-07-23" },
+  },
+  {
+    id: "cpa.opt_out_targeted_advertising",
+    framework: "cpa",
+    reference: "Colo. Rev. Stat. § 6-1-1306",
+    title: "Colorado targeted-advertising opt-out",
+    obligation:
+      "Honor Colorado consumer opt-out rights for targeted advertising, sale of personal data, and certain profiling.",
+    evidence: ["Opt-out link or preference center", "Targeted-advertising and profiling controls"],
+    jurisdictions: ["us_co"],
+    severity: "critical",
+    provenance: { source: "Colorado Revised Statutes", url: COLORADO_CPA, lastUpdated: "2026-07-23" },
+  },
+  {
+    id: "cpa.universal_opt_out",
+    framework: "cpa",
+    reference: "Colo. Rev. Stat. § 6-1-1306",
+    title: "Colorado universal opt-out signal",
+    obligation:
+      "Honor a recognized universal opt-out mechanism, including applicable Global Privacy Control signals, for Colorado consumers.",
+    evidence: ["GPC/universal opt-out signal handling", "Signal-to-preference audit record"],
+    jurisdictions: ["us_co"],
+    severity: "critical",
+    provenance: { source: "Colorado Revised Statutes", url: COLORADO_CPA, lastUpdated: "2026-07-23" },
+  },
+  {
+    id: "ctdpa.privacy_notice",
+    framework: "ctdpa",
+    reference: "Conn. Gen. Stat. § 42-515e",
+    title: "Connecticut privacy notice",
+    obligation:
+      "Provide Connecticut consumers with a clear privacy notice describing personal-data processing, disclosures, and consumer rights.",
+    evidence: ["Published privacy policy", "Category-to-purpose mapping"],
+    jurisdictions: ["us_ct"],
+    severity: "critical",
+    provenance: { source: "Connecticut General Statutes", url: CONNECTICUT_CTDPA, lastUpdated: "2026-07-23" },
+  },
+  {
+    id: "ctdpa.opt_out_targeted_advertising",
+    framework: "ctdpa",
+    reference: "Conn. Gen. Stat. § 42-515d",
+    title: "Connecticut targeted-advertising opt-out",
+    obligation:
+      "Honor Connecticut consumer opt-out rights for targeted advertising, sale of personal data, and profiling.",
+    evidence: ["Opt-out link or preference center", "Targeted-advertising and profiling controls"],
+    jurisdictions: ["us_ct"],
+    severity: "critical",
+    provenance: { source: "Connecticut General Statutes", url: CONNECTICUT_CTDPA, lastUpdated: "2026-07-23" },
+  },
+  {
+    id: "ctdpa.universal_opt_out",
+    framework: "ctdpa",
+    reference: "Conn. Gen. Stat. § 42-515d",
+    title: "Connecticut universal opt-out signal",
+    obligation:
+      "Honor applicable universal opt-out mechanisms, including Global Privacy Control signals, for Connecticut consumers.",
+    evidence: ["GPC/universal opt-out signal handling", "Signal-to-preference audit record"],
+    jurisdictions: ["us_ct"],
+    severity: "critical",
+    provenance: { source: "Connecticut General Statutes", url: CONNECTICUT_CTDPA, lastUpdated: "2026-07-23" },
+  },
+  {
+    id: "tdpsa.privacy_notice",
+    framework: "tdpsa",
+    reference: "Tex. Bus. & Com. Code § 541.101",
+    title: "Texas privacy notice",
+    obligation:
+      "Provide Texas consumers with a reasonably accessible privacy notice describing personal-data categories, purposes, disclosures, and rights.",
+    evidence: ["Published privacy policy", "Category-to-purpose mapping"],
+    jurisdictions: ["us_tx"],
+    severity: "critical",
+    provenance: { source: "Texas Business and Commerce Code", url: TEXAS_TDPSA, lastUpdated: "2026-07-23" },
+  },
+  {
+    id: "tdpsa.opt_out_targeted_advertising",
+    framework: "tdpsa",
+    reference: "Tex. Bus. & Com. Code § 541.051",
+    title: "Texas targeted-advertising opt-out",
+    obligation:
+      "Honor Texas consumer opt-out rights for targeted advertising, sale of personal data, and certain profiling.",
+    evidence: ["Opt-out link or preference center", "Targeted-advertising and profiling controls"],
+    jurisdictions: ["us_tx"],
+    severity: "critical",
+    provenance: { source: "Texas Business and Commerce Code", url: TEXAS_TDPSA, lastUpdated: "2026-07-23" },
+  },
+  {
+    id: "ucpa.privacy_notice",
+    framework: "ucpa",
+    reference: "Utah Code § 13-61-302",
+    title: "Utah privacy notice",
+    obligation:
+      "Provide Utah consumers with a clear privacy notice describing personal-data processing and consumer rights.",
+    evidence: ["Published privacy policy", "Category-to-purpose mapping"],
+    jurisdictions: ["us_ut"],
+    severity: "critical",
+    provenance: { source: "Utah Code", url: UTAH_UCPA, lastUpdated: "2026-07-23" },
+  },
+  {
+    id: "ucpa.opt_out_targeted_advertising",
+    framework: "ucpa",
+    reference: "Utah Code § 13-61-201",
+    title: "Utah targeted-advertising opt-out",
+    obligation: "Honor Utah consumer opt-out rights for targeted advertising and sale of personal data.",
+    evidence: ["Opt-out link or preference center", "Targeted-advertising control"],
+    jurisdictions: ["us_ut"],
+    severity: "critical",
+    provenance: { source: "Utah Code", url: UTAH_UCPA, lastUpdated: "2026-07-23" },
+  },
+];
+
+const FEDERAL_OBLIGATION_NODES: readonly ObligationNode[] = [
+  {
+    id: "coppa.child_directed_privacy",
+    framework: "coppa",
+    reference: "16 C.F.R. §§ 312.4-312.5",
+    title: "Children's privacy notice and parental consent",
+    obligation:
+      "If the service is child-directed or knowingly collects children's personal information, provide the required notice and obtain verifiable parental consent before collection.",
+    evidence: ["Child-directed audience assessment", "COPPA privacy notice", "Verifiable parental-consent records"],
+    jurisdictions: ["us_general"],
+    severity: "critical",
+    conditional: true,
+    provenance: { source: "Electronic Code of Federal Regulations", url: COPPA, lastUpdated: "2026-07-23" },
+  },
+  {
+    id: "can_spam.commercial_email",
+    framework: "can_spam",
+    reference: "15 U.S.C. § 7704",
+    title: "Commercial email identification and opt-out",
+    obligation:
+      "For commercial email programs, use accurate header and subject information, identify the message as an advertisement where required, include a physical postal address, and honor opt-out requests.",
+    evidence: [
+      "Commercial-email compliance checklist",
+      "Unsubscribe mechanism",
+      "Sender identity and postal-address review",
+    ],
+    jurisdictions: ["us_general"],
+    severity: "warning",
+    provenance: { source: "U.S. Government Publishing Office", url: CAN_SPAM, lastUpdated: "2026-07-23" },
+  },
+];
 
 // Curated, cited obligation corpus. Intentionally not exhaustive; every node is
 // backed by an official source and can be expanded without touching consumers.
 export const OBLIGATION_NODES: readonly ObligationNode[] = [
+  ...US_STATE_OBLIGATION_NODES,
+  ...FEDERAL_OBLIGATION_NODES,
   {
     id: "gdpr.art13.privacy_notice",
     framework: "gdpr",

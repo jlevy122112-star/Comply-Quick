@@ -37,6 +37,8 @@ export interface ComplianceState {
   mentionsSccs: boolean;
   /** Whether PCI-DSS scope (SAQ / data-flow) is addressed. */
   addressesPci: boolean;
+  /** Whether recognized universal opt-out / GPC signals are honored. */
+  honorsUniversalOptOut?: boolean;
 }
 
 function isEu(jurisdictions: JurisdictionId[]): boolean {
@@ -112,6 +114,28 @@ export function lintCompliance(state: ComplianceState): LintFinding[] {
       severity: isEu(state.jurisdictions) ? "error" : "warning",
       message: `${trackers.length} tracking service(s) load (${trackers.map((e) => e.name).join(", ")}) with no consent mechanism that blocks them pre-consent.`,
       obligationId: "gdpr.art7.consent",
+      serviceIds: trackers.map((e) => e.id),
+    });
+  }
+
+  // Colorado and Connecticut require controllers to honor recognized
+  // universal opt-out mechanisms. This is only linted when the caller
+  // explicitly records a negative result; a public scan cannot prove the
+  // site's signal-handling behavior from HTML alone.
+  if (
+    trackers.length > 0 &&
+    state.honorsUniversalOptOut === false &&
+    (state.jurisdictions.includes("us_co") || state.jurisdictions.includes("us_ct"))
+  ) {
+    const jurisdictions = [
+      state.jurisdictions.includes("us_co") ? "Colorado" : "",
+      state.jurisdictions.includes("us_ct") ? "Connecticut" : "",
+    ].filter(Boolean);
+    findings.push({
+      id: "universal_opt_out_not_honored",
+      severity: "error",
+      message: `${jurisdictions.join(" and ")} universal opt-out / GPC signals are not recorded as honored.`,
+      obligationId: state.jurisdictions.includes("us_co") ? "cpa.universal_opt_out" : "ctdpa.universal_opt_out",
       serviceIds: trackers.map((e) => e.id),
     });
   }

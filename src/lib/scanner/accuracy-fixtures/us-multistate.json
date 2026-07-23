@@ -1,0 +1,45 @@
+{
+  "id": "us-multistate",
+  "description": "A Meta tracker and Stripe payment flow evaluated across the five Phase C state-law jurisdictions.",
+  "html": "<html><head><script src=\"https://connect.facebook.net/en_US/fbevents.js\"></script><script src=\"https://js.stripe.com/v3/\"></script></head><body><a href=\"/privacy\">Privacy Policy</a><a href=\"/terms\">Terms of Service</a><form><div id=\"card-element\"></div></form></body></html>",
+  "requestUrls": [],
+  "jurisdictions": ["us_va", "us_co", "us_ct", "us_tx", "us_ut"],
+  "complianceState": {
+    "hasPrivacyPolicy": true,
+    "hasConsentMechanism": false,
+    "dpaWith": [],
+    "jointControllerArrangements": [],
+    "mentionsSccs": true,
+    "addressesPci": false,
+    "honorsUniversalOptOut": false
+  },
+  "expected": {
+    "tools": ["meta", "stripe"],
+    "negativeTools": ["google", "paypal"],
+    "analyzerFindings": ["trackers_without_consent"],
+    "lintFindings": [
+      { "id": "pci_not_addressed", "severity": "warning" },
+      { "id": "trackers_without_consent", "severity": "warning" },
+      { "id": "universal_opt_out_not_honored", "severity": "error" }
+    ],
+    "obligations": [
+      "vcdpa.privacy_notice",
+      "vcdpa.opt_out_targeted_advertising",
+      "cpa.privacy_notice",
+      "cpa.opt_out_targeted_advertising",
+      "cpa.universal_opt_out",
+      "ctdpa.privacy_notice",
+      "ctdpa.opt_out_targeted_advertising",
+      "ctdpa.universal_opt_out",
+      "tdpsa.privacy_notice",
+      "tdpsa.opt_out_targeted_advertising",
+      "ucpa.privacy_notice",
+      "ucpa.opt_out_targeted_advertising",
+      "pci_dss.saq_scope"
+    ],
+    "detailed": [
+      { "id": "meta", "layer": "html", "weakOnly": false, "minConfidence": 0.5 },
+      { "id": "stripe", "layer": "html", "weakOnly": false, "minConfidence": 0.5 }
+    ]
+  }
+}
