@@ -91,8 +91,7 @@ export async function listSystemAuditLogs(opts: ListSystemAuditLogsOptions = {})
         "id, created_at, event_type, actor_id, actor_type, target_resource, ip_address, details, organization_id"
       )
       .order("created_at", { ascending: false })
-      .limit(opts.limit ?? 100)
-      .offset(opts.offset ?? 0);
+      .range(opts.offset ?? 0, (opts.offset ?? 0) + (opts.limit ?? 100) - 1);
 
     if (opts.organizationId) query = query.eq("organization_id", opts.organizationId);
     if (opts.eventType) query = query.eq("event_type", opts.eventType);
