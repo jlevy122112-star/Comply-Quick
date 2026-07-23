@@ -10,11 +10,14 @@
 // callers never see snake_case and, critically, page/script payloads are never
 // silently dropped by Shopify ignoring an unknown camelCase key.
 
+import { assertPublicScanHost, getScanDispatcher } from "@/lib/security";
+
 export interface ShopifyClientConfig {
   shop: string;
   accessToken: string;
   apiVersion?: string;
   fetchImpl?: typeof fetch;
+  assertHost?: (hostname: string) => Promise<unknown>;
 }
 
 export interface ScriptTag {
@@ -77,26 +80,33 @@ export class ShopifyAdminClient {
   private readonly base: string;
   private readonly token: string;
   private readonly fetchImpl: typeof fetch;
+  private readonly assertHost: (hostname: string) => Promise<unknown>;
+  private readonly injectedFetch: boolean;
 
   constructor(cfg: ShopifyClientConfig) {
     const version = cfg.apiVersion ?? "2024-10";
     this.base = `https://${cfg.shop}/admin/api/${version}`;
     this.token = cfg.accessToken;
     this.fetchImpl = cfg.fetchImpl ?? fetch;
+    this.assertHost = cfg.assertHost ?? assertPublicScanHost;
+    this.injectedFetch = cfg.fetchImpl !== undefined;
   }
 
   private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+    await this.assertHost(new URL(this.base).hostname);
     const headers: Record<string, string> = {
       "X-Shopify-Access-Token": this.token,
       Accept: "application/json",
     };
     // Content-Type only describes a request body; omit it on bodyless requests.
     if (body !== undefined) headers["Content-Type"] = "application/json";
-    const res = await this.fetchImpl(`${this.base}${path}`, {
+    const init: RequestInit & { dispatcher?: unknown } = {
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
-    });
+    };
+    if (!this.injectedFetch) init.dispatcher = getScanDispatcher();
+    const res = await this.fetchImpl(`${this.base}${path}`, init);
     if (!res.ok) throw new Error(`Shopify API ${method} ${path} failed: ${res.status}`);
     // Shopify returns an empty body for 204/DELETE; don't try to parse JSON then.
     if (res.status === 204 || res.headers.get("content-length") === "0") {

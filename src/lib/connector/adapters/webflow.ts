@@ -5,7 +5,7 @@ import type {
   PreviousStateSnapshot,
 } from "../executor";
 import type { RemediationChange } from "../types";
-import { assertPublicScanHost } from "@/lib/security";
+import { assertPublicScanHost, getScanDispatcher } from "@/lib/security";
 
 interface WebflowCustomCode {
   id?: string;
@@ -42,20 +42,20 @@ async function request<T>(
 ): Promise<T> {
   const fetchImpl = context.fetchImpl ?? fetch;
   const rawBase = baseUrl(context);
-  const token = context.apiToken ?? context.accessToken;
-  if (token) await (context.assertHost ?? assertPublicScanHost)(new URL(rawBase).hostname);
+  await (context.assertHost ?? assertPublicScanHost)(new URL(rawBase).hostname);
+  const token = context.apiToken || context.accessToken;
   const headers: Record<string, string> = {
     Accept: "application/json",
-    ...(context.apiToken || context.accessToken
-      ? { Authorization: `Bearer ${context.apiToken ?? context.accessToken}` }
-      : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
   if (body !== undefined) headers["Content-Type"] = "application/json";
-  const response = await fetchImpl(`${rawBase}${path}`, {
+  const init: RequestInit & { dispatcher?: unknown } = {
     method,
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  };
+  if (!context.fetchImpl) init.dispatcher = getScanDispatcher();
+  const response = await fetchImpl(`${rawBase}${path}`, init);
   if (!response.ok) throw new Error(`Webflow API ${method} ${path} failed: ${response.status}`);
   if (response.status === 204) return undefined as T;
   const text = await response.text();

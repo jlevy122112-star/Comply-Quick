@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   applyApprovedRemediation,
   executePlannedRemediation,
@@ -83,12 +83,32 @@ describe("connector executor capabilities", () => {
 });
 
 describe("WordPress executor", () => {
+  it("uses the guarded dispatcher for real WordPress fetches", async () => {
+    const requests: Array<RequestInit & { dispatcher?: unknown }> = [];
+    vi.stubGlobal("fetch", (async (_url: string, init: RequestInit & { dispatcher?: unknown }) => {
+      requests.push(init);
+      if (requests.length === 1) return response(null, 404);
+      if (requests.length === 2) return response({ ok: true });
+      return response({ installed: true, script: "<script>consent</script>" });
+    }) as typeof fetch);
+    try {
+      await applyApprovedRemediation(consentChange, {
+        connection: { id: "wp-dispatcher", platform: "wordpress", externalAccountId: "https://public.test" },
+        consentScript: "<script>consent</script>",
+        assertHost: allowTestHost,
+      });
+      expect(requests).toHaveLength(3);
+      expect(requests.every((init) => init.dispatcher)).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("rejects private API targets before sending bearer credentials", async () => {
     let calls = 0;
     await expect(
       applyApprovedRemediation(consentChange, {
         connection: { id: "wp-private", platform: "wordpress", externalAccountId: "http://127.0.0.1" },
-        accessToken: "secret-token",
         fetchImpl: (async () => {
           calls += 1;
           return response({});
@@ -169,6 +189,7 @@ describe("WordPress executor", () => {
     const rolledBack = await rollbackRemediation(result, {
       connection: { id: "wp-2", platform: "wordpress", externalAccountId: "https://wp.test" },
       fetchImpl,
+      assertHost: allowTestHost,
     });
     expect(rolledBack.status).toBe("reverted");
     expect(calls[3]).toMatchObject({
@@ -254,11 +275,34 @@ describe("Webflow and Shopify executors", () => {
       accessToken: "token",
       consentScriptUrl: "https://cdn.test/consent.js",
       fetchImpl,
+      assertHost: allowTestHost,
       snapshotRef: "snapshot:shopify",
     });
     expect(result.status).toBe("applied");
     expect(result.previousStateRef).toBe("snapshot:shopify");
     expect(calls.map((call) => call.method)).toEqual(["GET", "POST", "GET"]);
+  });
+
+  it("uses the guarded dispatcher for real Shopify fetches", async () => {
+    const requests: Array<RequestInit & { dispatcher?: unknown }> = [];
+    vi.stubGlobal("fetch", (async (_url: string, init: RequestInit & { dispatcher?: unknown }) => {
+      requests.push(init);
+      if (requests.length === 1) return response({ script_tags: [] });
+      if (requests.length === 2) return response({ script_tag: { id: 9, src: "https://cdn.test/consent.js" } });
+      return response({ script_tags: [{ id: 9, src: "https://cdn.test/consent.js" }] });
+    }) as typeof fetch);
+    try {
+      await applyApprovedRemediation(consentChange, {
+        connection: { id: "shop-dispatcher", platform: "shopify", externalAccountId: "public-shop.test" },
+        accessToken: "token",
+        consentScriptUrl: "https://cdn.test/consent.js",
+        assertHost: allowTestHost,
+      });
+      expect(requests).toHaveLength(3);
+      expect(requests.every((init) => init.dispatcher)).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("rolls back a Shopify-created script by its snapshot id without a URL", async () => {
@@ -277,11 +321,13 @@ describe("Webflow and Shopify executors", () => {
       accessToken: "token",
       consentScriptUrl: "https://cdn.test/consent.js",
       fetchImpl,
+      assertHost: allowTestHost,
     });
     const rolledBack = await rollbackRemediation(result, {
       connection: { id: "shop-rollback", platform: "shopify", externalAccountId: "shop.test" },
       accessToken: "token",
       fetchImpl,
+      assertHost: allowTestHost,
     });
     expect(rolledBack.status).toBe("reverted");
     expect(calls.at(-1)).toEqual({
@@ -300,5 +346,20 @@ describe("Webflow and Shopify executors", () => {
     });
     expect(result.status).toBe("proposed");
     expect(result.detail).toContain("human approval");
+  });
+
+  it("rejects private Shopify shop hosts before sending the access token", async () => {
+    let calls = 0;
+    await expect(
+      applyApprovedRemediation(consentChange, {
+        connection: { id: "shop-private", platform: "shopify", externalAccountId: "127.0.0.1" },
+        accessToken: "secret-token",
+        fetchImpl: (async () => {
+          calls += 1;
+          return response({});
+        }) as typeof fetch,
+      })
+    ).rejects.toThrow(/private network/);
+    expect(calls).toBe(0);
   });
 });
