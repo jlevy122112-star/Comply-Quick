@@ -240,8 +240,9 @@ create policy organizations_select_hierarchy
   using (public.is_org_hierarchy_admin(id));
 
 create policy organizations_hierarchy_insert_guard
-  on public.organizations for insert
+  on public.organizations
   as restrictive
+  for insert
   with check (
     owner_id = auth.uid()
     and (
