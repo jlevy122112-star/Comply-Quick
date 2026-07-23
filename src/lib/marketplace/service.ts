@@ -9,6 +9,8 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isPlatformAdmin } from "@/lib/auth/platform-admin";
+export { isPlatformAdmin } from "@/lib/auth/platform-admin";
 import { getOrgEntitlement } from "@/lib/entitlements";
 import { logger } from "@/services";
 import { UnauthorizedError, ForbiddenError, NotFoundError, ValidationError } from "@/services/errors";
@@ -503,21 +505,6 @@ export async function getCreatorEarnings(): Promise<CreatorEarnings> {
     },
     { grossCents: 0, platformFeeCents: 0, netCents: 0, sales: 0 }
   );
-}
-
-/** True when the caller's email is on the platform-admin allowlist (env-configured). */
-export async function isPlatformAdmin(): Promise<boolean> {
-  const allowlist = (process.env.MARKETPLACE_ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-  if (allowlist.length === 0) return false;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const email = user?.email?.toLowerCase();
-  return Boolean(email && allowlist.includes(email));
 }
 
 /**

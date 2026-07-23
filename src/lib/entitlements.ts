@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isTier, normalizeTierKey, type PaidTier, type Tier } from "@/lib/pricing";
+import { isTier, normalizeTierKey, TIER_CONFIG, type PaidTier, type Tier } from "@/lib/pricing";
 import { getActiveOrganizationId } from "@/lib/organizations-db";
 
 export type { PaidTier, Tier };
@@ -12,6 +12,11 @@ export interface Entitlement {
   isPremium: boolean;
   isEnterprise: boolean;
   currentPeriodEnd: string | null;
+  limits: {
+    seats: number;
+    scanLimit: number;
+    managedClients: number | null;
+  };
 }
 
 const DEFAULT_ENTITLEMENT: Entitlement = {
@@ -20,6 +25,7 @@ const DEFAULT_ENTITLEMENT: Entitlement = {
   isPremium: false,
   isEnterprise: false,
   currentPeriodEnd: null,
+  limits: { seats: 1, scanLimit: 1, managedClients: null },
 };
 
 /**
@@ -43,7 +49,7 @@ export async function getEntitlement(): Promise<Entitlement> {
     .maybeSingle();
 
   if (error || !data) return DEFAULT_ENTITLEMENT;
-  return mapEntitlement(data);
+  return applyManualOverride(mapEntitlement(data), null);
 }
 
 interface SubscriptionRow {
@@ -67,6 +73,7 @@ function mapEntitlement(data: SubscriptionRow): Entitlement {
     isPremium,
     isEnterprise,
     currentPeriodEnd: data.current_period_end ?? null,
+    limits: limitsForTier(tier),
   };
 }
 
@@ -83,7 +90,7 @@ export const getEntitlementForUser = cache(async (userId: string): Promise<Entit
     .eq("user_id", userId)
     .maybeSingle();
   if (error || !data) return DEFAULT_ENTITLEMENT;
-  return mapEntitlement(data);
+  return applyManualOverride(mapEntitlement(data), null);
 });
 
 /**
@@ -101,5 +108,59 @@ export const getOrgEntitlement = cache(async (organizationId?: string): Promise<
     .eq("id", resolvedOrganizationId)
     .maybeSingle();
   const ownerId = (organization as { owner_id?: string } | null)?.owner_id;
-  return ownerId ? getEntitlementForUser(ownerId) : getEntitlement();
+  if (!ownerId) return getEntitlement();
+  const entitlement = await getEntitlementForUser(ownerId);
+  try {
+    const admin = createAdminClient();
+    const now = new Date().toISOString();
+    const { data: override } = await admin
+      .from("manual_entitlement_overrides")
+      .select("tier, seats, scan_limit, managed_clients")
+      .eq("organization_id", resolvedOrganizationId)
+      .eq("active", true)
+      .lte("effective_at", now)
+      .or(`expires_at.is.null,expires_at.gt.${now}`)
+      .order("effective_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return applyManualOverride(entitlement, override);
+  } catch {
+    // Keep subscription-derived access working before the additive migration is deployed.
+    return entitlement;
+  }
 });
+
+interface ManualOverrideRow {
+  tier: string | null;
+  seats: number | null;
+  scan_limit: number | null;
+  managed_clients: number | null;
+}
+
+function limitsForTier(tier: Tier): Entitlement["limits"] {
+  const config = TIER_CONFIG[tier];
+  return {
+    seats: config.seats,
+    scanLimit: config.scanLimit,
+    managedClients: config.managedClients,
+  };
+}
+
+function applyManualOverride(entitlement: Entitlement, override: ManualOverrideRow | null): Entitlement {
+  if (!override) return entitlement;
+  const normalizedTier = override.tier ? normalizeTierKey(override.tier) : entitlement.tier;
+  const tier: Tier = isTier(normalizedTier) ? normalizedTier : entitlement.tier;
+  const base = limitsForTier(tier);
+  return {
+    ...entitlement,
+    tier,
+    status: "active",
+    isPremium: tier !== "free",
+    isEnterprise: tier === "enterprise",
+    limits: {
+      seats: override.seats ?? base.seats,
+      scanLimit: override.scan_limit ?? base.scanLimit,
+      managedClients: override.managed_clients ?? base.managedClients,
+    },
+  };
+}
