@@ -15,27 +15,25 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const comparisons = COMPARISONS.map((c) => ({
     url: `${SITE_ORIGIN}/compare/${c.slug}`,
-    lastModified: new Date(),
     changeFrequency: "monthly" as const,
     priority: 0.8,
   }));
 
   return [
+    // Static pages do not have a content-derived update timestamp. Omitting
+    // `lastModified` is preferable to advertising a new change on every crawl.
     {
       url: SITE_ORIGIN,
-      lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 1.0,
     },
     {
       url: `${SITE_ORIGIN}/blog`,
-      lastModified: new Date(),
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
       url: `${SITE_ORIGIN}/legal/terms`,
-      lastModified: new Date(),
       changeFrequency: "yearly",
       priority: 0.3,
     },
