@@ -1,0 +1,32 @@
+{
+  "id": "expanded-utilities-eu",
+  "description": "Google Fonts, Maps, and reCAPTCHA are utility processors rather than behavioral trackers, but expose EU transfer risk.",
+  "html": "<html><head><link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=Inter\"><script src=\"https://maps.googleapis.com/maps/api/js?key=example\"></script><script src=\"https://www.google.com/recaptcha/api.js\"></script></head><body><div id=\"map\"></div><form><div class=\"g-recaptcha\"></div></form><a href=\"/privacy\">Privacy Policy</a><a href=\"/terms\">Terms of Service</a></body></html>",
+  "requestUrls": [],
+  "jurisdictions": ["eu"],
+  "complianceState": {
+    "hasPrivacyPolicy": true,
+    "hasConsentMechanism": false,
+    "dpaWith": [],
+    "jointControllerArrangements": [],
+    "mentionsSccs": false,
+    "addressesPci": false
+  },
+  "expected": {
+    "tools": ["google_fonts", "google_maps", "recaptcha"],
+    "negativeTools": ["google", "meta", "segment"],
+    "analyzerFindings": [],
+    "lintFindings": [
+      { "id": "missing_dpa_google_fonts", "severity": "error" },
+      { "id": "missing_dpa_google_maps", "severity": "error" },
+      { "id": "missing_dpa_recaptcha", "severity": "error" },
+      { "id": "transfers_without_sccs", "severity": "error" }
+    ],
+    "obligations": ["gdpr.art13.privacy_notice", "gdpr.art28.dpa", "gdpr.art46.transfers"],
+    "detailed": [
+      { "id": "google_fonts", "layer": "html", "weakOnly": false, "minConfidence": 0.5 },
+      { "id": "google_maps", "layer": "html", "weakOnly": false, "minConfidence": 0.5 },
+      { "id": "recaptcha", "layer": "html", "weakOnly": false, "minConfidence": 0.5 }
+    ]
+  }
+}

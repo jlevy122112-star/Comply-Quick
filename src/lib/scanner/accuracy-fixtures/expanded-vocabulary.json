@@ -1,0 +1,45 @@
+{
+  "id": "expanded-vocabulary",
+  "description": "Representative agency stack covering product analytics, marketing, advertising, chat, experimentation, and cookie-setting embeds.",
+  "html": "<html><head><script src=\"https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js\"></script><script src=\"https://cdn.amplitude.com/libs/amplitude-8.js\"></script><script src=\"https://static.klaviyo.com/onsite/js/klaviyo.js\"></script><script src=\"https://js.hs-scripts.com/123.js\"></script><script src=\"https://static.criteo.net/js/ld/ld.js\"></script><script src=\"https://bat.bing.com/bat.js\"></script><script src=\"https://static.zdassets.com/ekr/snippet.js\"></script><script src=\"https://cdn.optimizely.com/js/123.js\"></script></head><body><iframe src=\"https://www.youtube.com/embed/example\"></iframe><iframe src=\"https://player.vimeo.com/video/123\"></iframe><a href=\"/privacy\">Privacy Policy</a><a href=\"/terms\">Terms of Service</a></body></html>",
+  "requestUrls": [],
+  "jurisdictions": ["us_ca"],
+  "complianceState": {
+    "hasPrivacyPolicy": true,
+    "hasConsentMechanism": false,
+    "dpaWith": [],
+    "jointControllerArrangements": [],
+    "mentionsSccs": false,
+    "addressesPci": false
+  },
+  "expected": {
+    "tools": [
+      "amplitude",
+      "bing_uet",
+      "criteo",
+      "hubspot",
+      "klaviyo",
+      "mixpanel",
+      "optimizely",
+      "youtube",
+      "vimeo",
+      "zendesk"
+    ],
+    "negativeTools": ["google", "meta", "stripe", "mailchimp", "paypal"],
+    "analyzerFindings": ["trackers_without_consent"],
+    "lintFindings": [{ "id": "trackers_without_consent", "severity": "warning" }],
+    "obligations": ["ccpa.notice_at_collection", "cpra.opt_out_sale_share"],
+    "detailed": [
+      { "id": "mixpanel", "layer": "html", "weakOnly": false, "minConfidence": 0.5 },
+      { "id": "amplitude", "layer": "html", "weakOnly": false, "minConfidence": 0.5 },
+      { "id": "klaviyo", "layer": "html", "weakOnly": false, "minConfidence": 0.5 },
+      { "id": "hubspot", "layer": "html", "weakOnly": false, "minConfidence": 0.5 },
+      { "id": "criteo", "layer": "html", "weakOnly": false, "minConfidence": 0.5 },
+      { "id": "bing_uet", "layer": "html", "weakOnly": false, "minConfidence": 0.5 },
+      { "id": "zendesk", "layer": "html", "weakOnly": false, "minConfidence": 0.5 },
+      { "id": "optimizely", "layer": "html", "weakOnly": false, "minConfidence": 0.5 },
+      { "id": "youtube", "layer": "html", "weakOnly": false, "minConfidence": 0.5 },
+      { "id": "vimeo", "layer": "html", "weakOnly": false, "minConfidence": 0.5 }
+    ]
+  }
+}

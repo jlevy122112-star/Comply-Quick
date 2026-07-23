@@ -37,8 +37,6 @@ type AccuracyFixture = {
     lintFindings: ExpectedLintFinding[];
     obligations: string[];
     detailed: ExpectedDetection[];
-    knownGaps?: string[];
-    knownGapTools?: string[];
   };
 };
 
@@ -64,8 +62,6 @@ describe("scanner accuracy golden corpus", () => {
     let falseNegatives = 0;
     let calibratedDetections = 0;
     let expectedDetailedCount = 0;
-    let knownGapCount = 0;
-    const knownGapIds = new Set<string>();
     const allDetectedIds = new Set<string>();
 
     expect(fixtures.length).toBeGreaterThanOrEqual(9);
@@ -85,9 +81,6 @@ describe("scanner accuracy golden corpus", () => {
         services: actualIds,
         jurisdictions: fixture.jurisdictions,
       }).map((result) => result.obligation.id);
-      const knownGaps = fixture.expected.knownGaps ?? [];
-      const hasKnownGap = knownGaps.length > 0;
-      const knownGapTools = new Set(fixture.expected.knownGapTools ?? []);
 
       for (const id of actualIds) {
         allDetectedIds.add(id);
@@ -100,29 +93,19 @@ describe("scanner accuracy golden corpus", () => {
       falseNegatives += fixture.expected.tools.filter((id) => !actualSet.has(id)).length;
       falsePositives += actualIds.filter((id) => !expectedSet.has(id)).length;
 
-      const unexpectedNegatives = actualIds.filter(
-        (id) => fixture.expected.negativeTools.includes(id) && !knownGapTools.has(id)
-      );
+      const unexpectedNegatives = actualIds.filter((id) => fixture.expected.negativeTools.includes(id));
       expect(unexpectedNegatives, `${fixture.id}: explicit negative guard`).toEqual([]);
 
-      if (hasKnownGap) {
-        const unexplainedDetections = actualIds.filter((id) => !expectedSet.has(id) && !knownGapTools.has(id));
-        expect(unexplainedDetections, `${fixture.id}: known gap must be specific`).toEqual([]);
-        knownGapCount += actualIds.filter((id) => knownGapTools.has(id)).length;
-        for (const gap of knownGaps) knownGapIds.add(gap);
-      } else {
-        expect(sorted(actualIds), `${fixture.id}: detected tools`).toEqual(sorted(fixture.expected.tools));
-        expect(
-          sorted(actualAnalysis.findings.map((finding) => finding.id)),
-          `${fixture.id}: analyzer findings`
-        ).toEqual(sorted(fixture.expected.analyzerFindings));
-        expect(sorted(actualLint.map(lintKey)), `${fixture.id}: linter findings`).toEqual(
-          sorted(fixture.expected.lintFindings.map(lintKey))
-        );
-        expect(sorted(actualObligations), `${fixture.id}: obligation mapping`).toEqual(
-          sorted(fixture.expected.obligations)
-        );
-      }
+      expect(sorted(actualIds), `${fixture.id}: detected tools`).toEqual(sorted(fixture.expected.tools));
+      expect(sorted(actualAnalysis.findings.map((finding) => finding.id)), `${fixture.id}: analyzer findings`).toEqual(
+        sorted(fixture.expected.analyzerFindings)
+      );
+      expect(sorted(actualLint.map(lintKey)), `${fixture.id}: linter findings`).toEqual(
+        sorted(fixture.expected.lintFindings.map(lintKey))
+      );
+      expect(sorted(actualObligations), `${fixture.id}: obligation mapping`).toEqual(
+        sorted(fixture.expected.obligations)
+      );
 
       for (const expected of fixture.expected.detailed) {
         expectedDetailedCount += 1;
@@ -156,8 +139,6 @@ describe("scanner accuracy golden corpus", () => {
     expect(recall, "detection recall regression gate").toBeGreaterThanOrEqual(0.95);
     expect(f1, "detection F1 regression gate").toBeGreaterThanOrEqual(0.94);
     expect(calibratedDetections).toBe(expectedDetailedCount);
-    expect(knownGapCount).toBeGreaterThanOrEqual(1);
-    expect([...knownGapIds]).toEqual(["bare_gtag_is_currently_a_google_false_positive"]);
     expect([...allDetectedIds].every((id) => FINGERPRINT_CATEGORIES[id] !== undefined)).toBe(true);
 
     console.info(
@@ -173,7 +154,6 @@ describe("scanner accuracy golden corpus", () => {
             f1: Number(f1.toFixed(4)),
           },
           detailedCalibration: `${calibratedDetections}/${expectedDetailedCount}`,
-          knownGapCount,
           detectableCatalogEntries: SERVICE_CATALOG.filter((service) => FINGERPRINT_CATEGORIES[service.id]).length,
         },
         null,

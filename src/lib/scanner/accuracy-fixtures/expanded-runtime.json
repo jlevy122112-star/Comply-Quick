@@ -1,0 +1,33 @@
+{
+  "id": "expanded-runtime",
+  "description": "Runtime-only requests for newly supported analytics, chat, video, and Google utility vendors.",
+  "html": "<html><head><title>Rendered App</title></head><body><main>Client dashboard</main><a href=\"/privacy\">Privacy Policy</a><a href=\"/terms\">Terms of Service</a></body></html>",
+  "requestUrls": [
+    "https://api-js.mixpanel.com/track/",
+    "https://static.zdassets.com/ekr/snippet.js",
+    "https://player.vimeo.com/video/123/config",
+    "https://fonts.googleapis.com/css2?family=Inter"
+  ],
+  "jurisdictions": ["us_ca"],
+  "complianceState": {
+    "hasPrivacyPolicy": true,
+    "hasConsentMechanism": false,
+    "dpaWith": [],
+    "jointControllerArrangements": [],
+    "mentionsSccs": false,
+    "addressesPci": false
+  },
+  "expected": {
+    "tools": ["mixpanel", "zendesk", "vimeo", "google_fonts"],
+    "negativeTools": ["google", "meta", "stripe", "youtube"],
+    "analyzerFindings": ["trackers_without_consent"],
+    "lintFindings": [{ "id": "trackers_without_consent", "severity": "warning" }],
+    "obligations": ["ccpa.notice_at_collection", "cpra.opt_out_sale_share"],
+    "detailed": [
+      { "id": "mixpanel", "layer": "runtime", "weakOnly": false, "minConfidence": 0.7 },
+      { "id": "zendesk", "layer": "runtime", "weakOnly": false, "minConfidence": 0.7 },
+      { "id": "vimeo", "layer": "runtime", "weakOnly": false, "minConfidence": 0.7 },
+      { "id": "google_fonts", "layer": "runtime", "weakOnly": false, "minConfidence": 0.7 }
+    ]
+  }
+}
