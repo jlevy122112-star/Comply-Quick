@@ -21,6 +21,7 @@ function client(context: RemediationExecutionContext): ShopifyAdminClient {
     shop: context.connection.externalAccountId,
     accessToken: token,
     fetchImpl: context.fetchImpl,
+    assertHost: context.assertHost,
   });
 }
 
