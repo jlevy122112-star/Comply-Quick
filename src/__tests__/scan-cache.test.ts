@@ -7,12 +7,17 @@ const runScanSpy = vi.fn();
 const getUser = vi.fn();
 let cacheRow: Record<string, unknown> | null = null;
 let insertedRow: Record<string, unknown> | null = null;
+let insertedPayload: Record<string, unknown> | null = null;
 
 function makeQuery() {
   const builder: Record<string, unknown> = {};
   for (const m of ["select", "eq", "or", "gte", "order", "limit", "insert", "update"]) {
     builder[m] = () => builder;
   }
+  builder.insert = (row: Record<string, unknown>) => {
+    insertedPayload = row;
+    return builder;
+  };
   builder.maybeSingle = async () => ({ data: cacheRow });
   builder.single = async () => ({ data: insertedRow, error: null });
   return builder;
@@ -65,6 +70,7 @@ describe("createScan — 7-day DB cache", () => {
     getUser.mockResolvedValue({ data: { user: { id: "user_1" } } });
     cacheRow = null;
     insertedRow = null;
+    insertedPayload = null;
   });
 
   it("returns a recent scan without re-crawling", async () => {
@@ -84,6 +90,7 @@ describe("createScan — 7-day DB cache", () => {
     const result = await createScan("example.com");
 
     expect(result.id).toBe("scan_cached");
+    expect(result.accessibility).toBeNull();
     expect(runScanSpy).not.toHaveBeenCalled();
   });
 
@@ -101,6 +108,12 @@ describe("createScan — 7-day DB cache", () => {
       score: 90,
       detected_tools: [],
       findings: [],
+      accessibility: {
+        score: 88,
+        findings: [],
+        violations: [],
+        source: "static",
+      },
       summary: "fresh",
       error: null,
       created_at: new Date().toISOString(),
@@ -110,6 +123,12 @@ describe("createScan — 7-day DB cache", () => {
       score: 90,
       detectedTools: [],
       findings: [],
+      accessibility: {
+        score: 88,
+        findings: [],
+        violations: [],
+        source: "static",
+      },
       summary: "fresh",
     });
     const { createScan } = await load();
@@ -118,5 +137,7 @@ describe("createScan — 7-day DB cache", () => {
 
     expect(runScanSpy).toHaveBeenCalledTimes(1);
     expect(result.id).toBe("scan_fresh");
+    expect(result.accessibility?.score).toBe(88);
+    expect(insertedPayload?.accessibility).toEqual(result.accessibility);
   });
 });

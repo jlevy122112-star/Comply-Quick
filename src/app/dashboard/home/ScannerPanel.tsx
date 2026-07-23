@@ -25,6 +25,12 @@ interface Finding {
   recommendation: string;
 }
 
+interface AccessibilityAnalysis {
+  score: number;
+  source: "axe" | "static";
+  findings: Finding[];
+}
+
 interface ScanRecord {
   id: string;
   url: string;
@@ -32,6 +38,7 @@ interface ScanRecord {
   score: number | null;
   detectedTools: DetectedTool[];
   findings: Finding[];
+  accessibility: AccessibilityAnalysis | null;
   summary: string;
   organizationId: string | null;
   clientId: string | null;
@@ -428,6 +435,56 @@ export default function ScannerPanel({ tier }: { tier: Tier }) {
                   );
                 })}
               </div>
+            )}
+
+            {active.accessibility && (
+              <section
+                aria-labelledby="accessibility-results-heading"
+                className="mt-5 rounded-xl border border-cyan-500/20 bg-cyan-500/[0.04] p-4"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p id="accessibility-results-heading" className="text-sm font-semibold text-white">
+                      Accessibility (WCAG)
+                    </p>
+                    <p className="mt-1 max-w-2xl text-xs leading-relaxed text-gray-400">
+                      Assists with WCAG 2.1 AA conformance; this is not a guarantee of ADA compliance.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full border border-cyan-400/25 bg-cyan-400/10 px-2 py-1 text-[11px] font-medium text-cyan-200">
+                      {active.accessibility.source === "axe" ? "Live axe check" : "Static estimate"}
+                    </span>
+                    <span className={`text-2xl font-bold ${scoreColor(active.accessibility.score)}`}>
+                      {active.accessibility.score}
+                    </span>
+                  </div>
+                </div>
+                {active.accessibility.findings.length > 0 ? (
+                  <div className="mt-4 space-y-2">
+                    {active.accessibility.findings.map((finding) => {
+                      const s = SEVERITY_STYLES[finding.severity] ?? SEVERITY_STYLES.info;
+                      const criteria = finding.detail.match(/WCAG success criteria: ([^.]+)\./i)?.[1];
+                      return (
+                        <div key={finding.id} className={`rounded-lg border bg-gray-800/50 p-3 ${s.border}`}>
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className={`text-xs font-medium ${s.text}`}>
+                              {s.icon} {finding.title}
+                            </p>
+                            {criteria && <span className="text-[11px] font-medium text-cyan-300">WCAG {criteria}</span>}
+                          </div>
+                          <p className="mt-1 text-xs text-gray-400">{finding.detail}</p>
+                          <p className="mt-1 text-xs text-gray-500">Fix: {finding.recommendation}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="mt-4 rounded-lg border border-emerald-500/20 bg-emerald-500/[0.06] p-3 text-xs text-emerald-200">
+                    No accessibility violations were identified in this scan.
+                  </p>
+                )}
+              </section>
             )}
 
             {triggers.length > 0 && (
