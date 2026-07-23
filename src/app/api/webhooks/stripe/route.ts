@@ -201,7 +201,7 @@ async function syncOrganizationInvoice(invoice: Stripe.Invoice, eventType: strin
           : local.status;
   const patch = {
     status,
-    amount_paid_cents: invoice.amount_paid ?? 0,
+    amount_paid_cents: eventType === "invoice.paid" ? (invoice.amount_paid ?? 0) : undefined,
     stripe_invoice_status: invoice.status ?? null,
     hosted_invoice_url: invoice.hosted_invoice_url ?? null,
     issued_at: eventType === "invoice.finalized" ? new Date().toISOString() : undefined,
@@ -210,19 +210,21 @@ async function syncOrganizationInvoice(invoice: Stripe.Invoice, eventType: strin
   };
   const { error } = await admin.from("invoices").update(patch).eq("id", local.id);
   if (error) throw new Error(`Failed to sync organization invoice ${invoice.id}: ${error.message}`);
-  await createSystemAuditLog({
-    eventType: eventType === "invoice.paid" ? "INVOICE_PAID" : "INVOICE_STATUS_CHANGED",
-    actorType: "SYSTEM",
-    organizationId: local.organization_id,
-    targetResource: `organization/${local.organization_id}/billing/invoice/${local.id}`,
-    details: {
-      invoiceId: local.id,
-      stripeInvoiceId: invoice.id,
-      status,
-      amountPaidCents: invoice.amount_paid ?? 0,
-      stripeEvent: eventType,
-    },
-  });
+  if (status !== local.status || eventType === "invoice.payment_failed") {
+    await createSystemAuditLog({
+      eventType: eventType === "invoice.paid" ? "INVOICE_PAID" : "INVOICE_STATUS_CHANGED",
+      actorType: "SYSTEM",
+      organizationId: local.organization_id,
+      targetResource: `organization/${local.organization_id}/billing/invoice/${local.id}`,
+      details: {
+        invoiceId: local.id,
+        stripeInvoiceId: invoice.id,
+        status,
+        amountPaidCents: invoice.amount_paid ?? 0,
+        stripeEvent: eventType,
+      },
+    });
+  }
   return true;
 }
 
