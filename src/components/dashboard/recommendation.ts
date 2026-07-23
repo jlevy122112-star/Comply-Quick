@@ -96,7 +96,8 @@ export function selectRecommendation({
 
   return {
     title: "Keep your compliance current",
-    description: "Your core setup is complete. Run a fresh scan when your site or regulations change.",
+    description:
+      "Your core setup is complete. Run a fresh scan whenever your site changes — Autopilot monitors regulatory updates for you.",
     why: "Regular reviews help your team spot drift early and keep evidence ready for customers and auditors.",
     href: "#scanner",
     ctaLabel: "Run a compliance scan",
