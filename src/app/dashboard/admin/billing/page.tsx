@@ -21,8 +21,8 @@ export default async function BillingAdminPage({ searchParams }: { searchParams:
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300">Platform operations</p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Enterprise billing operations</h1>
             <p className="mt-2 max-w-2xl text-sm text-gray-400">
-              Manage tenant billing records, invoices, and manual entitlements. Stripe collection remains disabled in
-              this slice.
+              Manage tenant billing records, invoices, and manual entitlements. Stripe customer linking, invoice push,
+              and ACH setup are available when Stripe is configured.
             </p>
           </div>
           <Link

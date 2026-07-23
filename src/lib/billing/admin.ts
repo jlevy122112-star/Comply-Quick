@@ -186,7 +186,7 @@ function daysUntilDue(paymentTerms: BillingAccount["paymentTerms"], dueAt: strin
     const days = Math.ceil((new Date(dueAt).getTime() - Date.now()) / 86_400_000);
     return Math.max(0, days);
   }
-  return { due_on_receipt: 0, net_15: 15, net_30: 30, net_60: 60 }[paymentTerms] || undefined;
+  return { due_on_receipt: 0, net_15: 15, net_30: 30, net_60: 60 }[paymentTerms] ?? undefined;
 }
 
 async function billingAccountForOrganization(organizationId: string) {
