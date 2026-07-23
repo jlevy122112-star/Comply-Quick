@@ -334,6 +334,19 @@ describe("connector/shopify — webhooks", () => {
 });
 
 describe("connector/shopify — admin client", () => {
+  it("keeps injected fetches hermetic without a default DNS host lookup", async () => {
+    const fakeFetch = (async () =>
+      new Response(JSON.stringify({ script_tag: { id: 1, src: "https://cdn/consent.js" } }), {
+        status: 200,
+      })) as typeof fetch;
+    const client = new ShopifyAdminClient({
+      shop: "definitely-not-resolvable.invalid",
+      accessToken: "shpat_x",
+      fetchImpl: fakeFetch,
+    });
+    await expect(client.createScriptTag({ src: "https://cdn/consent.js" })).resolves.toMatchObject({ id: 1 });
+  });
+
   it("creates a script tag with sane defaults through injected fetch", async () => {
     let captured: { url: string; init: RequestInit } | null = null;
     const fakeFetch = (async (url: string, init: RequestInit) => {

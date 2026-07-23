@@ -13,6 +13,9 @@ function response(body: unknown, status = 200): Response {
 }
 
 const allowTestHost = async (): Promise<string[]> => [];
+const rejectTestHost = async (): Promise<never> => {
+  throw new Error("private network");
+};
 
 const consentChange: RemediationChange = {
   id: "inject_consent_banner",
@@ -113,6 +116,7 @@ describe("WordPress executor", () => {
           calls += 1;
           return response({});
         }) as typeof fetch,
+        assertHost: rejectTestHost,
       })
     ).rejects.toThrow(/private network/);
     expect(calls).toBe(0);
@@ -212,6 +216,7 @@ describe("Webflow and Shopify executors", () => {
           calls += 1;
           return response({});
         }) as typeof fetch,
+        assertHost: rejectTestHost,
       })
     ).rejects.toThrow(/private network/);
     expect(calls).toBe(0);
@@ -358,6 +363,7 @@ describe("Webflow and Shopify executors", () => {
           calls += 1;
           return response({});
         }) as typeof fetch,
+        assertHost: rejectTestHost,
       })
     ).rejects.toThrow(/private network/);
     expect(calls).toBe(0);

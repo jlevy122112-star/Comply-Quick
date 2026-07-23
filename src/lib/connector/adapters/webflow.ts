@@ -42,7 +42,11 @@ async function request<T>(
 ): Promise<T> {
   const fetchImpl = context.fetchImpl ?? fetch;
   const rawBase = baseUrl(context);
-  await (context.assertHost ?? assertPublicScanHost)(new URL(rawBase).hostname);
+  // Real fetches always validate hosts and use the hardened dispatcher; injected
+  // fetches must provide assertHost to retain SSRF validation.
+  if (context.assertHost || !context.fetchImpl) {
+    await (context.assertHost ?? assertPublicScanHost)(new URL(rawBase).hostname);
+  }
   const token = context.apiToken || context.accessToken;
   const headers: Record<string, string> = {
     Accept: "application/json",

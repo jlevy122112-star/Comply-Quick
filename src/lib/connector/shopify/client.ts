@@ -82,6 +82,7 @@ export class ShopifyAdminClient {
   private readonly fetchImpl: typeof fetch;
   private readonly assertHost: (hostname: string) => Promise<unknown>;
   private readonly injectedFetch: boolean;
+  private readonly shouldValidateHost: boolean;
 
   constructor(cfg: ShopifyClientConfig) {
     const version = cfg.apiVersion ?? "2024-10";
@@ -90,10 +91,13 @@ export class ShopifyAdminClient {
     this.fetchImpl = cfg.fetchImpl ?? fetch;
     this.assertHost = cfg.assertHost ?? assertPublicScanHost;
     this.injectedFetch = cfg.fetchImpl !== undefined;
+    this.shouldValidateHost = cfg.assertHost !== undefined || !this.injectedFetch;
   }
 
   private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
-    await this.assertHost(new URL(this.base).hostname);
+    // Real fetches always validate hosts and use the hardened dispatcher; injected
+    // fetches must provide assertHost to retain SSRF validation.
+    if (this.shouldValidateHost) await this.assertHost(new URL(this.base).hostname);
     const headers: Record<string, string> = {
       "X-Shopify-Access-Token": this.token,
       Accept: "application/json",
