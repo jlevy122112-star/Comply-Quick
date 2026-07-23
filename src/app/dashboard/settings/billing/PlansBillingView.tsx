@@ -3,17 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Check, CreditCard, ExternalLink, Sparkles } from "lucide-react";
-import {
-  Badge,
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  EmptyState,
-  PageTitle,
-  ProgressBar,
-  Skeleton,
-} from "@/components/ui";
+import { Badge, Button, Card, CardBody, CardHeader, EmptyState, PageTitle, ProgressBar } from "@/components/ui";
 import { ALL_TIERS, getTierConfig, isUnlimited, type Billing, type Tier } from "@/lib/pricing";
 import { tierUpgradeBenefit } from "@/lib/tier-copy";
 
@@ -235,44 +225,45 @@ export default function PlansBillingView({ tier, status, currentPeriodEnd, usage
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
               <CardBody>
-                {usage.scans ? (
-                  <Meter
-                    label="Compliance scans"
-                    used={usage.scans.used}
-                    limit={usage.scans.limit}
-                    detail="Calendar-month scans"
-                  />
-                ) : (
-                  <Skeleton className="h-16 w-full" />
-                )}
+                <Meter
+                  label="Compliance scans"
+                  used={usage.scans!.used}
+                  limit={usage.scans!.limit}
+                  detail="Calendar-month scans"
+                />
               </CardBody>
             </Card>
             <Card>
               <CardBody>
-                {usage.managedClients ? (
+                {usage.managedClients.limit === null ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm font-medium text-text-primary">Managed clients</span>
+                      <Badge tone="gray">Personal workspace</Badge>
+                    </div>
+                    <p className="text-sm text-text-secondary">
+                      Managed client workspaces aren&apos;t included in this plan.
+                    </p>
+                    <p className="text-xs text-text-muted">Upgrade to a client-management plan to build a portfolio.</p>
+                  </div>
+                ) : (
                   <Meter
                     label="Managed clients"
                     used={usage.managedClients.used}
-                    limit={usage.managedClients.limit ?? Infinity}
+                    limit={usage.managedClients.limit}
                     detail="Active client workspaces"
                   />
-                ) : (
-                  <Skeleton className="h-16 w-full" />
                 )}
               </CardBody>
             </Card>
             <Card>
               <CardBody>
-                {usage.seats ? (
-                  <Meter
-                    label="Team seats"
-                    used={usage.seats.used}
-                    limit={usage.seats.limit}
-                    detail="Members in this workspace"
-                  />
-                ) : (
-                  <Skeleton className="h-16 w-full" />
-                )}
+                <Meter
+                  label="Team seats"
+                  used={usage.seats!.used}
+                  limit={usage.seats!.limit}
+                  detail="Members in this workspace"
+                />
               </CardBody>
             </Card>
           </div>
