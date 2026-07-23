@@ -31,6 +31,12 @@ const SEVERITY_ORDER: Record<ObligationNode["severity"], number> = { critical: 0
 /** True when the obligation applies in at least one of the active jurisdictions. */
 function appliesInJurisdiction(node: ObligationNode, active: Set<JurisdictionId>): boolean {
   if (node.jurisdictions.includes("global")) return true;
+  if (
+    (node.framework === "coppa" || node.framework === "can_spam") &&
+    Array.from(active).some((jurisdiction) => jurisdiction === "us_general" || jurisdiction.startsWith("us_"))
+  ) {
+    return true;
+  }
   return node.jurisdictions.some((j) => active.has(j));
 }
 

@@ -38,7 +38,11 @@ export function buildObligationReport(input: ReportInput): ObligationReport {
   // array (including weak hints) is still returned for transparency.
   const confident = detected.filter((d) => !d.isWeakOnly);
   const services = confident.map((d) => d.id);
-  const obligations = deriveObligations({ services, jurisdictions: input.jurisdictions });
+  const obligations = deriveObligations({
+    services,
+    jurisdictions: input.jurisdictions,
+    dataCategories: input.dataCategories,
+  });
 
   const detectionConfidence =
     confident.length === 0
