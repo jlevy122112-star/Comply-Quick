@@ -668,7 +668,7 @@ export function DocumentsTab({ agency, clients, canManage }: DocumentsTabProps) 
                   value={form.clientId}
                   onChange={(e) => setForm((f) => ({ ...f, clientId: e.target.value }))}
                 >
-                  <option value="">All clients (agency branding)</option>
+                  <option value="">All Clients (Agency Branding)</option>
                   {clients.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}

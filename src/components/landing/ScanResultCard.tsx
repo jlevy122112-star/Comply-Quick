@@ -2,9 +2,9 @@ import type { PublicScanResult } from "@/app/api/public-scan/route";
 import { LeadCaptureForm } from "./LeadCaptureForm";
 
 function scoreTone(score: number): { text: string; ring: string; label: string } {
-  if (score >= 80) return { text: "text-emerald-400", ring: "border-emerald-500/40", label: "Low risk" };
-  if (score >= 50) return { text: "text-amber-400", ring: "border-amber-500/40", label: "Needs attention" };
-  return { text: "text-rose-400", ring: "border-rose-500/40", label: "High risk" };
+  if (score >= 80) return { text: "text-emerald-400", ring: "border-emerald-500/40", label: "Low Risk" };
+  if (score >= 50) return { text: "text-amber-400", ring: "border-amber-500/40", label: "Needs Attention" };
+  return { text: "text-rose-400", ring: "border-rose-500/40", label: "High Risk" };
 }
 
 const SEV_DOT: Record<string, string> = {

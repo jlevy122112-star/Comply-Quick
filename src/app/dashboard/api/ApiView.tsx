@@ -17,9 +17,9 @@ const METER_LABELS: Record<string, string> = {
 };
 
 const PRICING = [
-  { label: "Per API call", price: "$0.01", meter: "api_call" },
-  { label: "Per template upload (API only)", price: "$50.00", meter: "api_template_upload" },
-  { label: "Per extra scan (beyond plan limit)", price: "$5.00", meter: "extra_scan" },
+  { label: "Per API Call", price: "$0.01", meter: "api_call" },
+  { label: "Per Template Upload (API Only)", price: "$50.00", meter: "api_template_upload" },
+  { label: "Per Extra Scan (Beyond Plan Limit)", price: "$5.00", meter: "extra_scan" },
 ];
 
 function money(cents: number): string {

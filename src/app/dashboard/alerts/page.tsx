@@ -15,6 +15,8 @@ const SEVERITY_TONE: Record<AlertSeverity, "rose" | "amber" | "sky"> = {
 };
 
 const RISK_TONE = { high: "rose", medium: "amber", low: "sky" } as const;
+const RISK_LABEL = { high: "High", medium: "Medium", low: "Low" } as const;
+const SEVERITY_LABEL = { critical: "Critical", warning: "Warning", info: "Info" } as const;
 
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
@@ -76,7 +78,7 @@ export default async function AlertsCenterPage() {
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <Badge tone={RISK_TONE[i.riskLevel]}>{i.riskLevel} risk</Badge>
+                      <Badge tone={RISK_TONE[i.riskLevel]}>{RISK_LABEL[i.riskLevel]} Risk</Badge>
                       <span className="truncate text-sm font-medium text-white">
                         {i.regulationName || i.regulationId}
                       </span>
@@ -111,7 +113,7 @@ export default async function AlertsCenterPage() {
               {alerts.map((a) => (
                 <article key={a.id} className="rounded-xl border border-gray-800 bg-gray-900/40 p-4">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge tone={SEVERITY_TONE[a.severity]}>{a.severity}</Badge>
+                    <Badge tone={SEVERITY_TONE[a.severity]}>{SEVERITY_LABEL[a.severity]}</Badge>
                     <span className="text-xs font-medium text-gray-500">{a.law}</span>
                     <span className="text-xs text-gray-600">· {fmtDate(a.date)}</span>
                   </div>

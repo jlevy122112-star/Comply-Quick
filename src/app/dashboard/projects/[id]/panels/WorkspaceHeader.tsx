@@ -5,7 +5,7 @@ import type { WorkspaceData } from "@/lib/workspace/data";
 const STATUS_TONE = {
   current: { tone: "emerald" as const, label: "Current" },
   outdated: { tone: "amber" as const, label: "Outdated" },
-  action_needed: { tone: "rose" as const, label: "Action needed" },
+  action_needed: { tone: "rose" as const, label: "Action Needed" },
 };
 
 function humanize(value: string): string {

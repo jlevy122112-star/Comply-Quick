@@ -781,13 +781,13 @@ function StepReview({ answers, onJump }: { answers: IntakeAnswers; onJump: (i: n
     { step: 0, label: "Business", value: answers.business.legalName || "—" },
     { step: 0, label: "Industry", value: answers.business.industry || "—" },
     { step: 1, label: "Objective", value: OBJECTIVE_LABELS[answers.goals.primaryObjective] },
-    { step: 2, label: "Visual style", value: VISUAL_LABELS[answers.branding.visualStyle] },
+    { step: 2, label: "Visual Style", value: VISUAL_LABELS[answers.branding.visualStyle] },
     { step: 3, label: "Features", value: answers.technical.features.join(", ") || "—" },
     { step: 3, label: "Domain", value: DOMAIN_LABELS[answers.technical.domainStatus] },
     { step: 4, label: "Budget", value: BUDGET_LABELS[answers.logistics.budgetRange] },
-    { step: 4, label: "Target launch", value: answers.logistics.targetLaunch || "—" },
+    { step: 4, label: "Target Launch", value: answers.logistics.targetLaunch || "—" },
     { step: 5, label: "Jurisdictions", value: answers.compliance.jurisdictions.join(", ") || "—" },
-    { step: 5, label: "Data collected", value: answers.compliance.dataCollected.join(", ") || "—" },
+    { step: 5, label: "Data Collected", value: answers.compliance.dataCollected.join(", ") || "—" },
   ];
   return (
     <div className="space-y-4">

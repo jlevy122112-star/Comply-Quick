@@ -21,7 +21,7 @@ export function ScansPanel({ scans }: { scans: WorkspaceData["scans"] }) {
     return (
       <EmptyState
         icon="📡"
-        title="No scans for this project yet"
+        title="No Scans for This Project Yet"
         description="Run a scan for this project to track its compliance score over time. Findings from each scan are triaged automatically."
       />
     );
@@ -32,7 +32,7 @@ export function ScansPanel({ scans }: { scans: WorkspaceData["scans"] }) {
     <div className="space-y-6">
       {trend.length >= 2 && (
         <Card>
-          <CardHeader title="Score trend" description="Compliance score across this project's scans." />
+          <CardHeader title="Score Trend" description="Compliance score across this project's scans." />
           <CardBody>
             <ScoreTrend scores={trend} />
           </CardBody>

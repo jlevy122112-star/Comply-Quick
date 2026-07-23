@@ -71,7 +71,7 @@ export function DataEncryptionPanel({ isEnterprise, initialStatus }: Props) {
       <CardHeader
         title={
           <span className="flex flex-wrap items-center gap-2">
-            Data Encryption <Badge tone={statusTone}>{status?.enabled ? "Enabled" : "Configuration needed"}</Badge>
+            Data Encryption <Badge tone={statusTone}>{status?.enabled ? "Enabled" : "Configuration Needed"}</Badge>
           </span>
         }
         description="Enterprise field-level protection with a tenant-specific wrapped data-encryption key."

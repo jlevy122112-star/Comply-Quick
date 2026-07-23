@@ -10,7 +10,7 @@ export const STATE_STYLES: Record<ObligationState, string> = {
 export const STATE_LABELS: Record<ObligationState, string> = {
   met: "Notified",
   upcoming: "Upcoming",
-  due_soon: "Due soon",
+  due_soon: "Due Soon",
   overdue: "Overdue",
 };
 

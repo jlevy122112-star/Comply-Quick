@@ -101,7 +101,7 @@ export function PricingPlans({ startHref }: { startHref: string }) {
           Monthly
         </ToggleButton>
         <ToggleButton active={billing === "annual"} onClick={() => setBilling("annual")}>
-          Annual <span className="text-emerald-400">&middot; save ~17%</span>
+          Annual <span className="text-emerald-400">&middot; Save ~17%</span>
         </ToggleButton>
       </div>
 
@@ -128,7 +128,9 @@ export function PricingPlans({ startHref }: { startHref: string }) {
                   <span className="text-sm text-gray-300">/month</span>
                 </div>
                 <p className="mt-1 text-xs text-emerald-400">
-                  {billing === "annual" ? `Billed $${cfg.annual}/yr` : `or $${cfg.annual}/yr — save ~17%`}
+                  {billing === "annual"
+                    ? `Billed $${cfg.annual.toLocaleString()}/yr`
+                    : `or $${cfg.annual.toLocaleString()}/yr — save ~17%`}
                 </p>
               </div>
               <ul className="space-y-3 mb-8 flex-1">

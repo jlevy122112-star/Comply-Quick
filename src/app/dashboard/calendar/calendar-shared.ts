@@ -37,7 +37,7 @@ export const CATEGORY_STYLE: Record<CalendarCategory, { label: string; dot: stri
   task: { label: "Task", dot: "bg-sky-400", chip: "bg-sky-500/15 text-sky-300 border-sky-500/30" },
   renewal: { label: "Renewal", dot: "bg-violet-400", chip: "bg-violet-500/15 text-violet-300 border-violet-500/30" },
   scan: { label: "Scan", dot: "bg-emerald-400", chip: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" },
-  risk: { label: "Risk alert", dot: "bg-amber-400", chip: "bg-amber-500/15 text-amber-300 border-amber-500/30" },
+  risk: { label: "Risk Alert", dot: "bg-amber-400", chip: "bg-amber-500/15 text-amber-300 border-amber-500/30" },
   regulation: { label: "Regulation", dot: "bg-rose-400", chip: "bg-rose-500/15 text-rose-300 border-rose-500/30" },
 };
 

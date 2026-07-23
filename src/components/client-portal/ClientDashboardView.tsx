@@ -23,7 +23,7 @@ function projectStatusTone(status: string) {
 function projectStatusLabel(status: string) {
   if (status === "current") return "Current";
   if (status === "outdated") return "Outdated";
-  if (status === "action_needed") return "Action needed";
+  if (status === "action_needed") return "Action Needed";
   return status;
 }
 
