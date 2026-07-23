@@ -22,7 +22,8 @@ import { createSystemAuditLog } from "@/lib/audit";
 
 const log = logger.child({ module: "scanner" });
 
-const SCAN_COLUMNS = "id, url, status, score, detected_tools, findings, summary, error, organization_id, client_id, shared_token, shared_at, emailed_at, created_at";
+const SCAN_COLUMNS =
+  "id, url, status, score, detected_tools, findings, summary, error, organization_id, client_id, shared_token, shared_at, emailed_at, created_at";
 
 /**
  * Scan-cache window. A completed scan of the same (normalized) URL within this
@@ -64,18 +65,21 @@ export interface ScanQuota {
 /** Reports the current account's scan quota for the current calendar month. */
 export async function getScanQuota(): Promise<ScanQuota> {
   const entitlement = await getOrgEntitlement();
-  const limit = scanLimit(entitlement.tier);
+  const tier = entitlement.tier ?? (entitlement.isPremium ? "agency" : "free");
+  const limit = scanLimit(tier);
+  if (limit === Infinity) {
+    return { isPremium: entitlement.isPremium, used: 0, limit: null, remaining: null };
+  }
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new UnauthorizedError();
-  const organizationId = await getActiveOrganizationId();
   const { count } = await supabase
     .from("scans")
     .select("id", { count: "exact", head: true })
-    .or(organizationReadFilter(user.id, organizationId))
+    .eq("user_id", user.id)
     .gte("created_at", periodStartIso(currentPeriod()));
 
   const used = count ?? 0;

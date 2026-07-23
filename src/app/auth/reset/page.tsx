@@ -2,13 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { resetPasswordAction } from "./actions";
 import { Logo } from "@/components/brand/Logo";
 
 export default function ResetPasswordPage() {
-  // The recovery link routes through /auth/callback, which exchanges the code
-  // for a session before landing here — so the user should already be signed
-  // in with a recovery session and can set a new password.
   const [checking, setChecking] = useState(true);
   const [hasSession, setHasSession] = useState(false);
   const [password, setPassword] = useState("");
@@ -22,9 +18,7 @@ export default function ResetPasswordPage() {
     const supabase = createClient();
     supabase.auth
       .getUser()
-      .then(({ data }) => {
-        setHasSession(Boolean(data.user));
-      })
+      .then(({ data }) => setHasSession(Boolean(data.user)))
       .catch(() => setHasSession(false))
       .finally(() => setChecking(false));
   }, []);
@@ -43,9 +37,10 @@ export default function ResetPasswordPage() {
     setBusy(true);
     setError("");
     try {
-      const result = await resetPasswordAction(password);
-      if (result?.error) {
-        setError(result.error);
+      const supabase = createClient();
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) {
+        setError(error.message);
         return;
       }
       setDone(true);

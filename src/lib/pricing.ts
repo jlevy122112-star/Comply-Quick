@@ -74,7 +74,7 @@ export const TIER_CONFIG: Record<Tier, TierConfig> = {
     monthly: 29,
     annual: 290,
     seats: 1,
-    managedClients: 20,
+    managedClients: null,
     scanLimit: 20,
     mode: "subscription",
     priceEnv: { monthly: "STRIPE_PRICE_SOLO_MONTHLY", annual: "STRIPE_PRICE_SOLO_ANNUAL" },

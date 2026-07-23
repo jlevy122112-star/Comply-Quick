@@ -2,7 +2,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { logger } from "@/services";
 import * as Sentry from "@sentry/nextjs";
 import { createGzip } from "node:zlib";
-import type { SupabaseClient } from "@supabase/supabase-js";
 
 const log = logger.child({ module: "system-audit" });
 
@@ -53,6 +52,24 @@ export interface ArchiveResult {
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
+interface AuditLogRow {
+  id: string;
+  created_at: string;
+  event_type: string;
+  actor_id: string | null;
+  actor_type: AuditActorType;
+  target_resource: string | null;
+  ip_address: string | null;
+  details: Record<string, unknown> | null;
+  organization_id: string | null;
+}
+
+interface ArchiveFile {
+  name: string;
+  created_at: string;
+  metadata?: { size?: number };
+}
+
 /**
  * Appends one immutable system-audit row. Best-effort: never throws, so callers
  * can log without wrapping in try/catch. Returns true on success.
@@ -87,12 +104,9 @@ export async function listSystemAuditLogs(opts: ListSystemAuditLogsOptions = {})
     const admin = createAdminClient();
     let query = admin
       .from("system_audit_logs")
-      .select(
-        "id, created_at, event_type, actor_id, actor_type, target_resource, ip_address, details, organization_id"
-      )
+      .select("id, created_at, event_type, actor_id, actor_type, target_resource, ip_address, details, organization_id")
       .order("created_at", { ascending: false })
-      .limit(opts.limit ?? 100)
-      .offset(opts.offset ?? 0);
+      .range(opts.offset ?? 0, (opts.offset ?? 0) + (opts.limit ?? 100) - 1);
 
     if (opts.organizationId) query = query.eq("organization_id", opts.organizationId);
     if (opts.eventType) query = query.eq("event_type", opts.eventType);
@@ -176,7 +190,7 @@ export async function getArchivedAuditLogFiles(
       log.warn("Failed to list audit log archives", { error: error.message });
       return [];
     }
-    return (data ?? []).map((f: any) => ({
+    return ((data ?? []) as ArchiveFile[]).map((f) => ({
       name: f.name as string,
       createdAt: f.created_at as string,
       size: typeof f.metadata?.size === "number" ? f.metadata.size : undefined,
@@ -188,7 +202,7 @@ export async function getArchivedAuditLogFiles(
   }
 }
 
-function mapRow(row: any): SystemAuditLogRecord {
+function mapRow(row: AuditLogRow): SystemAuditLogRecord {
   return {
     id: row.id as string,
     createdAt: row.created_at as string,
@@ -202,12 +216,7 @@ function mapRow(row: any): SystemAuditLogRecord {
   };
 }
 
-async function archiveMonth(
-  admin: AdminClient,
-  startIso: string,
-  endIso: string,
-  path: string
-): Promise<number> {
+async function archiveMonth(admin: AdminClient, startIso: string, endIso: string, path: string): Promise<number> {
   const { buffer, ids } = await compressMonth(admin, startIso, endIso);
   if (ids.length === 0) return 0;
 
