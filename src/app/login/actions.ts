@@ -62,7 +62,9 @@ export async function signupAction(
       redirectTo: emailRedirectTo,
     });
     if (result.reason === "already_registered") {
-      redirect(`/login?mode=signin&error=${encodeURIComponent("An account with this email already exists. Please sign in.")}`);
+      redirect(
+        `/login?mode=signin&error=${encodeURIComponent("An account with this email already exists. Please sign in.")}`
+      );
     }
     if (!result.delivered) {
       redirect(`/login?mode=signin&notice=confirm&email=${encodeURIComponent(email)}&warning=resend`);

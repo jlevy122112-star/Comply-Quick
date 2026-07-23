@@ -18,9 +18,7 @@ export default function PortfolioAnalytics({ analytics }: { analytics: AgencyPor
         <h2 id="portfolio-heading" className="text-lg font-semibold text-white">
           Portfolio analytics
         </h2>
-        <p className="mt-1 text-sm text-gray-400">
-          Aggregated compliance health across your managed client portfolio.
-        </p>
+        <p className="mt-1 text-sm text-gray-400">Aggregated compliance health across your managed client portfolio.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

@@ -227,7 +227,8 @@ export const getPublicScore = cache(async (slug: string): Promise<PublicScore | 
   // Resolve white-label branding: agency workspace branding takes precedence;
   // otherwise use the publishing user's organization branding. Falls back to null
   // (Comply-Quick branding) when neither is configured.
-  const brand = (await resolveAgencyBrand(admin, data.user_id)) ?? (await resolveOrganizationBrand(admin, data.user_id));
+  const brand =
+    (await resolveAgencyBrand(admin, data.user_id)) ?? (await resolveOrganizationBrand(admin, data.user_id));
 
   return {
     slug: data.slug,

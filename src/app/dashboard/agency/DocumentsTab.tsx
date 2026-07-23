@@ -106,7 +106,11 @@ function DocumentFileRenderer({ document }: { document: AgencyDocument }) {
   if (document.mimeType?.startsWith("image/")) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={fileUrl} alt={document.name} className="mt-6 max-h-96 rounded-lg border border-gray-800 object-contain" />
+      <img
+        src={fileUrl}
+        alt={document.name}
+        className="mt-6 max-h-96 rounded-lg border border-gray-800 object-contain"
+      />
     );
   }
 
@@ -124,7 +128,9 @@ function DocumentFileRenderer({ document }: { document: AgencyDocument }) {
 
   return (
     <div className="mt-6 rounded-lg border border-gray-800 bg-gray-900/50 p-4">
-      <p className="text-sm text-gray-300">{document.name} · {formatBytes(document.sizeBytes)}</p>
+      <p className="text-sm text-gray-300">
+        {document.name} · {formatBytes(document.sizeBytes)}
+      </p>
       <a
         href={fileUrl}
         download={document.name}
@@ -164,7 +170,11 @@ function BrandedDocumentPreview({
         icon={<Eye className="h-5 w-5 text-indigo-400" />}
         title="Branded customer preview"
         description={`How ${brandName} customers see this document. ${recipientText}.`}
-        actions={<Button size="sm" variant="secondary" onClick={onClose}>Close</Button>}
+        actions={
+          <Button size="sm" variant="secondary" onClick={onClose}>
+            Close
+          </Button>
+        }
       />
       <CardBody>
         <div
@@ -191,7 +201,9 @@ function BrandedDocumentPreview({
           <h2 className="text-2xl font-semibold text-white" style={{ color: brandColor }}>
             {document.name}
           </h2>
-          {document.regulationName && <p className="mt-1 text-sm font-medium text-gray-400">{document.regulationName}</p>}
+          {document.regulationName && (
+            <p className="mt-1 text-sm font-medium text-gray-400">{document.regulationName}</p>
+          )}
           {document.summary && <p className="mt-4 text-sm text-gray-300">{document.summary}</p>}
           {!hasContent ? (
             <p className="mt-6 text-sm text-gray-500">No content provided.</p>
@@ -374,11 +386,7 @@ export function DocumentsTab({ agency, clients, canManage }: DocumentsTabProps) 
     const res = await shareAgencyDocument(doc.id);
     if (res.ok) {
       setDocuments((prev) =>
-        prev.map((d) =>
-          d.id === doc.id
-            ? { ...d, sharedToken: res.token, sharedAt: new Date().toISOString() }
-            : d
-        )
+        prev.map((d) => (d.id === doc.id ? { ...d, sharedToken: res.token, sharedAt: new Date().toISOString() } : d))
       );
     } else {
       setError(res.error);
@@ -394,9 +402,7 @@ export function DocumentsTab({ agency, clients, canManage }: DocumentsTabProps) 
     setProcessing((prev) => new Set(prev).add(doc.id));
     const res = await unshareAgencyDocument(doc.id);
     if (res.ok) {
-      setDocuments((prev) =>
-        prev.map((d) => (d.id === doc.id ? { ...d, sharedToken: null, sharedAt: null } : d))
-      );
+      setDocuments((prev) => prev.map((d) => (d.id === doc.id ? { ...d, sharedToken: null, sharedAt: null } : d)));
     } else {
       setError(res.error);
     }
@@ -415,9 +421,7 @@ export function DocumentsTab({ agency, clients, canManage }: DocumentsTabProps) 
     setProcessing((prev) => new Set(prev).add(doc.id));
     const res = await emailDocumentToClient(doc.id);
     if (res.ok) {
-      setDocuments((prev) =>
-        prev.map((d) => (d.id === doc.id ? { ...d, emailedAt: new Date().toISOString() } : d))
-      );
+      setDocuments((prev) => prev.map((d) => (d.id === doc.id ? { ...d, emailedAt: new Date().toISOString() } : d)));
     } else {
       setError(res.error);
     }
@@ -428,19 +432,14 @@ export function DocumentsTab({ agency, clients, canManage }: DocumentsTabProps) 
     });
   }, []);
 
-  const clientById = useCallback(
-    (id: string | null) => clients.find((c) => c.id === id),
-    [clients]
-  );
+  const clientById = useCallback((id: string | null) => clients.find((c) => c.id === id), [clients]);
 
   const previewDocument = documents.find((d) => d.id === previewDocId) || null;
 
   return (
     <div className="space-y-6">
       {error && (
-        <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
-          {error}
-        </div>
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">{error}</div>
       )}
 
       <Card>
@@ -451,7 +450,13 @@ export function DocumentsTab({ agency, clients, canManage }: DocumentsTabProps) 
           actions={
             canManage ? (
               <div className="flex items-center gap-2">
-                <Button size="sm" variant="secondary" onClick={() => fileInputRef.current?.click()} loading={uploading} disabled={uploading}>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => fileInputRef.current?.click()}
+                  loading={uploading}
+                  disabled={uploading}
+                >
                   <Upload className="h-4 w-4" />
                   Upload file
                 </Button>
@@ -576,25 +581,55 @@ export function DocumentsTab({ agency, clients, canManage }: DocumentsTabProps) 
                       {canManage && (
                         <TD className="text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <Button size="sm" variant="ghost" onClick={() => startEdit(doc)} disabled={processing.has(doc.id)} title="Edit">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => startEdit(doc)}
+                              disabled={processing.has(doc.id)}
+                              title="Edit"
+                            >
                               <Pencil className="h-4 w-4" />
                             </Button>
                             {doc.sharedToken ? (
-                              <Button size="sm" variant="ghost" onClick={() => handleUnshare(doc)} disabled={processing.has(doc.id)} title="Unshare">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleUnshare(doc)}
+                                disabled={processing.has(doc.id)}
+                                title="Unshare"
+                              >
                                 <Unlink className="h-4 w-4" />
                               </Button>
                             ) : (
-                              <Button size="sm" variant="ghost" onClick={() => handleShare(doc)} disabled={processing.has(doc.id)} title="Share with customer">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleShare(doc)}
+                                disabled={processing.has(doc.id)}
+                                title="Share with customer"
+                              >
                                 <Share2 className="h-4 w-4" />
                               </Button>
                             )}
-                            <Button size="sm" variant="ghost" onClick={() => handleEmail(doc)} disabled={processing.has(doc.id)} title="Email to client">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleEmail(doc)}
+                              disabled={processing.has(doc.id)}
+                              title="Email to client"
+                            >
                               <Mail className="h-4 w-4" />
                             </Button>
                             <Button size="sm" variant="ghost" onClick={() => setPreviewDocId(doc.id)} title="Preview">
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button size="sm" variant="danger" onClick={() => remove(doc.id)} disabled={processing.has(doc.id)} title="Delete">
+                            <Button
+                              size="sm"
+                              variant="danger"
+                              onClick={() => remove(doc.id)}
+                              disabled={processing.has(doc.id)}
+                              title="Delete"
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -614,7 +649,9 @@ export function DocumentsTab({ agency, clients, canManage }: DocumentsTabProps) 
           <CardHeader
             icon={<FileText className="h-5 w-5 text-indigo-400" />}
             title={editingId ? "Edit document" : "New document"}
-            description={editingId ? "Update your white-label document." : "Create a new reusable white-label document."}
+            description={
+              editingId ? "Update your white-label document." : "Create a new reusable white-label document."
+            }
           />
           <CardBody>
             <form onSubmit={submit} className="space-y-4">

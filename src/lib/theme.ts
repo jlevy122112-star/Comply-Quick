@@ -70,9 +70,7 @@ function accentHex(palette: ThemePalette): string {
 /** Resolves a full token set for a given palette. */
 export function getBrandTokens(palette: ThemePalette, customPrimary?: string | null): BrandTokens {
   const primary = customPrimary && /^#[0-9a-fA-F]{6}$/.test(customPrimary) ? customPrimary : hex(palette);
-  const primaryHover = customPrimary
-    ? customPrimary
-    : hoverHex(palette);
+  const primaryHover = customPrimary ? customPrimary : hoverHex(palette);
   return {
     primary,
     primaryHover,

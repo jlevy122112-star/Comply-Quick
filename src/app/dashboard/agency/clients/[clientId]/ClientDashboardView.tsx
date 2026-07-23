@@ -35,7 +35,15 @@ function formatDate(iso: string | null) {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
-export function ClientDashboardView({ dashboard, backHref, portalLabel }: { dashboard: ClientDashboard; backHref: string; portalLabel: string }) {
+export function ClientDashboardView({
+  dashboard,
+  backHref,
+  portalLabel,
+}: {
+  dashboard: ClientDashboard;
+  backHref: string;
+  portalLabel: string;
+}) {
   const { client, monitors, projects, findings, alerts, documents, stats } = dashboard;
 
   return (
@@ -120,10 +128,18 @@ export function ClientDashboardView({ dashboard, backHref, portalLabel }: { dash
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Monitors */}
           <Card>
-            <CardHeader icon={<Monitor className="h-5 w-5 text-indigo-400" />} title="Monitors" description="Tracked URLs and latest scores" />
+            <CardHeader
+              icon={<Monitor className="h-5 w-5 text-indigo-400" />}
+              title="Monitors"
+              description="Tracked URLs and latest scores"
+            />
             <CardBody>
               {monitors.length === 0 ? (
-                <EmptyState icon="🔍" title="No monitors" description="Add a monitor for this client to track compliance over time." />
+                <EmptyState
+                  icon="🔍"
+                  title="No monitors"
+                  description="Add a monitor for this client to track compliance over time."
+                />
               ) : (
                 <Table>
                   <THead>
@@ -142,7 +158,9 @@ export function ClientDashboardView({ dashboard, backHref, portalLabel }: { dash
                           <div className="text-xs text-gray-500">{monitor.url}</div>
                         </TD>
                         <TD>
-                          <Badge tone={monitor.active ? "emerald" : "gray"}>{monitor.active ? "Active" : "Paused"}</Badge>
+                          <Badge tone={monitor.active ? "emerald" : "gray"}>
+                            {monitor.active ? "Active" : "Paused"}
+                          </Badge>
                         </TD>
                         <TD>{monitor.lastScore ?? "—"}</TD>
                         <TD>{formatDate(monitor.lastScannedAt)}</TD>
@@ -156,7 +174,11 @@ export function ClientDashboardView({ dashboard, backHref, portalLabel }: { dash
 
           {/* Projects / policies */}
           <Card>
-            <CardHeader icon={<FileText className="h-5 w-5 text-emerald-400" />} title="Projects" description="Compliance packages and current status" />
+            <CardHeader
+              icon={<FileText className="h-5 w-5 text-emerald-400" />}
+              title="Projects"
+              description="Compliance packages and current status"
+            />
             <CardBody>
               {projects.length === 0 ? (
                 <EmptyState icon="📁" title="No projects" description="Create a compliance project for this client." />
@@ -190,10 +212,18 @@ export function ClientDashboardView({ dashboard, backHref, portalLabel }: { dash
 
         {/* Current policies / regulations */}
         <Card>
-          <CardHeader icon={<Shield className="h-5 w-5 text-sky-400" />} title="Current policies & regulations" description="Latest compliance package versions tracked for this client" />
+          <CardHeader
+            icon={<Shield className="h-5 w-5 text-sky-400" />}
+            title="Current policies & regulations"
+            description="Latest compliance package versions tracked for this client"
+          />
           <CardBody>
             {documents.length === 0 ? (
-              <EmptyState icon="📜" title="No policy documents" description="Autopilot will propose compliance package updates when tracked regulations change." />
+              <EmptyState
+                icon="📜"
+                title="No policy documents"
+                description="Autopilot will propose compliance package updates when tracked regulations change."
+              />
             ) : (
               <div className="space-y-3">
                 {documents.map((document) => (
@@ -224,7 +254,11 @@ export function ClientDashboardView({ dashboard, backHref, portalLabel }: { dash
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Findings */}
           <Card>
-            <CardHeader icon={<Shield className="h-5 w-5 text-rose-400" />} title="Open findings" description="Unresolved compliance gaps" />
+            <CardHeader
+              icon={<Shield className="h-5 w-5 text-rose-400" />}
+              title="Open findings"
+              description="Unresolved compliance gaps"
+            />
             <CardBody>
               {findings.length === 0 ? (
                 <EmptyState icon="🛡️" title="No open findings" description="All tracked findings are resolved." />
@@ -254,10 +288,18 @@ export function ClientDashboardView({ dashboard, backHref, portalLabel }: { dash
 
           {/* Alerts */}
           <Card>
-            <CardHeader icon={<Bell className="h-5 w-5 text-amber-400" />} title="Alerts" description="Recent compliance events for this client" />
+            <CardHeader
+              icon={<Bell className="h-5 w-5 text-amber-400" />}
+              title="Alerts"
+              description="Recent compliance events for this client"
+            />
             <CardBody>
               {alerts.length === 0 ? (
-                <EmptyState icon="🔔" title="No alerts" description="No unresolved compliance alerts for this client." />
+                <EmptyState
+                  icon="🔔"
+                  title="No alerts"
+                  description="No unresolved compliance alerts for this client."
+                />
               ) : (
                 <div className="space-y-3">
                   {alerts.map((alert) => (

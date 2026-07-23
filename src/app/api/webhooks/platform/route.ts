@@ -30,7 +30,8 @@ function extractSource(record: Record<string, unknown> | undefined): PlatformSou
 
 export async function POST(request: Request) {
   try {
-    const secret = request.headers.get("x-webhook-secret") || request.headers.get("authorization")?.replace("Bearer ", "");
+    const secret =
+      request.headers.get("x-webhook-secret") || request.headers.get("authorization")?.replace("Bearer ", "");
     if (EXPECTED_SECRET && secret !== EXPECTED_SECRET) {
       return new NextResponse(JSON.stringify({ ok: false, error: "Unauthorized" }), { status: 401 });
     }
@@ -44,13 +45,16 @@ export async function POST(request: Request) {
 
     const source = extractSource(record);
     const admin = createAdminClient();
-    const { error } = await admin.schema("connector").from("platform_webhook_events").insert({
-      agency_org_id: agencyOrgId,
-      source,
-      event_type: payload.type ?? "UNKNOWN",
-      payload: payload as unknown as Record<string, unknown>,
-      processed: false,
-    });
+    const { error } = await admin
+      .schema("connector")
+      .from("platform_webhook_events")
+      .insert({
+        agency_org_id: agencyOrgId,
+        source,
+        event_type: payload.type ?? "UNKNOWN",
+        payload: payload as unknown as Record<string, unknown>,
+        processed: false,
+      });
 
     if (error) {
       return new NextResponse(JSON.stringify({ ok: false, error: "Could not log webhook" }), { status: 500 });

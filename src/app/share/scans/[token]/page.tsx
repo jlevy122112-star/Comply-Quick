@@ -30,7 +30,10 @@ function scoreColorClass(score: number): string {
   return score >= 80 ? "text-emerald-400" : score >= 60 ? "text-yellow-400" : "text-red-400";
 }
 
-async function resolveScanBranding(scan: { organizationId: string | null; clientId: string | null }): Promise<ScanBranding> {
+async function resolveScanBranding(scan: {
+  organizationId: string | null;
+  clientId: string | null;
+}): Promise<ScanBranding> {
   const admin = createAdminClient();
   const fallback: ScanBranding = {
     name: "Comply-Quick",
@@ -48,7 +51,12 @@ async function resolveScanBranding(scan: { organizationId: string | null; client
       .select("name, logo_url, primary_color, support_email")
       .eq("id", scan.organizationId)
       .single();
-    const orgRow = org as { name?: string; logo_url?: string | null; primary_color?: string; support_email?: string | null } | null;
+    const orgRow = org as {
+      name?: string;
+      logo_url?: string | null;
+      primary_color?: string;
+      support_email?: string | null;
+    } | null;
     if (orgRow) {
       branding = {
         name: orgRow.name ?? fallback.name,
@@ -61,7 +69,11 @@ async function resolveScanBranding(scan: { organizationId: string | null; client
   }
 
   if (scan.clientId) {
-    const { data: client } = await admin.from("agency_clients").select("name, contact_email").eq("id", scan.clientId).single();
+    const { data: client } = await admin
+      .from("agency_clients")
+      .select("name, contact_email")
+      .eq("id", scan.clientId)
+      .single();
     const clientRow = client as { name?: string; contact_email?: string | null } | null;
     if (clientRow) {
       branding.clientName = clientRow.name ?? null;
@@ -143,7 +155,11 @@ export default async function SharedScanPage({ params }: ShareScanPageProps) {
               {scan.findings.map((f) => {
                 const isCritical = f.severity === "critical";
                 const isWarning = f.severity === "warning";
-                const border = isCritical ? "border-red-500/30" : isWarning ? "border-yellow-500/30" : "border-sky-500/30";
+                const border = isCritical
+                  ? "border-red-500/30"
+                  : isWarning
+                    ? "border-yellow-500/30"
+                    : "border-sky-500/30";
                 const text = isCritical ? "text-red-300" : isWarning ? "text-yellow-300" : "text-sky-300";
                 const icon = isCritical ? "🚨" : isWarning ? "⚠️" : "ℹ️";
                 return (

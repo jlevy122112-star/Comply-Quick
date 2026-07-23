@@ -54,10 +54,7 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
   // Cheap counts drive the tab badges on every load; the heavy list (member
   // email resolution, workspace project tallies, SSO rows) is fetched only for
   // the active tab so, e.g., viewing Profile never pays the members email cost.
-  const [memberCount, workspaceCount] = await Promise.all([
-    countOrgMembers(org.id),
-    countWorkspaces(org.id),
-  ]);
+  const [memberCount, workspaceCount] = await Promise.all([countOrgMembers(org.id), countWorkspaces(org.id)]);
   const members = tab === "members" ? await listOrgMembers(org.id) : [];
   const workspaces = tab === "workspaces" ? await listWorkspaces(org.id) : [];
   const sso = tab === "sso" ? await listSsoConnections(org.id) : [];

@@ -40,7 +40,8 @@ export interface CreateAgencyDocumentInput {
   status?: AgencyDocumentStatus;
 }
 
-const DOC_COLUMNS = "id, agency_id, client_id, name, regulation_name, summary, content, status, storage_path, mime_type, size_bytes, uploaded_by, shared_token, shared_at, emailed_at, created_at, updated_at";
+const DOC_COLUMNS =
+  "id, agency_id, client_id, name, regulation_name, summary, content, status, storage_path, mime_type, size_bytes, uploaded_by, shared_token, shared_at, emailed_at, created_at, updated_at";
 
 const AGENCY_DOCUMENTS_BUCKET = "agency-documents";
 
@@ -85,11 +86,7 @@ export async function listAgencyDocuments(agencyId: string): Promise<AgencyDocum
 
 export async function getAgencyDocumentBySharedToken(token: string): Promise<AgencyDocument | null> {
   const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("agency_documents")
-    .select(DOC_COLUMNS)
-    .eq("shared_token", token)
-    .single();
+  const { data, error } = await admin.from("agency_documents").select(DOC_COLUMNS).eq("shared_token", token).single();
   if (error || !data) return null;
   return mapDoc(data);
 }
@@ -153,7 +150,9 @@ export async function getAgencyDocumentSignedUrl(
   expiresInSeconds = 3600
 ): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
   const supabase = createClient();
-  const { data, error } = await supabase.storage.from(AGENCY_DOCUMENTS_BUCKET).createSignedUrl(storagePath, expiresInSeconds);
+  const { data, error } = await supabase.storage
+    .from(AGENCY_DOCUMENTS_BUCKET)
+    .createSignedUrl(storagePath, expiresInSeconds);
   if (error || !data?.signedUrl) return { ok: false, error: error?.message ?? "Could not create signed URL." };
   return { ok: true, url: data.signedUrl };
 }

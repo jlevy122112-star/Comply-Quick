@@ -12,7 +12,7 @@ import { getAiClient } from "@/services/ai";
 import { analytics, logger } from "@/services";
 import { UnauthorizedError } from "@/services/errors";
 import { recordScanUsage, currentPeriod, periodStartIso } from "@/lib/billing/usage";
-import { scanLimit } from "@/lib/pricing";
+import { isUnlimited, scanLimit } from "@/lib/pricing";
 import { runScan } from "./pipeline";
 import { materializeScanFindings } from "@/lib/findings-db";
 import { normalizeScanUrl } from "./crawler";
@@ -22,7 +22,8 @@ import { createSystemAuditLog } from "@/lib/audit";
 
 const log = logger.child({ module: "scanner" });
 
-const SCAN_COLUMNS = "id, url, status, score, detected_tools, findings, summary, error, organization_id, client_id, shared_token, shared_at, emailed_at, created_at";
+const SCAN_COLUMNS =
+  "id, url, status, score, detected_tools, findings, summary, error, organization_id, client_id, shared_token, shared_at, emailed_at, created_at";
 
 /**
  * Scan-cache window. A completed scan of the same (normalized) URL within this
@@ -65,6 +66,7 @@ export interface ScanQuota {
 export async function getScanQuota(): Promise<ScanQuota> {
   const entitlement = await getOrgEntitlement();
   const limit = scanLimit(entitlement.tier);
+  const quotaLimit = isUnlimited(limit) ? null : limit;
 
   const supabase = await createClient();
   const {
@@ -79,8 +81,8 @@ export async function getScanQuota(): Promise<ScanQuota> {
     .gte("created_at", periodStartIso(currentPeriod()));
 
   const used = count ?? 0;
-  const remaining = limit === null ? null : Math.max(0, limit - used);
-  return { isPremium: entitlement.isPremium, used, limit, remaining };
+  const remaining = quotaLimit === null ? null : Math.max(0, quotaLimit - used);
+  return { isPremium: entitlement.isPremium, used, limit: quotaLimit, remaining };
 }
 
 function mapRow(row: Record<string, unknown>): ScanRecord {

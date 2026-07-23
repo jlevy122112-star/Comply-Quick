@@ -83,7 +83,9 @@ export default async function SharedDocumentPage({ params }: SharePageProps) {
   let fileContent: string | null = null;
   if (document.storagePath) {
     const admin = createAdminClient();
-    const { data, error } = await admin.storage.from(AGENCY_DOCUMENTS_BUCKET).createSignedUrl(document.storagePath, 60 * 60);
+    const { data, error } = await admin.storage
+      .from(AGENCY_DOCUMENTS_BUCKET)
+      .createSignedUrl(document.storagePath, 60 * 60);
     if (!error && data?.signedUrl) {
       fileUrl = data.signedUrl;
       if (document.mimeType === "text/plain" || document.mimeType === "text/markdown") {
@@ -137,7 +139,11 @@ export default async function SharedDocumentPage({ params }: SharePageProps) {
             <div className="mt-6">
               {document.mimeType?.startsWith("image/") && fileUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={fileUrl} alt={document.name} className="max-h-96 rounded-lg border border-gray-800 object-contain" />
+                <img
+                  src={fileUrl}
+                  alt={document.name}
+                  className="max-h-96 rounded-lg border border-gray-800 object-contain"
+                />
               ) : document.mimeType === "application/pdf" && fileUrl ? (
                 <div className="rounded-lg border border-gray-800 bg-gray-950">
                   <iframe src={fileUrl} title={document.name} className="h-96 w-full rounded-lg" />
@@ -148,7 +154,9 @@ export default async function SharedDocumentPage({ params }: SharePageProps) {
                 </div>
               ) : fileUrl ? (
                 <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-4">
-                  <p className="text-sm text-gray-300">{document.name} · {formatBytes(document.sizeBytes)}</p>
+                  <p className="text-sm text-gray-300">
+                    {document.name} · {formatBytes(document.sizeBytes)}
+                  </p>
                   <a
                     href={fileUrl}
                     download={document.name}

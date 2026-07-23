@@ -45,7 +45,11 @@ export async function emailDocumentToClient(documentId: string): Promise<{ ok: t
 
   // Ensure a share link exists.
   let shareUrl: string | null = null;
-  const { data: existing } = await supabase.from("agency_documents").select("shared_token").eq("id", documentId).single();
+  const { data: existing } = await supabase
+    .from("agency_documents")
+    .select("shared_token")
+    .eq("id", documentId)
+    .single();
   if (existing && (existing as { shared_token?: string } | null)?.shared_token) {
     shareUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/share/documents/${(existing as { shared_token: string }).shared_token}`;
   } else {

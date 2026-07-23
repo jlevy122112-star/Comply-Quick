@@ -4,15 +4,7 @@
 
 export type ThemePalette = "indigo" | "emerald" | "rose" | "amber" | "ocean" | "forest" | "slate";
 
-export const THEME_PALETTES: ThemePalette[] = [
-  "indigo",
-  "emerald",
-  "rose",
-  "amber",
-  "ocean",
-  "forest",
-  "slate",
-];
+export const THEME_PALETTES: ThemePalette[] = ["indigo", "emerald", "rose", "amber", "ocean", "forest", "slate"];
 
 export type OrganizationKind = "organization" | "department" | "region";
 

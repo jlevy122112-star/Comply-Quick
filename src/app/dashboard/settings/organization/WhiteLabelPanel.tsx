@@ -287,7 +287,9 @@ export function WhiteLabelPanel({ org, canManage }: { org: Organization; canMana
                 </div>
                 <span className="font-semibold text-white">{org.name}</span>
               </div>
-              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${paletteClasses.badgeBg} ${paletteClasses.badgeText}`}>
+              <span
+                className={`rounded-full px-2 py-0.5 text-xs font-medium ${paletteClasses.badgeBg} ${paletteClasses.badgeText}`}
+              >
                 {palette}
               </span>
             </div>
