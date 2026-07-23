@@ -65,7 +65,7 @@ export function MembersPanel({ orgId, role, members }: { orgId: string; role: Ro
       {canInvite && (
         <Card>
           <CardBody>
-            <h2 className="text-sm font-semibold text-white">Invite a member</h2>
+            <h2 className="text-sm font-semibold text-white">Invite a Member</h2>
             <p className="mt-1 text-sm text-gray-400">
               Add an existing Comply-Quick account by email and assign a role.
             </p>

@@ -131,7 +131,7 @@ export default function PlansBillingView({ tier, status, currentPeriodEnd, usage
   return (
     <main className="mx-auto max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
       <PageTitle
-        title="Plans & billing"
+        title="Plans & Billing"
         description="One clear view of your workspace plan, usage, and subscription controls."
         icon={<CreditCard className="h-6 w-6 text-accent-primary" aria-hidden="true" />}
         actions={
@@ -183,7 +183,7 @@ export default function PlansBillingView({ tier, status, currentPeriodEnd, usage
 
         <Card>
           <CardHeader
-            title="Subscription support"
+            title="Subscription Support"
             icon={<Sparkles className="h-5 w-5 text-accent-primary" aria-hidden="true" />}
           />
           <CardBody className="space-y-3">
@@ -211,7 +211,7 @@ export default function PlansBillingView({ tier, status, currentPeriodEnd, usage
       <section>
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-text-primary">Usage this period</h2>
+            <h2 className="text-xl font-semibold text-text-primary">Usage This Period</h2>
             <p className="mt-1 text-sm text-text-secondary">
               Usage is scoped to your active organization where supported. Limits follow the organization owner&apos;s
               entitlement.
@@ -224,13 +224,13 @@ export default function PlansBillingView({ tier, status, currentPeriodEnd, usage
             <CardBody>
               {usage.scans ? (
                 <Meter
-                  label="Compliance scans"
+                  label="Compliance Scans"
                   used={usage.scans.used}
                   limit={usage.scans.limit}
                   detail="Calendar-month scans"
                 />
               ) : (
-                <UnavailableMeter label="Compliance scans" />
+                <UnavailableMeter label="Compliance Scans" />
               )}
             </CardBody>
           </Card>
@@ -248,10 +248,10 @@ export default function PlansBillingView({ tier, status, currentPeriodEnd, usage
                   <p className="text-xs text-text-muted">Upgrade to a client-management plan to build a portfolio.</p>
                 </div>
               ) : usage.managedClients.status === "unavailable" ? (
-                <UnavailableMeter label="Managed clients" />
+                <UnavailableMeter label="Managed Clients" />
               ) : (
                 <Meter
-                  label="Managed clients"
+                  label="Managed Clients"
                   used={usage.managedClients.used}
                   limit={usage.managedClients.limit}
                   detail="Active client workspaces"
@@ -263,13 +263,13 @@ export default function PlansBillingView({ tier, status, currentPeriodEnd, usage
             <CardBody>
               {usage.seats ? (
                 <Meter
-                  label="Team seats"
+                  label="Team Seats"
                   used={usage.seats.used}
                   limit={usage.seats.limit}
                   detail="Members in this workspace"
                 />
               ) : (
-                <UnavailableMeter label="Team seats" />
+                <UnavailableMeter label="Team Seats" />
               )}
             </CardBody>
           </Card>
@@ -279,7 +279,7 @@ export default function PlansBillingView({ tier, status, currentPeriodEnd, usage
       <section>
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-text-primary">Compare plans</h2>
+            <h2 className="text-xl font-semibold text-text-primary">Compare Plans</h2>
             <p className="mt-1 text-sm text-text-secondary">
               Scale from focused solo compliance to an unlimited enterprise workspace.
             </p>
@@ -287,7 +287,7 @@ export default function PlansBillingView({ tier, status, currentPeriodEnd, usage
           <div
             className="inline-flex rounded-xl border border-border-default bg-surface-card p-1"
             role="group"
-            aria-label="Billing cadence"
+            aria-label="Billing Cadence"
           >
             {(["monthly", "annual"] as Billing[]).map((cadence) => (
               <button

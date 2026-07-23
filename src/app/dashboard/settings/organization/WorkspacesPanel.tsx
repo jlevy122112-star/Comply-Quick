@@ -76,7 +76,7 @@ export function WorkspacesPanel({ orgId, role, workspaces }: { orgId: string; ro
       {workspaces.length === 0 ? (
         <EmptyState
           icon="🗂️"
-          title="No workspaces yet"
+          title="No Workspaces Yet"
           description="Create a workspace to organize projects by team or client."
         />
       ) : (

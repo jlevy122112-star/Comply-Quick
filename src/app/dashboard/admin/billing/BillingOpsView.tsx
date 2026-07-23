@@ -428,7 +428,7 @@ export default function BillingOpsView({ tenants, detail, selectedId, stripeConf
                       )}
                       {invoice.status === "draft" && !invoice.stripeInvoiceId && (
                         <InvoiceAction
-                          label="Open invoice"
+                          label="Open Invoice"
                           status="open"
                           invoice={invoice}
                           organizationId={tenant.id}
@@ -438,7 +438,7 @@ export default function BillingOpsView({ tenants, detail, selectedId, stripeConf
                       )}
                       {invoice.status === "open" && (
                         <InvoiceAction
-                          label="Mark paid"
+                          label="Mark Paid"
                           status="paid"
                           invoice={invoice}
                           organizationId={tenant.id}

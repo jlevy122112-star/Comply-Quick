@@ -229,7 +229,7 @@ export function WhiteLabelPanel({ org, canManage }: { org: Organization; canMana
 
           <div className="mt-6 grid gap-6 lg:grid-cols-3">
             <Select
-              label="Theme palette"
+              label="Theme Palette"
               value={palette}
               disabled={!canManage}
               onChange={(e) => setPalette(e.target.value as ThemePalette)}
@@ -242,7 +242,7 @@ export function WhiteLabelPanel({ org, canManage }: { org: Organization; canMana
             </Select>
 
             <Input
-              label="Primary color"
+              label="Primary Color"
               value={primaryColor}
               disabled={!canManage}
               onChange={(e) => setPrimaryColor(e.target.value)}
@@ -250,7 +250,7 @@ export function WhiteLabelPanel({ org, canManage }: { org: Organization; canMana
             />
 
             <Input
-              label="Support email"
+              label="Support Email"
               type="email"
               value={supportEmail}
               disabled={!canManage}

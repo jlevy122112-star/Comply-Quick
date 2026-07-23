@@ -84,7 +84,7 @@ export function SsoPanel({
       {canManage && (
         <Card>
           <CardBody>
-            <h2 className="text-sm font-semibold text-white">Add SSO connection</h2>
+            <h2 className="text-sm font-semibold text-white">Add SSO Connection</h2>
             <p className="mt-1 text-sm text-gray-400">Map an email domain to your identity provider (SAML or OIDC).</p>
             <form onSubmit={create} className="mt-4 grid gap-3 sm:grid-cols-2">
               <label className="text-sm">
@@ -124,7 +124,7 @@ export function SsoPanel({
       {connections.length === 0 ? (
         <EmptyState
           icon="🔐"
-          title="No SSO connections"
+          title="No SSO Connections"
           description="Add a SAML or OIDC connection to let your team sign in with your identity provider."
         />
       ) : (
