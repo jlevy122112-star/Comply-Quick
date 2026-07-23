@@ -95,6 +95,8 @@ export class ShopifyAdminClient {
   }
 
   private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+    // Real fetches always validate hosts and use the hardened dispatcher; injected
+    // fetches must provide assertHost to retain SSRF validation.
     if (this.shouldValidateHost) await this.assertHost(new URL(this.base).hostname);
     const headers: Record<string, string> = {
       "X-Shopify-Access-Token": this.token,
