@@ -88,35 +88,35 @@ export default function CookiePolicyTool() {
           />
           <CardBody className="space-y-5">
             <Input
-              label="Company / site name"
+              label="Company / Site Name"
               placeholder="Acme Store"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
             />
             <Input
-              label="Website URL (optional)"
+              label="Website URL (Optional)"
               placeholder="https://acme.com"
               value={websiteUrl}
               onChange={(e) => setWebsiteUrl(e.target.value)}
             />
             <Input
-              label="Privacy policy URL"
+              label="Privacy Policy URL"
               placeholder="/privacy"
               value={privacyPolicyUrl}
               onChange={(e) => setPrivacyPolicyUrl(e.target.value)}
             />
             <Input
-              label="Contact email (optional)"
+              label="Contact Email (Optional)"
               placeholder="privacy@acme.com"
               value={contactEmail}
               onChange={(e) => setContactEmail(e.target.value)}
             />
             <div>
-              <p className="mb-2 text-xs font-medium text-gray-300">Target jurisdictions</p>
+              <p className="mb-2 text-xs font-medium text-gray-300">Target Jurisdictions</p>
               <RegionPicker selected={regions} onToggle={toggle(setRegions)} />
             </div>
             <div>
-              <p className="mb-2 text-xs font-medium text-gray-300">Tracking technologies in use</p>
+              <p className="mb-2 text-xs font-medium text-gray-300">Tracking Technologies in Use</p>
               <PixelPicker selected={pixels} onToggle={toggle(setPixels)} />
             </div>
             <Button onClick={generate} loading={generating} disabled={!canGenerate} className="w-full" size="lg">
@@ -147,7 +147,7 @@ export default function CookiePolicyTool() {
 
             <Card>
               <CardHeader
-                title="Your cookie policy"
+                title="Your Cookie Policy"
                 description={`Version ${result.policyVersion} · effective ${result.effectiveDate}.`}
                 icon="📃"
                 actions={<Badge tone={CONSENT_TONE[result.consentModel]}>{result.consentModel} model</Badge>}
@@ -178,7 +178,7 @@ export default function CookiePolicyTool() {
 
                 {tab === "preview" ? (
                   <iframe
-                    title="Cookie policy preview"
+                    title="Cookie Policy Preview"
                     srcDoc={previewSrcDoc}
                     className="h-[28rem] w-full rounded-lg border border-gray-800 bg-gray-900"
                   />
@@ -216,7 +216,7 @@ export default function CookiePolicyTool() {
             </Card>
 
             <NextStepCard
-              title="Collect consent for these cookies"
+              title="Collect Consent for These Cookies"
               description="Generate a matching consent banner that gates these exact technologies until the visitor agrees."
               href="/dashboard/tools/cookie-banner"
               cta="Generate banner"

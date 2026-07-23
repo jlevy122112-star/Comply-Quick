@@ -39,12 +39,12 @@ export default function HeroStatusPanel({
         <CardBody className="p-5 sm:p-7">
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-center">
             <div className="flex items-center gap-5 sm:gap-7">
-              <ScoreRing score={score} size="lg" label="overall score" tone="surface" />
+              <ScoreRing score={score} size="lg" label="Overall Score" tone="surface" />
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">Tier 1 · Hero</p>
                 <h1
                   id="compliance-status-title"
-                  className="type-h1 mt-2 max-w-full break-words text-[clamp(1.75rem,3.2vw,2.5rem)] text-text-primary [overflow-wrap:anywhere]"
+                  className="mt-2 max-w-full break-words text-[clamp(1.75rem,3.2vw,2.5rem)] font-bold leading-[1.1] tracking-[-0.03em] text-text-primary [overflow-wrap:anywhere]"
                 >
                   Your Compliance Status
                 </h1>
@@ -74,7 +74,7 @@ export default function HeroStatusPanel({
               </div>
               <p className="mt-2 text-sm text-text-secondary">{recommendation.description}</p>
               <div className="mt-4 border-t border-border-default pt-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">Why this matters</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-muted">Why This Matters</p>
                 <p className="mt-1 text-sm leading-6 text-text-secondary">{recommendation.why}</p>
               </div>
               <div className="mt-5">
@@ -101,7 +101,7 @@ export default function HeroStatusPanel({
 
       <div className="grid gap-4 md:grid-cols-2" aria-label="Compliance details">
         <Card variant="glass">
-          <CardHeader title="Score detail" description="How your current baseline is tracking." />
+          <CardHeader title="Score Detail" description="How your current baseline is tracking." />
           <CardBody className="grid grid-cols-2 gap-x-5 gap-y-4 sm:grid-cols-4">
             {aggregateScore ? (
               <>
@@ -117,7 +117,7 @@ export default function HeroStatusPanel({
         </Card>
 
         <Card variant="glass">
-          <CardHeader title="Scan usage" description="Current calendar-month coverage." />
+          <CardHeader title="Scan Usage" description="Current calendar-month coverage." />
           <CardBody>
             {scanUsage ? (
               <div className="space-y-3">

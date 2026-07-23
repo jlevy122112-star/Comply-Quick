@@ -127,7 +127,7 @@ export function WhiteLabelPanel({ org, canManage }: { org: Organization; canMana
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader title="Brand & appearance" description="Make Comply-Quick feel like your organization." />
+        <CardHeader title="Brand & Appearance" description="Make Comply-Quick feel like your organization." />
         <CardBody>
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Logo */}
@@ -269,7 +269,7 @@ export function WhiteLabelPanel({ org, canManage }: { org: Organization; canMana
       </Card>
 
       <Card>
-        <CardHeader title="Live preview" description="How the branded experience appears to users." />
+        <CardHeader title="Live Preview" description="How the branded experience appears to users." />
         <CardBody>
           <div className="rounded-2xl border border-gray-800 bg-gray-950 p-6">
             <div className="mb-6 flex items-center justify-between">
@@ -293,7 +293,7 @@ export function WhiteLabelPanel({ org, canManage }: { org: Organization; canMana
                 {palette}
               </span>
             </div>
-            <h3 className="text-lg font-semibold text-white">Compliance, simplified</h3>
+            <h3 className="text-lg font-semibold text-white">Compliance, Simplified</h3>
             <p className="mt-1 text-sm text-gray-400">Your brand colors, logo, and support email in one place.</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <button
@@ -323,13 +323,13 @@ export function WhiteLabelPanel({ org, canManage }: { org: Organization; canMana
 
       <Card>
         <CardHeader
-          title="Outbound email"
+          title="Outbound Email"
           description="Use your own sender address for transactional emails sent by this organization."
         />
         <CardBody>
           <div className="grid gap-6 lg:grid-cols-2">
             <Input
-              label="From email"
+              label="From Email"
               type="email"
               value={smtpFrom}
               disabled={!canManage}
@@ -337,7 +337,7 @@ export function WhiteLabelPanel({ org, canManage }: { org: Organization; canMana
               placeholder="noreply@company.com"
             />
             <Input
-              label="Reply-To email"
+              label="Reply-To Email"
               type="email"
               value={smtpReplyTo}
               disabled={!canManage}

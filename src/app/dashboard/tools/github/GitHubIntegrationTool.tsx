@@ -72,7 +72,7 @@ export default function GitHubIntegrationTool() {
     <div className="space-y-6">
       <Card>
         <CardHeader
-          title="GitHub connection"
+          title="GitHub Connection"
           description="Connect your GitHub account to scan repositories for compliance signals."
         />
         <CardBody>
@@ -102,7 +102,7 @@ export default function GitHubIntegrationTool() {
 
       {connected && (
         <Card>
-          <CardHeader title="Scan repository" description="Enter an owner/repo name to scan for compliance findings." />
+          <CardHeader title="Scan Repository" description="Enter an owner/repo name to scan for compliance findings." />
           <CardBody>
             <form onSubmit={handleScan} className="flex flex-col sm:flex-row gap-4 items-end">
               <div className="flex-1 w-full">

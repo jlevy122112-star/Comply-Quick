@@ -149,7 +149,7 @@ export function SecurityPanel({ initialFactors }: Props) {
     <div className="space-y-6">
       <Card>
         <CardHeader
-          title="Two-factor authentication (2FA)"
+          title="Two-Factor Authentication (2FA)"
           description="Add a time-based one-time password (TOTP) from an authenticator app such as Google Authenticator, 1Password, or Authy. You'll be asked for a code when signing in."
           actions={<Badge tone={hasVerified ? "emerald" : "gray"}>{hasVerified ? "Enabled" : "Not enabled"}</Badge>}
         />
@@ -185,7 +185,7 @@ export function SecurityPanel({ initialFactors }: Props) {
 
           {enroll ? (
             <div className="rounded-lg border border-gray-800 bg-gray-950 p-4">
-              <p className="text-sm font-medium text-gray-200">1. Scan this QR code</p>
+              <p className="text-sm font-medium text-gray-200">1. Scan This QR Code</p>
               <p className="mb-3 text-xs text-gray-500">
                 Open your authenticator app and scan the code, or enter the setup key manually.
               </p>
@@ -197,7 +197,7 @@ export function SecurityPanel({ initialFactors }: Props) {
                 </div>
                 <div className="min-w-0 flex-1 space-y-3">
                   <div>
-                    <p className="text-xs text-gray-500">Setup key</p>
+                    <p className="text-xs text-gray-500">Setup Key</p>
                     <code className="break-all font-mono text-sm text-gray-200">{formatTotpSecret(enroll.secret)}</code>
                   </div>
                   <div>

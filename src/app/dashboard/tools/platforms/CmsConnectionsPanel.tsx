@@ -82,7 +82,7 @@ export default function CmsConnectionsPanel({ organizationId }: CmsConnectionsPa
 
   return (
     <Card className="mt-8">
-      <CardHeader title="CMS plugin connections" description="Track Webflow app and WordPress plugin installations." />
+      <CardHeader title="CMS Plugin Connections" description="Track Webflow app and WordPress plugin installations." />
       <CardBody>
         <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-4 items-end mb-6">
           <div className="flex-1 w-full">
@@ -93,7 +93,7 @@ export default function CmsConnectionsPanel({ organizationId }: CmsConnectionsPa
           </div>
           <div className="flex-[2] w-full">
             <Input
-              label="Site / account identifier"
+              label="Site / Account Identifier"
               placeholder="example.com or Webflow site id"
               value={externalAccountId}
               onChange={(e) => setExternalAccountId(e.target.value)}

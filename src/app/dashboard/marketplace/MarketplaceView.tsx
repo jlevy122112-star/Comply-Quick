@@ -108,7 +108,7 @@ export default function MarketplaceView({ templates, purchasedIds, canSell }: Pr
             onChange={(e) => setType(e.target.value)}
             className="px-3 py-2 rounded-lg bg-gray-900 border border-gray-800 text-sm text-gray-100 focus:outline-none focus:border-emerald-500"
           >
-            <option value="all">All types</option>
+            <option value="all">All Types</option>
             {TEMPLATE_TYPES.map((k) => (
               <option key={k} value={k}>
                 {TEMPLATE_TYPE_LABELS[k]}
@@ -120,7 +120,7 @@ export default function MarketplaceView({ templates, purchasedIds, canSell }: Pr
             onChange={(e) => setCategory(e.target.value)}
             className="px-3 py-2 rounded-lg bg-gray-900 border border-gray-800 text-sm text-gray-100 focus:outline-none focus:border-emerald-500 capitalize"
           >
-            <option value="all">All categories</option>
+            <option value="all">All Categories</option>
             {TEMPLATE_CATEGORIES.map((c) => (
               <option key={c} value={c}>
                 {c}

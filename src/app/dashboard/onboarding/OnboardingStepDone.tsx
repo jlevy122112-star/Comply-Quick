@@ -6,9 +6,9 @@ export function OnboardingStepDone() {
   return (
     <Card>
       <CardBody className="flex flex-col items-center gap-4 py-10 text-center">
-        <ScoreRing score={100} label="ready" />
+        <ScoreRing score={100} label="Ready" />
         <div>
-          <h2 className="text-lg font-semibold text-white">Project created</h2>
+          <h2 className="text-lg font-semibold text-white">Project Created</h2>
           <p className="mt-1 text-sm text-gray-400">Taking you to your new compliance workspace…</p>
         </div>
         <Link href="/dashboard/home" className="text-sm text-indigo-400 hover:text-indigo-300">

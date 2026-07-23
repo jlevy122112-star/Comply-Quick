@@ -72,7 +72,7 @@ export function TopBar({
 
         <form onSubmit={handleSearch} className="relative min-w-0 flex-1 lg:max-w-md">
           <label htmlFor="dashboard-global-search" className="sr-only">
-            Search dashboard destinations
+            Search Dashboard Destinations
           </label>
           <Search
             className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted"
@@ -133,7 +133,7 @@ export function TopBar({
                 href="/dashboard/cancel"
                 className="hidden rounded-lg px-2.5 py-2 text-xs text-text-muted hover:bg-surface-elevated hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary xl:inline-flex"
               >
-                Cancel plan
+                Cancel Plan
               </Link>
             </>
           )}
@@ -179,7 +179,7 @@ export function TopBar({
                   onClick={() => setProfileOpen(false)}
                   className="block rounded-md px-3 py-2 text-sm text-text-secondary hover:bg-surface-elevated hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary"
                 >
-                  Profile & organization
+                  Profile & Organization
                 </Link>
                 {tier !== "free" && (
                   <button

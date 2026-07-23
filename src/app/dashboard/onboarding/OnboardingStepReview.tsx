@@ -25,14 +25,14 @@ export function OnboardingStepReview({
       <CardBody className="space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <Badge tone="sky">Recommended setup</Badge>
+            <Badge tone="sky">Recommended Setup</Badge>
             <h2 className="mt-2 text-lg font-semibold text-white">{rec.industryLabel}</h2>
             <p className="mt-1 text-sm text-gray-400">{rec.rationale}</p>
           </div>
         </div>
 
         <div>
-          <h3 className="mb-2 text-sm font-semibold text-gray-300">Frameworks to track ({rec.frameworks.length})</h3>
+          <h3 className="mb-2 text-sm font-semibold text-gray-300">Frameworks to Track ({rec.frameworks.length})</h3>
           <div className="flex flex-wrap gap-2">
             {rec.frameworks.map((f) => (
               <span key={f} className="rounded-md border border-gray-700 bg-gray-900 px-2 py-1 text-xs text-gray-300">
@@ -54,7 +54,7 @@ export function OnboardingStepReview({
         </div>
 
         <div>
-          <h3 className="mb-2 text-sm font-semibold text-gray-300">Setup plan</h3>
+          <h3 className="mb-2 text-sm font-semibold text-gray-300">Setup Plan</h3>
           <ol className="space-y-2">
             {rec.plan.actions.map((a, i) => (
               <li key={a.type} className="flex gap-3 rounded-lg border border-gray-800 bg-gray-900/40 px-3 py-2">

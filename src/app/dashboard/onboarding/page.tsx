@@ -27,7 +27,7 @@ export default async function OnboardingPage() {
 
       <main className="px-4 py-8 sm:px-6">
         <div className="mx-auto mb-8 max-w-3xl text-center">
-          <h1 className="text-2xl font-bold text-white">Guided setup</h1>
+          <h1 className="text-2xl font-bold text-white">Guided Setup</h1>
           <p className="mt-1 text-sm text-gray-400">
             Answer a few questions and the Onboarding agent will configure your first compliance project.
           </p>

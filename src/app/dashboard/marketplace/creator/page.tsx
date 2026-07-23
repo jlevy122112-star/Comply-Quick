@@ -38,7 +38,7 @@ export default async function CreatorPage() {
         </header>
         <main className="max-w-2xl mx-auto px-4 py-20 text-center">
           <p className="text-4xl mb-4">🛍️</p>
-          <h1 className="text-2xl font-bold text-white mb-2">Become a seller</h1>
+          <h1 className="text-2xl font-bold text-white mb-2">Become a Seller</h1>
           <p className="text-gray-400 mb-6">
             Publishing and selling compliance templates is available on any paid plan. Upgrade to start earning on every
             sale.

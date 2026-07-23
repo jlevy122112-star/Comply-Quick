@@ -133,7 +133,7 @@ export default function AgencyPortalView({
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 border-b border-gray-800" role="tablist" aria-label="Agency portal sections">
+        <div className="flex gap-1 border-b border-gray-800" role="tablist" aria-label="Agency Portal Sections">
           {tabs.map((t) => (
             <button
               key={t}
@@ -312,7 +312,7 @@ function TeamTab({
 
       {/* Add seat */}
       <section className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-        <h2 className="text-sm font-semibold text-white mb-3">Invite a team member</h2>
+        <h2 className="text-sm font-semibold text-white mb-3">Invite a Team Member</h2>
         <div className="flex flex-col sm:flex-row gap-3">
           <input
             value={email}
@@ -513,7 +513,7 @@ function ClientsTab({
     <div className="space-y-6">
       {canManage && (
         <section className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
-          <h2 className="text-sm font-semibold text-white mb-3">Add a client</h2>
+          <h2 className="text-sm font-semibold text-white mb-3">Add a Client</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <input
               aria-label="Client name"
@@ -756,7 +756,7 @@ function BrandingTab({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <section className="bg-gray-900 border border-gray-800 rounded-2xl p-5 space-y-4">
-        <h2 className="text-sm font-semibold text-white">White-label branding</h2>
+        <h2 className="text-sm font-semibold text-white">White-Label Branding</h2>
         <Field label="Agency name">
           <input
             value={name}

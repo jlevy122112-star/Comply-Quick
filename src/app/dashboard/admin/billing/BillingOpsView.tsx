@@ -127,7 +127,7 @@ export default function BillingOpsView({ tenants, detail, selectedId, stripeConf
             <CardBody>
               <div className="mb-5 flex flex-col gap-4 rounded-xl border border-border-default bg-surface-elevated/60 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-text-primary">Stripe billing account</p>
+                  <p className="text-sm font-semibold text-text-primary">Stripe Billing Account</p>
                   <p className="mt-1 text-xs text-text-secondary">
                     {account?.stripeCustomerId
                       ? `Customer linked: ${account.stripeCustomerId}`
@@ -407,7 +407,7 @@ export default function BillingOpsView({ tenants, detail, selectedId, stripeConf
                       )}
                       {invoice.stripeInvoiceId && invoice.status === "draft" && (
                         <InvoiceStripeAction
-                          label="Finalize / send"
+                          label="Finalize / Send"
                           action={finalizeInvoiceOnStripe}
                           invoice={invoice}
                           organizationId={tenant.id}
@@ -423,7 +423,7 @@ export default function BillingOpsView({ tenants, detail, selectedId, stripeConf
                           rel="noreferrer"
                           className="inline-flex items-center rounded-lg border border-border-default px-3 py-1.5 text-xs font-medium text-text-secondary transition hover:border-border-strong hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary"
                         >
-                          Open hosted invoice
+                          Open Hosted Invoice
                         </a>
                       )}
                       {invoice.status === "draft" && !invoice.stripeInvoiceId && (
@@ -515,7 +515,7 @@ export default function BillingOpsView({ tenants, detail, selectedId, stripeConf
 
           <Card>
             <CardHeader
-              title="Manual entitlement override"
+              title="Manual Entitlement Override"
               description="Changes the organization's plan tier on org-entitlement surfaces. The reason is retained on the audit trail."
             />
             <CardBody>

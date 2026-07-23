@@ -82,7 +82,7 @@ export default function PlatformIntegrationsTool() {
             icon="🌐"
           />
           <CardBody>
-            <Select label="Website builder" value={platformId} onChange={(e) => setPlatformId(e.target.value)}>
+            <Select label="Website Builder" value={platformId} onChange={(e) => setPlatformId(e.target.value)}>
               {platforms.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name} — {p.category}
@@ -90,7 +90,7 @@ export default function PlatformIntegrationsTool() {
               ))}
             </Select>
             <div className="mt-3 rounded-lg border border-gray-800 bg-gray-950 p-3 text-xs text-gray-400">
-              <span className="font-medium text-gray-300">Install method:</span> {platform.installLabel}
+              <span className="font-medium text-gray-300">Install Method:</span> {platform.installLabel}
             </div>
           </CardBody>
         </Card>
@@ -103,23 +103,23 @@ export default function PlatformIntegrationsTool() {
           />
           <CardBody className="space-y-5">
             <Input
-              label="Company / site name"
+              label="Company / Site Name"
               placeholder="Acme Store"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
             />
             <Input
-              label="Privacy policy URL"
+              label="Privacy Policy URL"
               placeholder="/privacy"
               value={privacyPolicyUrl}
               onChange={(e) => setPrivacyPolicyUrl(e.target.value)}
             />
             <div>
-              <p className="mb-2 text-xs font-medium text-gray-300">Target jurisdictions</p>
+              <p className="mb-2 text-xs font-medium text-gray-300">Target Jurisdictions</p>
               <RegionPicker selected={regions} onToggle={toggle(setRegions)} />
             </div>
             <div>
-              <p className="mb-2 text-xs font-medium text-gray-300">Tracking pixels to gate</p>
+              <p className="mb-2 text-xs font-medium text-gray-300">Tracking Pixels to Gate</p>
               <PixelPicker selected={pixels} onToggle={toggle(setPixels)} />
             </div>
             <Button onClick={generate} loading={generating} disabled={!canGenerate} className="w-full" size="lg">
@@ -160,14 +160,14 @@ export default function PlatformIntegrationsTool() {
         {result && (
           <Card>
             <CardHeader
-              title={`${result.platform.name} integration`}
+              title={`${result.platform.name} Integration`}
               description="Copy this snippet into the location described below."
               icon="🧩"
             />
             <CardBody className="space-y-4">
               {result.platform.snippetHint && (
                 <p className="rounded-lg border border-indigo-500/20 bg-indigo-500/10 px-3 py-2 text-xs text-indigo-200">
-                  <span className="font-semibold">Where to paste:</span> {result.platform.snippetHint}
+                  <span className="font-semibold">Where to Paste:</span> {result.platform.snippetHint}
                 </p>
               )}
 
@@ -189,7 +189,7 @@ export default function PlatformIntegrationsTool() {
               </div>
 
               <div>
-                <p className="mb-2 text-xs font-semibold text-gray-300">Integration steps</p>
+                <p className="mb-2 text-xs font-semibold text-gray-300">Integration Steps</p>
                 <ol className="list-decimal space-y-1.5 pl-5 text-xs text-gray-400">
                   {result.platform.instructions.map((line, i) => (
                     <li key={i}>{line}</li>

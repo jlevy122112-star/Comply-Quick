@@ -70,7 +70,7 @@ export function FeatureFlagsPanel({
         ))}
       </div>
       <div>
-        <h3 className="font-medium text-white">Recent changes</h3>
+        <h3 className="font-medium text-white">Recent Changes</h3>
         {audit.length === 0 ? (
           <p className="mt-2 text-sm text-gray-400">No changes recorded yet.</p>
         ) : (
