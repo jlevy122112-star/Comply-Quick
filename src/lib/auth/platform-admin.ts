@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 
 function configuredAdminEmails(): string[] {
-  const value = process.env.PLATFORM_ADMIN_EMAILS ?? process.env.MARKETPLACE_ADMIN_EMAILS ?? "";
+  const value = process.env.PLATFORM_ADMIN_EMAILS || process.env.MARKETPLACE_ADMIN_EMAILS || "";
   return value
     .split(",")
     .map((email) => email.trim().toLowerCase())
