@@ -43,7 +43,7 @@ export function createShopifyExecutor(): RemediationExecutor {
       if (change.target === "script_tag:consent") {
         const scriptUrl = context.consentScriptUrl ?? "https://cdn.comply-quick.com/consent.js";
         const prior = (await api.listScriptTags()).find((tag) => tag.src === scriptUrl);
-        const previousState = snapshot(context, change, prior ?? null);
+        const previousState = snapshot(context, change, { prior: prior ?? null });
         if (prior) {
           return {
             platform: "shopify",
@@ -57,6 +57,7 @@ export function createShopifyExecutor(): RemediationExecutor {
         const tag = await api.createScriptTag({
           src: scriptUrl,
         });
+        previousState.state = { prior: null, createdId: tag.id };
         const verifiedTags = await api.listScriptTags();
         if (!verifiedTags.some((entry) => entry.src === scriptUrl)) {
           throw new Error("Shopify API did not confirm the consent script tag.");
@@ -102,16 +103,13 @@ export function createShopifyExecutor(): RemediationExecutor {
     async rollback(result, context) {
       const api = client(context);
       if (result.change.target === "script_tag:consent") {
-        const prior = result.snapshot?.state as ScriptTag | null;
-        const current = await api.listScriptTags();
-        const inserted = current.find(
-          (tag) => tag.src === (context.consentScriptUrl ?? "https://cdn.comply-quick.com/consent.js")
-        );
+        const state = result.snapshot?.state as { prior?: ScriptTag | null; createdId?: number } | null;
+        const prior = state?.prior ?? null;
         if (prior?.id) {
           // Shopify script tags are immutable through this API; preserving an
           // existing tag means no rollback write is needed.
-        } else if (inserted?.id) {
-          await api.deleteScriptTag(inserted.id);
+        } else if (state?.createdId) {
+          await api.deleteScriptTag(state.createdId);
         }
       } else {
         const prior = result.snapshot?.state as ShopifyPage | null;

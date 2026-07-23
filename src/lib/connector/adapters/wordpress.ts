@@ -6,6 +6,7 @@ import type {
   PreviousStateSnapshot,
 } from "../executor";
 import type { RemediationChange } from "../types";
+import { assertPublicScanHost } from "@/lib/security";
 
 interface WordPressPage {
   id: number;
@@ -30,7 +31,11 @@ const capabilities: RemediationCapabilityDescriptor = {
 
 function baseUrl(context: RemediationExecutionContext): string {
   const raw = context.apiBaseUrl ?? context.connection.externalAccountId;
-  return raw.replace(/\/+$/, "");
+  const parsed = new URL(raw);
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error("WordPress API URL must use http or https.");
+  }
+  return parsed.toString().replace(/\/+$/, "");
 }
 
 function authHeaders(context: RemediationExecutionContext): Record<string, string> {
@@ -45,17 +50,24 @@ async function request<T>(
   context: RemediationExecutionContext,
   method: string,
   path: string,
-  body?: unknown
+  body?: unknown,
+  allowNotFound = false
 ): Promise<T> {
   const fetchImpl = context.fetchImpl ?? fetch;
+  const rawBase = baseUrl(context);
+  const token = context.apiToken ?? context.accessToken;
+  if (token) await (context.assertHost ?? assertPublicScanHost)(new URL(rawBase).hostname);
   const headers = authHeaders(context);
   if (body !== undefined) headers["Content-Type"] = "application/json";
-  const response = await fetchImpl(`${baseUrl(context)}${path}`, {
+  const response = await fetchImpl(`${rawBase}${path}`, {
     method,
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  if (!response.ok) throw new Error(`WordPress API ${method} ${path} failed: ${response.status}`);
+  if (!response.ok) {
+    if (allowNotFound && response.status === 404) return undefined as T;
+    throw new Error(`WordPress API ${method} ${path} failed: ${response.status}`);
+  }
   if (response.status === 204) return undefined as T;
   const text = await response.text();
   return (text ? JSON.parse(text) : undefined) as T;
@@ -81,7 +93,7 @@ async function applyConsent(
   context: RemediationExecutionContext
 ): Promise<RemediationExecutionResult> {
   const path = "/wp-json/comply-quick/v1/consent-script";
-  const prior = await request<ConsentEndpointState | null>(context, "GET", path);
+  const prior = (await request<ConsentEndpointState | null>(context, "GET", path, undefined, true)) ?? null;
   const previousState = snapshot(context, change, prior);
   const script = context.consentScript ?? "<script data-comply-quick-consent></script>";
   if (prior?.installed && prior.script === script) {
@@ -115,7 +127,7 @@ async function applyPrivacyPage(
   context: RemediationExecutionContext
 ): Promise<RemediationExecutionResult> {
   const path = "/wp-json/wp/v2/pages?slug=privacy-policy";
-  const pages = await request<WordPressPage[]>(context, "GET", path);
+  const pages = (await request<WordPressPage[]>(context, "GET", path, undefined, true)) ?? [];
   const prior = pages[0] ?? null;
   const body = { title: "Privacy Policy", slug: "privacy-policy", content: policyHtml(context), status: "publish" };
   let created: WordPressPage | undefined;

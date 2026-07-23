@@ -3,6 +3,7 @@ import { createGenericSnippetExecutor } from "./adapters/generic";
 import { createShopifyExecutor } from "./adapters/shopify";
 import { createWebflowExecutor } from "./adapters/webflow";
 import { createWordPressExecutor } from "./adapters/wordpress";
+import { isAutoApplySafe } from "./remediation";
 
 export interface RemediationExecutionContext {
   connection: Pick<Connection, "id" | "platform" | "externalAccountId">;
@@ -10,6 +11,7 @@ export interface RemediationExecutionContext {
   accessToken?: string;
   apiToken?: string;
   apiBaseUrl?: string;
+  assertHost?: (hostname: string) => Promise<unknown>;
   consentScript?: string;
   consentScriptUrl?: string;
   customCodeLocation?: "head" | "body";
@@ -52,10 +54,6 @@ function targetMatches(target: string, supported: readonly string[]): boolean {
   return supported.some((candidate) => target === candidate || target.startsWith(`${candidate}#`));
 }
 
-function isAutoApplySafe(change: RemediationChange): boolean {
-  return change.risk === "low" && !change.target.startsWith("page:");
-}
-
 function snapshotRef(context: RemediationExecutionContext, change: RemediationChange): string {
   return context.snapshotRef ?? `connector:${context.connection.id}:${change.id}`;
 }
@@ -92,6 +90,8 @@ function executorFor(context: RemediationExecutionContext): RemediationExecutor 
       return createWordPressExecutor();
     case "webflow":
       return createWebflowExecutor();
+    case "woocommerce":
+      return createWordPressExecutor();
     default:
       return createGenericSnippetExecutor(context.connection.platform);
   }
