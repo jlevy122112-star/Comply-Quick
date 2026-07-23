@@ -29,7 +29,10 @@ const organization = (id: string, parentOrganizationId: string | null): Organiza
 });
 
 describe("organization hierarchy", () => {
-  const migration = readFileSync(join(process.cwd(), "supabase/migrations/0051_organization_hierarchy.sql"), "utf8");
+  const migration = readFileSync(
+    join(process.cwd(), "supabase/migrations/20260714000009_organization_hierarchy.sql"),
+    "utf8"
+  );
   const hierarchySource = readFileSync(join(process.cwd(), "src/lib/org-hierarchy.ts"), "utf8");
   const organizationsSource = readFileSync(join(process.cwd(), "src/lib/organizations-db.ts"), "utf8");
 

@@ -4,6 +4,33 @@
 -- plugin) and provides a durable audit of webhook events that announce when an
 -- agency connects a new platform instance.
 
+-- Adopt the schema used by the connector application code. Migration 0031
+-- originally created these tables in public, so move them before using the
+-- connector-qualified names below.
+create schema if not exists connector;
+
+grant usage on schema connector to anon, authenticated, service_role;
+
+do $$
+begin
+  if to_regclass('public.connector_connections') is not null then
+    alter table public.connector_connections set schema connector;
+  end if;
+
+  if to_regclass('public.connector_events') is not null then
+    alter table public.connector_events set schema connector;
+  end if;
+
+  if to_regclass('public.connector_remediations') is not null then
+    alter table public.connector_remediations set schema connector;
+  end if;
+
+  if to_regclass('public.connector_audit_ledger') is not null then
+    alter table public.connector_audit_ledger set schema connector;
+  end if;
+end
+$$;
+
 -- Add WordPress to the supported connector platforms.
 alter table connector.connector_connections
   drop constraint if exists connector_connections_platform_check;
