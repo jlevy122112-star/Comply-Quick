@@ -75,28 +75,35 @@ async function renderPage(rawUrl) {
     status = response ? response.status() : 0;
     // Let late-firing tags (consent-gated pixels, deferred analytics) settle.
     await page.waitForTimeout(SETTLE_MS);
-    const axeResults = await page.evaluate(async (source) => {
-      // axe-core is injected into the page context so it evaluates the rendered
-      // DOM, including content and controls created by client-side JavaScript.
-      eval(source);
-      return window.axe.run(document, {
-        runOnly: {
-          type: "tag",
-          values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"],
-        },
-      });
-    }, axeSource);
-    const accessibilityViolations = axeResults.violations.map((violation) => ({
-      id: violation.id,
-      impact: violation.impact,
-      description: violation.description,
-      help: violation.help,
-      helpUrl: violation.helpUrl,
-      tags: violation.tags,
-      nodes: violation.nodes.map((node) => ({
-        target: node.target,
-      })),
-    }));
+    let accessibilityViolations = [];
+    try {
+      const axeResults = await page.evaluate(async (source) => {
+        // axe-core is injected into the page context so it evaluates the rendered
+        // DOM, including content and controls created by client-side JavaScript.
+        eval(source);
+        return window.axe.run(document, {
+          runOnly: {
+            type: "tag",
+            values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"],
+          },
+        });
+      }, axeSource);
+      accessibilityViolations = axeResults.violations.map((violation) => ({
+        id: violation.id,
+        impact: violation.impact,
+        description: violation.description,
+        help: violation.help,
+        helpUrl: violation.helpUrl,
+        tags: violation.tags,
+        nodes: violation.nodes.map((node) => ({
+          target: node.target,
+        })),
+      }));
+    } catch {
+      // Accessibility analysis is additive: a CSP or page-specific axe failure
+      // must not discard the rendered DOM and captured runtime requests.
+      accessibilityViolations = [];
+    }
     let html = await page.content();
     if (html.length > MAX_BYTES) html = html.slice(0, MAX_BYTES);
     return { url: page.url(), status, html, requestUrls, accessibilityViolations };

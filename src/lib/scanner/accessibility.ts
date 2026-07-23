@@ -51,7 +51,7 @@ function nodeTarget(node: AccessibilityNode): string {
 }
 
 function wcagReference(tag: string): string | undefined {
-  const match = /^wcag(\d)(\d)(\d)$/.exec(tag);
+  const match = /^wcag(\d)(\d)(\d+)$/.exec(tag);
   return match ? `${match[1]}.${match[2]}.${match[3]}` : undefined;
 }
 
@@ -72,7 +72,7 @@ function remediationFor(violation: AccessibilityViolation): string {
   );
 }
 
-function toFinding(violation: AccessibilityViolation): Finding {
+function toFinding(violation: AccessibilityViolation, occurrence: number, total: number): Finding {
   const references = violation.tags
     .map(wcagReference)
     .filter((reference): reference is string => reference !== undefined);
@@ -80,12 +80,67 @@ function toFinding(violation: AccessibilityViolation): Finding {
   const locations = violation.nodes.length > 0 ? ` Affected nodes: ${violation.nodes.map(nodeTarget).join("; ")}.` : "";
   const helpUrl = violation.helpUrl ? ` Guidance: ${violation.helpUrl}` : "";
   return {
-    id: `accessibility.${violation.id}`,
+    id: `accessibility.${violation.id}${total > 1 && occurrence > 1 ? `.${occurrence}` : ""}`,
     title: violation.help,
     severity: impactSeverity(violation.impact),
     detail: `${violation.description}.${referenceText} ${violation.nodes.length} affected node(s).${locations}${helpUrl}`,
     recommendation: violation.recommendation ?? remediationFor(violation),
   };
+}
+
+function textWithoutMarkup(value: string): string {
+  let text = "";
+  let inTag = false;
+  let quote: '"' | "'" | undefined;
+  for (const character of value) {
+    if (inTag) {
+      if (quote) {
+        if (character === quote) quote = undefined;
+      } else if (character === '"' || character === "'") {
+        quote = character;
+      } else if (character === ">") {
+        inTag = false;
+      }
+      continue;
+    }
+    if (character === "<") {
+      inTag = true;
+      continue;
+    }
+    text += character;
+  }
+  return text.trim();
+}
+
+function hasNonEmptyAttribute(attrs: string, name: string): boolean {
+  return new RegExp(`\\b${name}\\s*=\\s*["'][^"']*\\S[^"']*["']`, "i").test(attrs);
+}
+
+function hasReferencedAccessibleName(attrs: string, html: string): boolean {
+  const labelledBy = attrs.match(/\baria-labelledby\s*=\s*["']([^"']+)["']/i)?.[1];
+  if (!labelledBy) return false;
+  return labelledBy.split(/\s+/).some((id) => {
+    const escapedId = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const referenced = new RegExp(`<[^>]*\\bid\\s*=\\s*["']${escapedId}["'][^>]*>([\\s\\S]*?)<\\/[^>]+>`, "i").exec(
+      html
+    );
+    return referenced ? textWithoutMarkup(referenced[1]).length > 0 : false;
+  });
+}
+
+function hasChildAccessibleName(content: string): boolean {
+  const image = /<img\b([^>]*)>/i.exec(content);
+  return Boolean(image && hasNonEmptyAttribute(image[1], "alt"));
+}
+
+function hasAccessibleName(attrs: string, content: string, html: string): boolean {
+  return (
+    hasNonEmptyAttribute(attrs, "aria-label") ||
+    hasNonEmptyAttribute(attrs, "title") ||
+    hasReferencedAccessibleName(attrs, html) ||
+    textWithoutMarkup(content).length > 0 ||
+    hasChildAccessibleName(content)
+  );
 }
 
 function staticViolation(
@@ -187,8 +242,8 @@ function collectStaticViolations(html: string): AccessibilityViolation[] {
   let emptyControlMatch: RegExpExecArray | null;
   while ((emptyControlMatch = emptyControlPattern.exec(html))) {
     const attrs = emptyControlMatch[2];
-    const content = emptyControlMatch[3].replace(/<[^>]+>/g, "").trim();
-    if (!content && !/\baria-label\s*=\s*["'][^"']+\S["']/i.test(attrs)) {
+    const content = emptyControlMatch[3];
+    if (!hasAccessibleName(attrs, content, html)) {
       const id = emptyControlMatch[1] === "a" ? "link-name" : "button-name";
       const help =
         emptyControlMatch[1] === "a" ? "Links must have discernible names" : "Buttons must have discernible names";
@@ -229,7 +284,14 @@ function collectStaticViolations(html: string): AccessibilityViolation[] {
 export function analyzeAccessibility(html: string, axeViolations?: AccessibilityViolation[]): AccessibilityAnalysis {
   const hasAxeResult = axeViolations !== undefined;
   const violations = hasAxeResult ? axeViolations : collectStaticViolations(html);
-  const findings = violations.map(toFinding);
+  const totals = new Map<string, number>();
+  for (const violation of violations) totals.set(violation.id, (totals.get(violation.id) ?? 0) + 1);
+  const occurrences = new Map<string, number>();
+  const findings = violations.map((violation) => {
+    const occurrence = (occurrences.get(violation.id) ?? 0) + 1;
+    occurrences.set(violation.id, occurrence);
+    return toFinding(violation, occurrence, totals.get(violation.id) ?? 1);
+  });
   const penalty = violations.reduce((total, violation) => total + impactPenalty(violation.impact), 0);
   return {
     score: Math.max(0, 100 - penalty),
