@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getAllPosts, getPostBySlug, getRelatedPosts, readingTimeMinutes } from "@/lib/blog";
 import { BlogBody } from "../render";
 import { BlogCta } from "../BlogCta";
+import { OrganicFunnelTracker } from "@/components/analytics/OrganicFunnelTracker";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://comply-quick.com";
 const SITE_ORIGIN = BASE_URL.endsWith("/") ? BASE_URL.slice(0, -1) : BASE_URL;
@@ -70,6 +71,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
   return (
     <main className="min-h-screen bg-gray-950 text-gray-200">
+      <OrganicFunnelTracker />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <article className="mx-auto max-w-3xl px-6 py-16">

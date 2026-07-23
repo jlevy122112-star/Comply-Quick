@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { COMPARISONS, getComparison } from "@/lib/comparisons";
+import { OrganicFunnelTracker, TrackedFreeScanLink } from "@/components/analytics/OrganicFunnelTracker";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://comply-quick.com";
 const SITE_ORIGIN = BASE_URL.endsWith("/") ? BASE_URL.slice(0, -1) : BASE_URL;
@@ -26,13 +27,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       title: c.title,
       description: c.description,
       url,
-      images: [{ url: `${SITE_ORIGIN}/opengraph-image.png`, width: 1200, height: 630, alt: c.title }],
+      images: [{ url: `${url}/opengraph-image`, width: 1200, height: 630, alt: c.title }],
     },
     twitter: {
       card: "summary_large_image",
       title: c.title,
       description: c.description,
-      images: [`${SITE_ORIGIN}/opengraph-image.png`],
+      images: [`${url}/opengraph-image`],
     },
   };
 }
@@ -64,6 +65,7 @@ export default async function ComparePage({ params }: { params: Promise<{ slug: 
 
   return (
     <main className="min-h-screen bg-gray-950 text-gray-200">
+      <OrganicFunnelTracker />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <div className="mx-auto max-w-4xl px-6 py-16 sm:py-24">
@@ -78,12 +80,14 @@ export default async function ComparePage({ params }: { params: Promise<{ slug: 
         <p className="mt-5 text-base sm:text-lg text-gray-200 leading-relaxed">{c.intro}</p>
 
         <div className="mt-8 flex flex-col sm:flex-row gap-4">
-          <Link
+          <TrackedFreeScanLink
             href={START_HREF}
-            className="px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500 transition-colors text-center"
+            source="comparison"
+            campaign={c.slug}
+            className="rounded-xl bg-indigo-600 px-6 py-3 text-center font-semibold text-white transition hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-300"
           >
             Scan your site free
-          </Link>
+          </TrackedFreeScanLink>
           <Link
             href="/#pricing"
             className="px-6 py-3 rounded-xl border border-gray-700 text-gray-200 font-medium hover:border-gray-500 hover:text-white transition-colors text-center"

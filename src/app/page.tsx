@@ -4,6 +4,7 @@ import Link from "next/link";
 import { TIER_CONFIG } from "@/lib/pricing";
 import { HeroScan } from "@/components/landing/HeroScan";
 import { StructuredData } from "@/components/seo/StructuredData";
+import { OrganicFunnelTracker, TrackedFreeScanLink } from "@/components/analytics/OrganicFunnelTracker";
 import { Logo } from "@/components/brand/Logo";
 import { LANDING_FAQ } from "@/lib/landing/faq";
 
@@ -113,6 +114,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
       <StructuredData />
+      <OrganicFunnelTracker />
       <ExitIntentCapture />
       <a
         href="#main-content"
@@ -170,12 +172,14 @@ export default function LandingPage() {
             >
               Log In
             </Link>
-            <Link
+            <TrackedFreeScanLink
               href={START_HREF}
-              className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-colors"
+              source="landing"
+              campaign="primary_navigation"
+              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-300"
             >
               Get Started Free
-            </Link>
+            </TrackedFreeScanLink>
           </div>
         </div>
       </nav>
