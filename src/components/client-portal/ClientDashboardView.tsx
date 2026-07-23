@@ -69,7 +69,7 @@ export function ClientDashboardView({
             <span className="hidden h-4 w-px bg-gray-700 sm:inline-block" />
             <h1 className="text-lg font-bold text-white">{client.name}</h1>
             <select
-              aria-label="Switch client workspace"
+              aria-label="Switch Client Workspace"
               value={client.id}
               onChange={(e) => router.push(`${basePath}/${e.target.value}`)}
               className="h-8 rounded-lg border border-gray-700 bg-gray-950 px-3 text-sm text-white outline-none focus:border-indigo-500"
@@ -166,8 +166,8 @@ export function ClientDashboardView({
                     <TR>
                       <TH>Label</TH>
                       <TH>Status</TH>
-                      <TH>Last score</TH>
-                      <TH>Last scan</TH>
+                      <TH>Last Score</TH>
+                      <TH>Last Scan</TH>
                     </TR>
                   </THead>
                   <TBody>
@@ -234,7 +234,7 @@ export function ClientDashboardView({
         <Card>
           <CardHeader
             icon={<Shield className="h-5 w-5 text-sky-400" />}
-            title="Current policies & regulations"
+            title="Current Policies & Regulations"
             description="Latest compliance package versions tracked for this client"
           />
           <CardBody>

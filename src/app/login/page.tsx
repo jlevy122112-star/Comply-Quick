@@ -276,7 +276,7 @@ function AuthPage() {
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <FieldInput
-                        label="Full name"
+                        label="Full Name"
                         name="fullName"
                         value={fullName}
                         onChange={setFullName}
@@ -297,7 +297,7 @@ function AuthPage() {
                 )}
 
                 <FieldInput
-                  label="Email address"
+                  label="Email Address"
                   name="email"
                   type="email"
                   required
@@ -347,7 +347,7 @@ function AuthPage() {
 
                 {mode === "signup" && (
                   <FieldInput
-                    label="Confirm password"
+                    label="Confirm Password"
                     name="confirmPassword"
                     type={showPassword ? "text" : "password"}
                     required
@@ -540,7 +540,7 @@ function ForgotView({
         </p>
       </div>
       <FieldInput
-        label="Email address"
+        label="Email Address"
         type="email"
         required
         value={email}

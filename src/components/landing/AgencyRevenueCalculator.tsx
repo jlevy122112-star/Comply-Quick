@@ -31,7 +31,7 @@ export function AgencyRevenueCalculator({ startHref }: { startHref: string }) {
       {/* Inputs */}
       <div className="rounded-3xl border border-gray-800 bg-gray-900/60 p-6 sm:p-8">
         <Field
-          label="Number of clients"
+          label="Number of Clients"
           value={clients}
           min={1}
           max={200}
@@ -40,7 +40,7 @@ export function AgencyRevenueCalculator({ startHref }: { startHref: string }) {
           format={(v) => `${v}`}
         />
         <Field
-          label="Price per compliance package"
+          label="Price per Compliance Package"
           value={packagePrice}
           min={0}
           max={5000}
@@ -49,7 +49,7 @@ export function AgencyRevenueCalculator({ startHref }: { startHref: string }) {
           format={currency}
         />
         <Field
-          label="Monthly monitoring fee"
+          label="Monthly Monitoring Fee"
           value={monthlyFee}
           min={0}
           max={500}
@@ -62,10 +62,10 @@ export function AgencyRevenueCalculator({ startHref }: { startHref: string }) {
       {/* Outputs */}
       <div className="rounded-3xl border border-indigo-500/25 bg-gradient-to-br from-indigo-600/10 to-transparent p-6 sm:p-8 flex flex-col">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 flex-1">
-          <Output label="Monthly recurring revenue" value={currency(mrr)} highlight />
-          <Output label="Annual revenue" value={currency(annual)} highlight />
-          <Output label="Hours saved" value={`${hoursSaved.toLocaleString("en-US")} hrs / build cycle`} />
-          <Output label="Liability removed" value="Shifted to the merchant on every client" />
+          <Output label="Monthly Recurring Revenue" value={currency(mrr)} highlight />
+          <Output label="Annual Revenue" value={currency(annual)} highlight />
+          <Output label="Hours Saved" value={`${hoursSaved.toLocaleString("en-US")} hrs / build cycle`} />
+          <Output label="Liability Removed" value="Shifted to the merchant on every client" />
         </div>
         <Link
           href={startHref}
