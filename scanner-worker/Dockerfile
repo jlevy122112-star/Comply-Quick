@@ -1,6 +1,6 @@
 # Headless-render worker for the Comply-Quick compliance scanner.
 # Uses the official Playwright image so Chromium + all system deps are present.
-FROM mcr.microsoft.com/playwright:v1.49.1-noble
+FROM mcr.microsoft.com/playwright:v1.55.1-noble
 
 ENV NODE_ENV=production
 WORKDIR /app
