@@ -1,0 +1,31 @@
+{
+  "id": "vendor-mention-decoys",
+  "description": "Bare vendor domains in links and prose are weak hints, not definite tracker detections.",
+  "html": "<html><head><title>Partners</title></head><body><p>We work with Criteo, Outbrain, Tawk.to, Crisp, LiveChat, Optimizely, and VWO.</p><a href=\"https://www.criteo.com\">Criteo</a><a href=\"https://www.outbrain.com\">Outbrain</a><a href=\"https://www.tawk.to\">Tawk.to</a><a href=\"https://crisp.chat\">Crisp</a><a href=\"https://www.livechatinc.com\">LiveChat</a><a href=\"https://www.optimizely.com\">Optimizely</a><a href=\"https://visualwebsiteoptimizer.com\">VWO</a><a href=\"/privacy\">Privacy Policy</a><a href=\"/terms\">Terms of Service</a></body></html>",
+  "requestUrls": [],
+  "jurisdictions": ["us_ca"],
+  "complianceState": {
+    "hasPrivacyPolicy": true,
+    "hasConsentMechanism": true,
+    "dpaWith": [],
+    "jointControllerArrangements": [],
+    "mentionsSccs": false,
+    "addressesPci": false
+  },
+  "expected": {
+    "tools": [],
+    "negativeTools": ["criteo", "outbrain", "tawk", "crisp", "livechat", "optimizely", "vwo"],
+    "analyzerFindings": [],
+    "lintFindings": [],
+    "obligations": [],
+    "detailed": [
+      { "id": "criteo", "layer": "html", "weakOnly": true, "maxConfidence": 0.3 },
+      { "id": "outbrain", "layer": "html", "weakOnly": true, "maxConfidence": 0.3 },
+      { "id": "tawk", "layer": "html", "weakOnly": true, "maxConfidence": 0.3 },
+      { "id": "crisp", "layer": "html", "weakOnly": true, "maxConfidence": 0.3 },
+      { "id": "livechat", "layer": "html", "weakOnly": true, "maxConfidence": 0.3 },
+      { "id": "optimizely", "layer": "html", "weakOnly": true, "maxConfidence": 0.3 },
+      { "id": "vwo", "layer": "html", "weakOnly": true, "maxConfidence": 0.3 }
+    ]
+  }
+}
