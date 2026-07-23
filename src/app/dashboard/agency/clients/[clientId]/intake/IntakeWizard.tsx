@@ -630,7 +630,7 @@ function StepBranding({ answers, patch }: StepProps) {
           placeholder="Navy + gold, confident but friendly tone, avoid stock-photo look…"
         />
       </Field>
-      <Field label="Inspiration Links" hint="Sites they love - press Enter to add">
+      <Field label="Inspiration Links" hint="Sites they love — press Enter to add">
         <ChipMultiSelect
           values={br.inspirationLinks}
           suggestions={[]}
