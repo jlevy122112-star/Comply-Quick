@@ -6,9 +6,7 @@ import { createClient } from "@/lib/supabase/server";
  * Accepts an optional header source so it can be used from Next.js API routes
  * (`NextRequest.headers`) and from server actions (`next/headers`).
  */
-export async function getRequestIp(
-  source?: { get(name: string): string | null }
-): Promise<string | undefined> {
+export async function getRequestIp(source?: { get(name: string): string | null }): Promise<string | undefined> {
   try {
     const h = source ?? (await headers());
     const forwarded = h.get("x-forwarded-for");

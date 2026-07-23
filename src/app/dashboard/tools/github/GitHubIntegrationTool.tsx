@@ -71,7 +71,10 @@ export default function GitHubIntegrationTool() {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader title="GitHub connection" description="Connect your GitHub account to scan repositories for compliance signals." />
+        <CardHeader
+          title="GitHub connection"
+          description="Connect your GitHub account to scan repositories for compliance signals."
+        />
         <CardBody>
           {loading ? (
             <Skeleton className="h-12" />
@@ -85,7 +88,13 @@ export default function GitHubIntegrationTool() {
           ) : (
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-400">No GitHub account connected.</p>
-              <Button onClick={() => { window.location.href = "/api/github/auth"; }}>Connect GitHub</Button>
+              <Button
+                onClick={() => {
+                  window.location.href = "/api/github/auth";
+                }}
+              >
+                Connect GitHub
+              </Button>
             </div>
           )}
         </CardBody>
@@ -154,7 +163,9 @@ export default function GitHubIntegrationTool() {
               </div>
             )}
 
-            {!scanning && findings.length === 0 && selectedRepo && !error && <p className="mt-4 text-sm text-green-400">No findings — this repo looks clean.</p>}
+            {!scanning && findings.length === 0 && selectedRepo && !error && (
+              <p className="mt-4 text-sm text-green-400">No findings — this repo looks clean.</p>
+            )}
           </CardBody>
         </Card>
       )}

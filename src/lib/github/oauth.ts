@@ -28,7 +28,11 @@ export interface GitHubToken {
   scope: string;
 }
 
-export async function exchangeCodeForToken(code: string, cfg: GitHubOAuthConfig, fetchImpl: typeof fetch = fetch): Promise<GitHubToken> {
+export async function exchangeCodeForToken(
+  code: string,
+  cfg: GitHubOAuthConfig,
+  fetchImpl: typeof fetch = fetch
+): Promise<GitHubToken> {
   const res = await fetchImpl(GITHUB_TOKEN_URL, {
     method: "POST",
     headers: {
@@ -46,7 +50,9 @@ export async function exchangeCodeForToken(code: string, cfg: GitHubOAuthConfig,
   const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   const accessToken = typeof body.access_token === "string" ? body.access_token : "";
   if (!accessToken) {
-    throw new Error(typeof body.error_description === "string" ? body.error_description : "GitHub token exchange failed");
+    throw new Error(
+      typeof body.error_description === "string" ? body.error_description : "GitHub token exchange failed"
+    );
   }
   return { accessToken, scope: typeof body.scope === "string" ? body.scope : "" };
 }

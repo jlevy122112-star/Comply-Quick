@@ -172,7 +172,10 @@ export const canUseAgencyPortal = cache(async (): Promise<boolean> => {
     }
   }
   const entitlement = await getEntitlementForUser(ownerId ?? user.id);
-  return entitlement.isPremium && (entitlement.tier === "solo" || entitlement.tier === "agency" || entitlement.tier === "enterprise");
+  return (
+    entitlement.isPremium &&
+    (entitlement.tier === "solo" || entitlement.tier === "agency" || entitlement.tier === "enterprise")
+  );
 });
 
 /** Whether the current user may use the Enterprise client portal.

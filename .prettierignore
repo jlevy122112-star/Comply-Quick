@@ -5,3 +5,6 @@ out
 coverage
 *.md
 supabase/functions
+.codebase-viz
+.vscode/settings.json
+docs-assembler-config.json

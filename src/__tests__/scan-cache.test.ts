@@ -34,6 +34,18 @@ vi.mock("@/lib/entitlements", () => ({
   getOrgEntitlement: async () => ({ isPremium: true }),
 }));
 
+vi.mock("@/lib/pricing", () => ({
+  TIER_CONFIG: {
+    free: { scanLimit: 1 },
+    solo: { scanLimit: 20 },
+    agency: { scanLimit: Infinity },
+    enterprise: { scanLimit: Infinity },
+  },
+  scanLimit: (tier: "free" | "solo" | "agency" | "enterprise") =>
+    ({ free: 1, solo: 20, agency: Infinity, enterprise: Infinity })[tier],
+  isUnlimited: (value: number | null) => value === Infinity,
+}));
+
 vi.mock("@/services/ai", () => ({ getAiClient: () => ({}) }));
 vi.mock("@/lib/billing/usage", () => ({
   recordScanUsage: async () => undefined,
