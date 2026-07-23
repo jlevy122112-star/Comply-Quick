@@ -105,6 +105,18 @@ describe("analyzeAccessibility — axe mapping", () => {
     expect(result.findings.some((finding) => finding.id.startsWith("accessibility.button-name"))).toBe(false);
   });
 
+  it("does not treat data attributes as accessible names", () => {
+    const result = analyzeAccessibility(`
+      <html lang="en"><head><title>Test</title></head><body>
+        <a href="/tooltip" data-title="Tooltip text"><img src="/icon.svg" data-alt="Icon"></a>
+        <button data-title="Save"></button>
+      </body></html>
+    `);
+    expect(result.findings.map((finding) => finding.id)).toEqual(
+      expect.arrayContaining(["accessibility.link-name", "accessibility.button-name"])
+    );
+  });
+
   it("formats multi-digit WCAG criteria", () => {
     const result = analyzeAccessibility("<html></html>", [
       {
