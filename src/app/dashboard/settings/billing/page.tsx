@@ -20,13 +20,13 @@ export default async function PlansBillingPage() {
   const [entitlement, billing, clients] = await Promise.all([
     getOrgEntitlement(),
     getBillingSummary().catch(() => null),
-    listClients().catch(() => []),
+    listClients().catch(() => null),
   ]);
   const config = getTierConfig(entitlement.tier);
   const usage: BillingPageData["usage"] = {
     scans: billing?.scans ? { used: billing.scans.used, limit: config.scanLimit, period: billing.scans.period } : null,
     seats: billing?.seats ? { used: billing.seats.used, limit: config.seats } : null,
-    managedClients: { used: clients.length, limit: config.managedClients },
+    managedClients: clients ? { used: clients.length, limit: config.managedClients } : null,
     error: billing === null,
   };
 

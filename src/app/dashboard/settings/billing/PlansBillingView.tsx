@@ -11,7 +11,7 @@ export interface BillingPageData {
   usage: {
     scans: { used: number; limit: number; period: string } | null;
     seats: { used: number; limit: number } | null;
-    managedClients: { used: number; limit: number | null };
+    managedClients: { used: number; limit: number | null } | null;
     error: boolean;
   };
 }
@@ -70,6 +70,19 @@ function Meter({ label, used, limit, detail }: { label: string; used: number; li
         />
       )}
       <p className="text-xs text-text-muted">{detail}</p>
+    </div>
+  );
+}
+
+function UnavailableMeter({ label }: { label: string }) {
+  return (
+    <div className="space-y-2" role="status">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm font-medium text-text-primary">{label}</span>
+        <Badge tone="amber">Temporarily unavailable</Badge>
+      </div>
+      <p className="text-sm text-text-secondary">We couldn&apos;t load this usage right now.</p>
+      <p className="text-xs text-text-muted">Try refreshing the page in a moment.</p>
     </div>
   );
 }
@@ -149,9 +162,9 @@ export default function PlansBillingView({ tier, status, currentPeriodEnd, usage
                   <p className="text-sm font-medium text-text-secondary">Current workspace plan</p>
                   <Badge tone={statusCopy.tone}>{statusCopy.label}</Badge>
                 </div>
-                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-text-primary">
+                <h2 className="mt-2 text-3xl font-semibold tracking-tight text-text-primary">
                   {getTierConfig(tier).label}
-                </h1>
+                </h2>
                 <p className="mt-2 max-w-xl text-sm leading-6 text-text-secondary">
                   {tierUpgradeBenefit(tier === "free" ? "solo" : tier)}
                 </p>
@@ -159,7 +172,7 @@ export default function PlansBillingView({ tier, status, currentPeriodEnd, usage
               <div className="rounded-2xl border border-border-default bg-surface-card/70 p-4 text-right">
                 <p className="text-2xl font-semibold text-text-primary">
                   ${getTierConfig(tier).monthly.toLocaleString()}
-                  <span className="text-sm font-normal text-text-muted"> / month</span>
+                  <span className="text-sm font-normal text-text-muted"> plan rate</span>
                 </p>
                 <p className="mt-1 text-xs text-text-muted">
                   {renewalDate ? `Renews ${renewalDate}` : "No recurring charge"}
@@ -235,7 +248,9 @@ export default function PlansBillingView({ tier, status, currentPeriodEnd, usage
             </Card>
             <Card>
               <CardBody>
-                {usage.managedClients.limit === null ? (
+                {!usage.managedClients ? (
+                  <UnavailableMeter label="Managed clients" />
+                ) : usage.managedClients.limit === null ? (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-sm font-medium text-text-primary">Managed clients</span>
