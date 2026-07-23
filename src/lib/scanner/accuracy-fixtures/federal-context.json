@@ -1,0 +1,27 @@
+{
+  "id": "federal-context",
+  "description": "An explicitly declared child-directed email-marketing context for conditional federal obligations.",
+  "html": "<html><head><script id=\"Cookiebot\" src=\"https://consent.cookiebot.com/uc.js\" data-cbid=\"00000000-0000-0000-0000-000000000000\"></script><script src=\"https://connect.facebook.net/en_US/fbevents.js\"></script><a href=\"/privacy\">Privacy Policy</a><a href=\"/terms\">Terms of Service</a></head><body><form><input type=\"email\" /></form></body></html>",
+  "requestUrls": [],
+  "jurisdictions": ["us_general"],
+  "dataCategories": ["children", "email"],
+  "complianceState": {
+    "hasPrivacyPolicy": true,
+    "hasConsentMechanism": true,
+    "dpaWith": [],
+    "jointControllerArrangements": [],
+    "mentionsSccs": true,
+    "addressesPci": true
+  },
+  "expected": {
+    "tools": ["cookiebot", "meta"],
+    "negativeTools": ["google", "stripe"],
+    "analyzerFindings": ["consent_present"],
+    "lintFindings": [],
+    "obligations": ["can_spam.commercial_email", "coppa.child_directed_privacy"],
+    "detailed": [
+      { "id": "cookiebot", "layer": "html", "weakOnly": false, "minConfidence": 0.5 },
+      { "id": "meta", "layer": "html", "weakOnly": false, "minConfidence": 0.5 }
+    ]
+  }
+}

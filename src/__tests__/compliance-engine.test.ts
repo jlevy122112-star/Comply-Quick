@@ -142,6 +142,45 @@ describe("deriveObligations — deterministic traversal", () => {
     const lastCritical = severities.lastIndexOf("critical");
     if (firstInfo !== -1 && lastCritical !== -1) expect(lastCritical).toBeLessThan(firstInfo);
   });
+
+  it("maps multistate US jurisdictions to their state privacy obligations", () => {
+    const results = deriveObligations({
+      services: ["meta", "stripe"],
+      jurisdictions: ["us_va", "us_co", "us_ct", "us_tx", "us_ut"],
+    });
+    const ids = results.map((result) => result.obligation.id);
+    expect(ids).toEqual(
+      expect.arrayContaining([
+        "vcdpa.privacy_notice",
+        "vcdpa.opt_out_targeted_advertising",
+        "cpa.privacy_notice",
+        "cpa.opt_out_targeted_advertising",
+        "cpa.universal_opt_out",
+        "ctdpa.privacy_notice",
+        "ctdpa.opt_out_targeted_advertising",
+        "ctdpa.universal_opt_out",
+        "tdpsa.privacy_notice",
+        "tdpsa.opt_out_targeted_advertising",
+        "ucpa.privacy_notice",
+        "ucpa.opt_out_targeted_advertising",
+      ])
+    );
+  });
+
+  it("derives conditional federal obligations only from explicit context signals", () => {
+    const withoutContext = deriveObligations({ services: ["meta"], jurisdictions: ["us_general"] });
+    expect(withoutContext.some((result) => result.obligation.framework === "coppa")).toBe(false);
+    expect(withoutContext.some((result) => result.obligation.framework === "can_spam")).toBe(false);
+
+    const withContext = deriveObligations({
+      services: ["meta"],
+      jurisdictions: ["us_general"],
+      dataCategories: ["children", "email"],
+    });
+    expect(withContext.map((result) => result.obligation.id)).toEqual(
+      expect.arrayContaining(["coppa.child_directed_privacy", "can_spam.commercial_email"])
+    );
+  });
 });
 
 describe("lintCompliance — rule-based checker", () => {
@@ -220,6 +259,21 @@ describe("lintCompliance — rule-based checker", () => {
   it("sorts errors before warnings", () => {
     const findings = lintCompliance({ ...base, addressesPci: false, dpaWith: ["google"] });
     expect(findings[0].severity).toBe("error");
+  });
+
+  it("flags an explicitly unhandled universal opt-out signal in Colorado and Connecticut", () => {
+    const findings = lintCompliance({
+      ...base,
+      jurisdictions: ["us_co", "us_ct"],
+      honorsUniversalOptOut: false,
+    });
+    expect(findings).toContainEqual(
+      expect.objectContaining({
+        id: "universal_opt_out_not_honored",
+        severity: "error",
+        obligationId: "cpa.universal_opt_out",
+      })
+    );
   });
 });
 

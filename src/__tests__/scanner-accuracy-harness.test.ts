@@ -6,6 +6,7 @@ import { analyzeHtml, detectTools, detectToolsDetailed, FINGERPRINT_CATEGORIES }
 import { getService, SERVICE_CATALOG } from "@/lib/compliance/catalog";
 import { deriveObligations } from "@/lib/compliance/traverse";
 import { lintCompliance } from "@/lib/compliance/linter";
+import type { DataCategory, JurisdictionId } from "@/lib/compliance/graph";
 
 type ExpectedLintFinding = { id: string; severity: "error" | "warning" };
 type ExpectedDetection = {
@@ -21,7 +22,7 @@ type AccuracyFixture = {
   description: string;
   html: string;
   requestUrls: string[];
-  jurisdictions: ("eu" | "uk" | "us_ca" | "br" | "global")[];
+  jurisdictions: JurisdictionId[];
   complianceState: {
     hasPrivacyPolicy: boolean;
     hasConsentMechanism: boolean;
@@ -29,7 +30,9 @@ type AccuracyFixture = {
     jointControllerArrangements?: string[];
     mentionsSccs: boolean;
     addressesPci: boolean;
+    honorsUniversalOptOut?: boolean;
   };
+  dataCategories?: DataCategory[];
   expected: {
     tools: string[];
     negativeTools: string[];
@@ -84,6 +87,7 @@ describe("scanner accuracy golden corpus", () => {
       const actualObligations = deriveObligations({
         services: actualIds,
         jurisdictions: fixture.jurisdictions,
+        dataCategories: fixture.dataCategories,
       }).map((result) => result.obligation.id);
       const knownGaps = fixture.expected.knownGaps ?? [];
       const hasKnownGap = knownGaps.length > 0;
