@@ -15,10 +15,10 @@ export const PLATFORMS: { value: Framework; label: string; icon: string }[] = [
 ];
 
 export const TOGGLES: { key: keyof OnboardingAnswers; label: string; hint: string }[] = [
-  { key: "sellsOnline", label: "We Sell Online / Take Payments", hint: "Adds payment & consumer protections" },
-  { key: "handlesHealthData", label: "We Handle Health Data", hint: "Triggers HIPAA/health coverage" },
-  { key: "servesEu", label: "We Serve EU / UK Users", hint: "Adds GDPR obligations" },
-  { key: "isAgency", label: "We're an Agency Managing Client Sites", hint: "Enables multi-project posture" },
+  { key: "sellsOnline", label: "We sell online / take payments", hint: "Adds payment & consumer protections" },
+  { key: "handlesHealthData", label: "We handle health data", hint: "Triggers HIPAA/health coverage" },
+  { key: "servesEu", label: "We serve EU / UK users", hint: "Adds GDPR obligations" },
+  { key: "isAgency", label: "We're an agency managing client sites", hint: "Enables multi-project posture" },
 ];
 
 export const REGION_LABELS: Record<string, string> = {
