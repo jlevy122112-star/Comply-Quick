@@ -7,6 +7,25 @@ export function tierLabel(tier: Tier): string {
   return getTierConfig(tier).label;
 }
 
+export function tierDescription(tier: Tier): string {
+  const config = getTierConfig(tier);
+  const scans = isUnlimited(config.scanLimit)
+    ? "unlimited compliance scans"
+    : `${config.scanLimit} ${config.scanLimit === 1 ? "scan" : "scans"} per month`;
+  const workspace =
+    config.managedClients === null
+      ? "a personal workspace"
+      : isUnlimited(config.managedClients)
+        ? "unlimited managed client workspaces"
+        : `${config.managedClients} managed client workspaces`;
+  if (tier === "free") return `${scans}, ${workspace}, and core document tools.`;
+
+  const seats = isUnlimited(config.seats)
+    ? "unlimited team seats"
+    : `${config.seats} ${config.seats === 1 ? "team seat" : "team seats"}`;
+  return `${scans}, ${workspace}, ${seats}, and core compliance tools.`;
+}
+
 export function scanAllowance(tier: Tier): string {
   const limit = getTierConfig(tier).scanLimit;
   return isUnlimited(limit) ? "Unlimited compliance scans" : `${limit} compliance scans / month`;

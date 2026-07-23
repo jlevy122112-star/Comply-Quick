@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getOrgEntitlement } from "@/lib/entitlements";
-import { getBillingSummary } from "@/lib/billing/usage";
+import { getScanUsage, getSeatUsage } from "@/lib/billing/usage";
 import { listClients } from "@/lib/agency/service";
 import { getTierConfig, type Tier } from "@/lib/pricing";
 import { AppShell } from "@/components/dashboard/AppShell";
@@ -17,17 +17,27 @@ export default async function PlansBillingPage() {
 
   if (!user) redirect("/login?redirect=/dashboard/settings/billing");
 
-  const [entitlement, billing, clients] = await Promise.all([
-    getOrgEntitlement(),
-    getBillingSummary().catch(() => null),
-    listClients().catch(() => null),
-  ]);
+  const entitlement = await getOrgEntitlement();
   const config = getTierConfig(entitlement.tier);
+  const [scans, seats, clients] = await Promise.all([
+    getScanUsage().catch(() => null),
+    config.managedClients === null ? Promise.resolve(null) : getSeatUsage().catch(() => null),
+    config.managedClients === null ? Promise.resolve(null) : listClients().catch(() => null),
+  ]);
   const usage: BillingPageData["usage"] = {
-    scans: billing?.scans ? { used: billing.scans.used, limit: config.scanLimit, period: billing.scans.period } : null,
-    seats: billing?.seats ? { used: billing.seats.used, limit: config.seats } : null,
-    managedClients: clients ? { used: clients.length, limit: config.managedClients } : null,
-    error: billing === null,
+    scans: scans ? { used: scans.used, limit: config.scanLimit, period: scans.period } : null,
+    seats:
+      config.managedClients === null
+        ? { used: 1, limit: config.seats }
+        : seats
+          ? { used: seats.used, limit: config.seats }
+          : null,
+    managedClients:
+      config.managedClients === null
+        ? { status: "not-applicable" }
+        : clients
+          ? { status: "ok", used: clients.length, limit: config.managedClients }
+          : { status: "unavailable" },
   };
 
   return (

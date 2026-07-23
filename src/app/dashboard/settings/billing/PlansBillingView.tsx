@@ -1,18 +1,19 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { Check, CreditCard, ExternalLink, Sparkles } from "lucide-react";
-import { Badge, Button, Card, CardBody, CardHeader, EmptyState, PageTitle, ProgressBar } from "@/components/ui";
+import { Badge, Button, Card, CardBody, CardHeader, PageTitle, ProgressBar } from "@/components/ui";
 import { ALL_TIERS, getTierConfig, isUnlimited, type Billing, type Tier } from "@/lib/pricing";
-import { tierUpgradeBenefit } from "@/lib/tier-copy";
+import { tierDescription, tierUpgradeBenefit } from "@/lib/tier-copy";
+
+type ManagedClientsUsage =
+  { status: "not-applicable" } | { status: "ok"; used: number; limit: number } | { status: "unavailable" };
 
 export interface BillingPageData {
   usage: {
     scans: { used: number; limit: number; period: string } | null;
     seats: { used: number; limit: number } | null;
-    managedClients: { used: number; limit: number | null } | null;
-    error: boolean;
+    managedClients: ManagedClientsUsage;
   };
 }
 
@@ -165,9 +166,7 @@ export default function PlansBillingView({ tier, status, currentPeriodEnd, usage
                 <h2 className="mt-2 text-3xl font-semibold tracking-tight text-text-primary">
                   {getTierConfig(tier).label}
                 </h2>
-                <p className="mt-2 max-w-xl text-sm leading-6 text-text-secondary">
-                  {tierUpgradeBenefit(tier === "free" ? "solo" : tier)}
-                </p>
+                <p className="mt-2 max-w-xl text-sm leading-6 text-text-secondary">{tierDescription(tier)}</p>
               </div>
               <div className="rounded-2xl border border-border-default bg-surface-card/70 p-4 text-right">
                 <p className="text-2xl font-semibold text-text-primary">
@@ -220,69 +219,61 @@ export default function PlansBillingView({ tier, status, currentPeriodEnd, usage
           </div>
           <Badge tone="indigo">{usage.scans?.period ?? "Current period"}</Badge>
         </div>
-        {usage.error ? (
-          <EmptyState
-            icon="↻"
-            title="Usage is temporarily unavailable"
-            description="Your plan and billing controls are still available. Try refreshing in a moment to see live meters."
-            action={
-              <Link
-                href="/dashboard/settings/billing"
-                className="text-sm font-medium text-accent-primary hover:text-accent-primary-hover"
-              >
-                Refresh usage
-              </Link>
-            }
-          />
-        ) : (
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardBody>
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardBody>
+              {usage.scans ? (
                 <Meter
                   label="Compliance scans"
-                  used={usage.scans!.used}
-                  limit={usage.scans!.limit}
+                  used={usage.scans.used}
+                  limit={usage.scans.limit}
                   detail="Calendar-month scans"
                 />
-              </CardBody>
-            </Card>
-            <Card>
-              <CardBody>
-                {!usage.managedClients ? (
-                  <UnavailableMeter label="Managed clients" />
-                ) : usage.managedClients.limit === null ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-medium text-text-primary">Managed clients</span>
-                      <Badge tone="gray">Personal workspace</Badge>
-                    </div>
-                    <p className="text-sm text-text-secondary">
-                      Managed client workspaces aren&apos;t included in this plan.
-                    </p>
-                    <p className="text-xs text-text-muted">Upgrade to a client-management plan to build a portfolio.</p>
+              ) : (
+                <UnavailableMeter label="Compliance scans" />
+              )}
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody>
+              {usage.managedClients.status === "not-applicable" ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-medium text-text-primary">Managed clients</span>
+                    <Badge tone="gray">Personal workspace</Badge>
                   </div>
-                ) : (
-                  <Meter
-                    label="Managed clients"
-                    used={usage.managedClients.used}
-                    limit={usage.managedClients.limit}
-                    detail="Active client workspaces"
-                  />
-                )}
-              </CardBody>
-            </Card>
-            <Card>
-              <CardBody>
+                  <p className="text-sm text-text-secondary">
+                    Managed client workspaces aren&apos;t included in this plan.
+                  </p>
+                  <p className="text-xs text-text-muted">Upgrade to a client-management plan to build a portfolio.</p>
+                </div>
+              ) : usage.managedClients.status === "unavailable" ? (
+                <UnavailableMeter label="Managed clients" />
+              ) : (
+                <Meter
+                  label="Managed clients"
+                  used={usage.managedClients.used}
+                  limit={usage.managedClients.limit}
+                  detail="Active client workspaces"
+                />
+              )}
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody>
+              {usage.seats ? (
                 <Meter
                   label="Team seats"
-                  used={usage.seats!.used}
-                  limit={usage.seats!.limit}
+                  used={usage.seats.used}
+                  limit={usage.seats.limit}
                   detail="Members in this workspace"
                 />
-              </CardBody>
-            </Card>
-          </div>
-        )}
+              ) : (
+                <UnavailableMeter label="Team seats" />
+              )}
+            </CardBody>
+          </Card>
+        </div>
       </section>
 
       <section>
