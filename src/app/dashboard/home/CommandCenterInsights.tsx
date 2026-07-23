@@ -23,18 +23,18 @@ function buildSteps(projects: DbProject[], completedTools: QuickToolKey[]): Onbo
   const coversRegime = projects.some((p) => p.targetRegions.some((r) => MAJOR_REGIMES.includes(r)));
   const used = new Set(completedTools);
   return [
-    { key: "package", label: "Generate your first compliance package", href: "/dashboard", done: hasProject },
-    { key: "regime", label: "Cover a GDPR or CCPA jurisdiction", href: "/dashboard", done: coversRegime },
+    { key: "package", label: "Generate Your First Compliance Package", href: "/dashboard", done: hasProject },
+    { key: "regime", label: "Cover a GDPR or CCPA Jurisdiction", href: "/dashboard", done: coversRegime },
     {
       key: "banner",
-      label: "Add a cookie consent banner",
+      label: "Add a Cookie Consent Banner",
       href: "/dashboard/tools/cookie-banner",
       done: used.has("cookie_banner"),
     },
-    { key: "dpa", label: "Generate a DPA for your vendors", href: "/dashboard/tools/dpa", done: used.has("dpa") },
+    { key: "dpa", label: "Generate a DPA for Your Vendors", href: "/dashboard/tools/dpa", done: used.has("dpa") },
     {
       key: "subs",
-      label: "Map your subprocessors",
+      label: "Map Your Subprocessors",
       href: "/dashboard/tools/subprocessors",
       done: used.has("subprocessors"),
     },
@@ -72,7 +72,7 @@ export default function CommandCenterInsights({
       {showNextAction && (
         <Card className="lg:col-span-2">
           <CardHeader
-            title="Your next step"
+            title="Your Next Step"
             description="Complete your compliance setup — you're never left guessing."
             icon="🎯"
             actions={<Badge tone="indigo">{onboardingPct}% set up</Badge>}

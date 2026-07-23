@@ -4,10 +4,10 @@ import type { WorkspaceData } from "@/lib/workspace/data";
 /** Four-category compliance score breakdown with per-category progress bars. */
 export function ScoreBreakdown({ score }: { score: WorkspaceData["project"]["complianceScore"] }) {
   const rows: { label: string; value: number }[] = [
-    { label: "Contract protection", value: score.contractProtection },
-    { label: "Privacy coverage", value: score.privacyCoverage },
-    { label: "Pre-launch readiness", value: score.preLaunchReadiness },
-    { label: "Regulatory breadth", value: score.regulatoryBreadth },
+    { label: "Contract Protection", value: score.contractProtection },
+    { label: "Privacy Coverage", value: score.privacyCoverage },
+    { label: "Pre-Launch Readiness", value: score.preLaunchReadiness },
+    { label: "Regulatory Breadth", value: score.regulatoryBreadth },
   ];
   return (
     <div className="space-y-4">

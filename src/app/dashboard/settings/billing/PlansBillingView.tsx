@@ -29,9 +29,9 @@ const STATUS_COPY: Record<
   { label: string; tone: "emerald" | "amber" | "rose" | "gray" }
 > = {
   active: { label: "Active", tone: "emerald" },
-  past_due: { label: "Payment issue", tone: "amber" },
+  past_due: { label: "Payment Issue", tone: "amber" },
   canceled: { label: "Canceled", tone: "rose" },
-  inactive: { label: "Free plan", tone: "gray" },
+  inactive: { label: "Free Plan", tone: "gray" },
 };
 
 function formatLimit(value: number | null): string {
@@ -138,7 +138,7 @@ export default function PlansBillingView({ tier, status, currentPeriodEnd, usage
           status === "active" || status === "past_due" || status === "canceled" ? (
             <Button type="button" variant="secondary" onClick={openPortal} loading={busyPlan === "portal"}>
               <ExternalLink className="h-4 w-4" aria-hidden="true" />
-              Manage billing
+              Manage Billing
             </Button>
           ) : null
         }
@@ -160,7 +160,7 @@ export default function PlansBillingView({ tier, status, currentPeriodEnd, usage
             <div className="relative flex flex-col justify-between gap-6 sm:flex-row sm:items-start">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-medium text-text-secondary">Current workspace plan</p>
+                  <p className="text-sm font-medium text-text-secondary">Current Workspace Plan</p>
                   <Badge tone={statusCopy.tone}>{statusCopy.label}</Badge>
                 </div>
                 <h2 className="mt-2 text-3xl font-semibold tracking-tight text-text-primary">
@@ -199,7 +199,7 @@ export default function PlansBillingView({ tier, status, currentPeriodEnd, usage
               loading={busyPlan === "portal"}
               disabled={tier === "free"}
             >
-              Open Stripe billing portal
+              Open Stripe Billing Portal
             </Button>
             {tier === "free" && (
               <p className="text-xs text-text-muted">Choose a paid plan below to create a billing account.</p>
@@ -239,7 +239,7 @@ export default function PlansBillingView({ tier, status, currentPeriodEnd, usage
               {usage.managedClients.status === "not-applicable" ? (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm font-medium text-text-primary">Managed clients</span>
+                    <span className="text-sm font-medium text-text-primary">Managed Clients</span>
                     <Badge tone="gray">Personal workspace</Badge>
                   </div>
                   <p className="text-sm text-text-secondary">

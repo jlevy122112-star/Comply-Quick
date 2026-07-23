@@ -55,7 +55,7 @@ export function CalendarTaskForm({
           <option value="task">Task</option>
           <option value="renewal">Renewal</option>
           <option value="scan">Scan</option>
-          <option value="risk">Risk alert</option>
+          <option value="risk">Risk Alert</option>
           <option value="regulation">Regulation</option>
         </select>
       </label>

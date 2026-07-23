@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 const STATUS_FILTERS: { key: string; label: string; status?: FindingStatus }[] = [
   { key: "open", label: "Open", status: "open" },
-  { key: "in_progress", label: "In progress", status: "in_progress" },
+  { key: "in_progress", label: "In Progress", status: "in_progress" },
   { key: "reopened", label: "Reopened", status: "reopened" },
   { key: "resolved", label: "Resolved", status: "resolved" },
   { key: "all", label: "All" },

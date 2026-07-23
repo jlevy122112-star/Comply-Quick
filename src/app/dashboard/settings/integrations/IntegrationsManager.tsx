@@ -7,7 +7,7 @@ import type { Integration, IntegrationKind } from "@/lib/integrations-db";
 import { addIntegrationAction, setIntegrationActiveAction, deleteIntegrationAction } from "./actions";
 
 const KIND_LABEL: Record<IntegrationKind, string> = {
-  webhook: "Generic webhook",
+  webhook: "Generic Webhook",
 };
 
 // Tolerate rows whose stored kind predates the current type (e.g. legacy `slack`
@@ -88,7 +88,7 @@ export function IntegrationsManager({ integrations, canManage }: { integrations:
                   onChange={(e) => setKind(e.target.value as IntegrationKind)}
                   className="rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none"
                 >
-                  <option value="webhook">Generic webhook</option>
+                  <option value="webhook">Generic Webhook</option>
                 </select>
               </label>
               <label className="text-sm">
@@ -147,7 +147,7 @@ export function IntegrationsManager({ integrations, canManage }: { integrations:
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="truncate text-sm font-medium text-white">{i.name}</span>
-                  <Badge tone={i.active ? "emerald" : "gray"}>{i.active ? "active" : "paused"}</Badge>
+                  <Badge tone={i.active ? "emerald" : "gray"}>{i.active ? "Active" : "Paused"}</Badge>
                 </div>
                 <p className="mt-0.5 truncate text-xs text-gray-500">
                   {kindLabel(i.kind)} · {i.targetUrl}

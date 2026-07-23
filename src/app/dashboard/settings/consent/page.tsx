@@ -9,9 +9,9 @@ const RECENT_LIMIT = 25;
 export const dynamic = "force-dynamic";
 
 const ACTION_LABELS: Record<ConsentAction, string> = {
-  accept_all: "Accepted all",
-  reject_non_essential: "Rejected non-essential",
-  custom: "Custom selection",
+  accept_all: "Accepted All",
+  reject_non_essential: "Rejected Non-Essential",
+  custom: "Custom Selection",
   withdraw: "Withdrawn",
   do_not_sell: "Do Not Sell / Share",
 };

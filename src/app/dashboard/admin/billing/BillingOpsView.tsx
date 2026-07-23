@@ -33,6 +33,13 @@ function tone(status: string): "gray" | "emerald" | "amber" | "rose" {
   return "gray";
 }
 
+function statusLabel(status: string): string {
+  return status
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 export default function BillingOpsView({ tenants, detail, selectedId, stripeConfigured }: Props) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -135,7 +142,7 @@ export default function BillingOpsView({ tenants, detail, selectedId, stripeConf
                   </p>
                   {account?.achStatus && (
                     <p className="mt-2 text-xs text-text-secondary">
-                      ACH setup <Badge tone={tone(account.achStatus)}>{account.achStatus}</Badge>
+                      ACH Setup <Badge tone={tone(account.achStatus)}>{statusLabel(account.achStatus)}</Badge>
                     </p>
                   )}
                 </div>
@@ -321,9 +328,11 @@ export default function BillingOpsView({ tenants, detail, selectedId, stripeConf
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <Badge tone={tone(invoice.status)}>{invoice.status}</Badge>
+                      <Badge tone={tone(invoice.status)}>{statusLabel(invoice.status)}</Badge>
                       {invoice.stripeInvoiceStatus && (
-                        <Badge tone={tone(invoice.stripeInvoiceStatus)}>{invoice.stripeInvoiceStatus}</Badge>
+                        <Badge tone={tone(invoice.stripeInvoiceStatus)}>
+                          {statusLabel(invoice.stripeInvoiceStatus)}
+                        </Badge>
                       )}
                       <span className="font-medium text-gray-200">{money(invoice.totalCents, invoice.currency)}</span>
                     </div>

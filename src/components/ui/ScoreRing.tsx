@@ -4,9 +4,9 @@ import { cn } from "./cn";
 type Size = "sm" | "md" | "lg";
 
 const DIMS: Record<Size, { px: number; stroke: number; text: string; sub: string }> = {
-  sm: { px: 64, stroke: 6, text: "text-base", sub: "text-[10px]" },
-  md: { px: 96, stroke: 8, text: "text-2xl", sub: "text-xs" },
-  lg: { px: 128, stroke: 10, text: "text-4xl", sub: "text-xs" },
+  sm: { px: 64, stroke: 6, text: "text-base", sub: "text-[9px]" },
+  md: { px: 96, stroke: 8, text: "text-2xl", sub: "text-[10px]" },
+  lg: { px: 128, stroke: 10, text: "text-4xl", sub: "text-[11px]" },
 };
 
 /** Tailwind stroke colours by score band — matches the app's tone scale. */
@@ -78,7 +78,13 @@ export function ScoreRing({
         >
           {clamped}
         </span>
-        <span className={cn("uppercase tracking-wide", tone === "surface" ? "text-text-muted" : "text-gray-500", sub)}>
+        <span
+          className={cn(
+            "max-w-[78%] px-1 text-center uppercase leading-none tracking-[0.08em]",
+            tone === "surface" ? "text-text-muted" : "text-gray-500",
+            sub
+          )}
+        >
           {label}
         </span>
       </div>
