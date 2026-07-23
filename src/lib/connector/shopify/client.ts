@@ -129,6 +129,15 @@ export class ShopifyAdminClient {
     return fromPageWire(json.page);
   }
 
+  async listPages(): Promise<ShopifyPage[]> {
+    const json = await this.request<{ pages: ShopifyPageWire[] }>("GET", "/pages.json");
+    return (json?.pages ?? []).map(fromPageWire);
+  }
+
+  async deletePage(id: number): Promise<void> {
+    await this.request<unknown>("DELETE", `/pages/${id}.json`);
+  }
+
   async updatePage(id: number, page: Partial<ShopifyPage>): Promise<ShopifyPage> {
     const json = await this.request<{ page: ShopifyPageWire }>("PUT", `/pages/${id}.json`, {
       // `id` last so the path id always wins over any id in the partial payload.

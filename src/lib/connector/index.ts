@@ -9,6 +9,7 @@ export * from "./crypto";
 export * from "./state-machine";
 export * from "./circuit-breaker";
 export * from "./remediation";
+export * from "./executor";
 export * from "./agent";
 export * as shopifyOAuth from "./shopify/oauth";
 export * as shopifyWebhooks from "./shopify/webhooks";
