@@ -10,6 +10,7 @@ import type { Tier } from "@/lib/pricing";
 import { scanAllowanceShort, tierLabel, upgradeTargetFor } from "@/lib/tier-copy";
 import { shareScanAction, emailScanAction } from "@/app/dashboard/home/actions";
 import { UpsellCta } from "@/components/ui";
+import { extractWcagCriteria } from "@/lib/scanner/accessibility";
 
 interface DetectedTool {
   id: string;
@@ -464,7 +465,7 @@ export default function ScannerPanel({ tier }: { tier: Tier }) {
                   <div className="mt-4 space-y-2">
                     {active.accessibility.findings.map((finding) => {
                       const s = SEVERITY_STYLES[finding.severity] ?? SEVERITY_STYLES.info;
-                      const criteria = finding.detail.match(/WCAG success criteria: ([^.]+)\./i)?.[1];
+                      const criteria = extractWcagCriteria(finding.detail);
                       return (
                         <div key={finding.id} className={`rounded-lg border bg-gray-800/50 p-3 ${s.border}`}>
                           <div className="flex flex-wrap items-center justify-between gap-2">
