@@ -37,7 +37,10 @@ export default function PlatformIntegrationsTool() {
   const [generating, setGenerating] = useState(false);
   const [step, setStep] = useState(0);
 
-  const platform = useMemo(() => platforms.find((p) => p.id === platformId) ?? platforms[platforms.length - 1]!, [platforms, platformId]);
+  const platform = useMemo(
+    () => platforms.find((p) => p.id === platformId) ?? platforms[platforms.length - 1]!,
+    [platforms, platformId]
+  );
 
   const toggle = useCallback(
     <T,>(setter: React.Dispatch<React.SetStateAction<T[]>>) =>
@@ -73,13 +76,13 @@ export default function PlatformIntegrationsTool() {
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
       <div className="lg:col-span-2 space-y-6">
         <Card>
-          <CardHeader title="Platform" description="Choose the website builder or CMS you want to integrate with." icon="🌐" />
+          <CardHeader
+            title="Platform"
+            description="Choose the website builder or CMS you want to integrate with."
+            icon="🌐"
+          />
           <CardBody>
-            <Select
-              label="Website builder"
-              value={platformId}
-              onChange={(e) => setPlatformId(e.target.value)}
-            >
+            <Select label="Website builder" value={platformId} onChange={(e) => setPlatformId(e.target.value)}>
               {platforms.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name} — {p.category}
@@ -93,7 +96,11 @@ export default function PlatformIntegrationsTool() {
         </Card>
 
         <Card>
-          <CardHeader title="Configure" description="Banner behavior is derived from your jurisdictions and pixels." icon="⚙️" />
+          <CardHeader
+            title="Configure"
+            description="Banner behavior is derived from your jurisdictions and pixels."
+            icon="⚙️"
+          />
           <CardBody className="space-y-5">
             <Input
               label="Company / site name"
@@ -128,10 +135,7 @@ export default function PlatformIntegrationsTool() {
             {generating && (
               <div className="space-y-2">
                 {GEN_STEPS.map((s, i) => (
-                  <div
-                    key={s}
-                    className={`text-xs ${i <= step ? "text-indigo-300" : "text-gray-600"}`}
-                  >
+                  <div key={s} className={`text-xs ${i <= step ? "text-indigo-300" : "text-gray-600"}`}>
                     {i + 1}. {s}
                   </div>
                 ))}

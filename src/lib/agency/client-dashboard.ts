@@ -116,11 +116,7 @@ export const getClientDashboard = cache(async (clientId: string): Promise<Client
   // findings tied to those scans.
   let scanIds: string[] = [];
   if (monitorIds.length > 0) {
-    const { data: scans } = await admin
-      .from("scans")
-      .select("id")
-      .eq("user_id", ownerId)
-      .in("monitor_id", monitorIds);
+    const { data: scans } = await admin.from("scans").select("id").eq("user_id", ownerId).in("monitor_id", monitorIds);
     scanIds = asArray(scans).map((row) => row.id as string);
   }
 

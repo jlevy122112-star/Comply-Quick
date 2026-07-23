@@ -49,11 +49,7 @@ export function AppShell({
         isLegalAdmin={isLegalAdmin}
       />
       <div className={cn("min-h-screen transition-[padding] duration-200", collapsed ? "lg:pl-[76px]" : "lg:pl-64")}>
-        <TopBar
-          tier={tier}
-          userEmail={userEmail}
-          onMenuClick={() => setMobileOpen(true)}
-        />
+        <TopBar tier={tier} userEmail={userEmail} onMenuClick={() => setMobileOpen(true)} />
         <div className="min-h-[calc(100vh-4rem)]">{children}</div>
       </div>
     </div>

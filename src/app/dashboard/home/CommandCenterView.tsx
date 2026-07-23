@@ -15,7 +15,6 @@ import IntelligencePanel from "./IntelligencePanel";
 import NpsSurvey from "./NpsSurvey";
 import { alertsForRegions, regionsFromProjects, type RegulatoryAlert } from "@/lib/regulations/alerts";
 import type { QuickToolKey } from "@/lib/tools/usage";
-import type { Organization } from "@/lib/organizations-db";
 import type { ScanUsage } from "@/lib/billing/usage";
 import HeroStatusPanel from "@/components/dashboard/HeroStatusPanel";
 
@@ -136,8 +135,6 @@ interface CommandCenterViewProps {
   userEmail: string | null;
   isLegalAdmin?: boolean;
   scanUsage: ScanUsage | null;
-  organizations?: Organization[];
-  activeOrganizationId?: string | null;
 }
 
 export default function CommandCenterView({
@@ -148,8 +145,6 @@ export default function CommandCenterView({
   userEmail,
   isLegalAdmin,
   scanUsage,
-  organizations,
-  activeOrganizationId,
 }: CommandCenterViewProps) {
   const [isPending, startTransition] = useTransition();
   const projectsNeedingAttention = projects.filter((p) => p.status !== "current").length;
@@ -173,11 +168,7 @@ export default function CommandCenterView({
   }
 
   return (
-    <AppShell
-      tier={tier}
-      userEmail={userEmail}
-      isLegalAdmin={isLegalAdmin}
-    >
+    <AppShell tier={tier} userEmail={userEmail} isLegalAdmin={isLegalAdmin}>
       <NpsSurvey />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         <HeroStatusPanel

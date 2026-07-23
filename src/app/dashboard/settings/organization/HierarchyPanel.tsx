@@ -51,9 +51,7 @@ function TreeNode({
   const [expanded, setExpanded] = useState(true);
   const hasChildren = node.children.length > 0;
   const isMoving = movingId === node.id;
-  const validOptions = options.filter(
-    (option) => option.id !== node.id && !descendantIds(node).has(option.id)
-  );
+  const validOptions = options.filter((option) => option.id !== node.id && !descendantIds(node).has(option.id));
 
   return (
     <li className="relative">
@@ -207,7 +205,10 @@ export function HierarchyPanel({ root, canManage }: { root: OrganizationTreeNode
         )}
 
         {error && (
-          <p role="alert" className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+          <p
+            role="alert"
+            className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200"
+          >
             {error}
           </p>
         )}

@@ -24,7 +24,9 @@ export async function POST(request: Request) {
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
     const repoFullName = typeof body.repoFullName === "string" ? body.repoFullName : "";
     if (!repoFullName || !/^[^/]+\/[^/]+$/.test(repoFullName)) {
-      return new NextResponse(JSON.stringify({ ok: false, error: "Invalid repo format. Use owner/repo." }), { status: 400 });
+      return new NextResponse(JSON.stringify({ ok: false, error: "Invalid repo format. Use owner/repo." }), {
+        status: 400,
+      });
     }
 
     const connection = await getGitHubConnection(organizationId);

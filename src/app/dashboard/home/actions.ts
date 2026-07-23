@@ -16,9 +16,7 @@ export async function shareScanAction(
   return { ok: true, url: res.url };
 }
 
-export async function emailScanAction(
-  scanId: string
-): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function emailScanAction(scanId: string): Promise<{ ok: true } | { ok: false; error: string }> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -47,9 +45,9 @@ export async function emailScanAction(
     shareUrl = shared.url;
   }
 
-  const orgName = (await supabase.from("organizations").select("name").eq("id", scan.organizationId).single()).data as
-    | { name?: string }
-    | null;
+  const orgName = (await supabase.from("organizations").select("name").eq("id", scan.organizationId).single()).data as {
+    name?: string;
+  } | null;
   const fromName = orgName?.name ?? "Comply-Quick";
 
   const subject = `Compliance scan report for ${scan.url} from ${fromName}`;

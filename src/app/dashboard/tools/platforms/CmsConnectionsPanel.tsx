@@ -39,14 +39,16 @@ export default function CmsConnectionsPanel({ organizationId }: CmsConnectionsPa
       .order("created_at", { ascending: false });
     if (!error && data) {
       setConnections(
-        (data as Array<{
-          id: string;
-          platform: CmsPlatform;
-          external_account_id: string;
-          status: string;
-          mode: string;
-          created_at: string;
-        }>).map((row) => ({
+        (
+          data as Array<{
+            id: string;
+            platform: CmsPlatform;
+            external_account_id: string;
+            status: string;
+            mode: string;
+            created_at: string;
+          }>
+        ).map((row) => ({
           id: row.id,
           platform: row.platform,
           externalAccountId: row.external_account_id,
@@ -80,10 +82,7 @@ export default function CmsConnectionsPanel({ organizationId }: CmsConnectionsPa
 
   return (
     <Card className="mt-8">
-      <CardHeader
-        title="CMS plugin connections"
-        description="Track Webflow app and WordPress plugin installations."
-      />
+      <CardHeader title="CMS plugin connections" description="Track Webflow app and WordPress plugin installations." />
       <CardBody>
         <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-4 items-end mb-6">
           <div className="flex-1 w-full">
@@ -108,7 +107,9 @@ export default function CmsConnectionsPanel({ organizationId }: CmsConnectionsPa
         {loading ? (
           <Skeleton className="h-24" />
         ) : connections.length === 0 ? (
-          <p className="text-sm text-gray-500">No CMS connections yet. Install the plugin for your site or add a manual connection above.</p>
+          <p className="text-sm text-gray-500">
+            No CMS connections yet. Install the plugin for your site or add a manual connection above.
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm text-left">

@@ -48,19 +48,22 @@ export async function GET(request: NextRequest) {
     const externalAccountId = userJson.login ?? "unknown";
 
     const admin = createAdminClient();
-    await admin.schema("connector").from("connector_connections").upsert(
-      {
-        agency_org_id: organizationId,
-        platform: "github",
-        external_account_id: externalAccountId,
-        status: "active",
-        mode: "propose_only",
-        scopes: token.scope.split(/,\s*|\s+/).filter(Boolean),
-        access_token_enc: encryptToken(token.accessToken),
-        last_verified_at: new Date().toISOString(),
-      },
-      { onConflict: "platform,external_account_id" }
-    );
+    await admin
+      .schema("connector")
+      .from("connector_connections")
+      .upsert(
+        {
+          agency_org_id: organizationId,
+          platform: "github",
+          external_account_id: externalAccountId,
+          status: "active",
+          mode: "propose_only",
+          scopes: token.scope.split(/,\s*|\s+/).filter(Boolean),
+          access_token_enc: encryptToken(token.accessToken),
+          last_verified_at: new Date().toISOString(),
+        },
+        { onConflict: "platform,external_account_id" }
+      );
 
     redirect(`${redirectBase}?success=connected`);
   } catch (err) {

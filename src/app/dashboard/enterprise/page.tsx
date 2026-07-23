@@ -48,8 +48,8 @@ export default async function EnterprisePortalPage() {
           <p className="mb-4 text-4xl">🏢</p>
           <h1 className="mb-2 text-2xl font-bold text-white">Enterprise Client Portal</h1>
           <p className="mb-6 text-gray-400">
-            Manage unlimited client workspaces with stricter security, dedicated SSO/SCIM, field-level encryption,
-            and advanced compliance modules. Available on the{" "}
+            Manage unlimited client workspaces with stricter security, dedicated SSO/SCIM, field-level encryption, and
+            advanced compliance modules. Available on the{" "}
             <strong className="text-amber-300">{tierLabel("enterprise")}</strong> plan.
           </p>
           <Link
