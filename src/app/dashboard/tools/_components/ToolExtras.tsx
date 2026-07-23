@@ -39,7 +39,7 @@ export function NextStepCard({
     <div className="flex flex-col gap-3 rounded-xl border border-indigo-500/25 bg-indigo-500/10 p-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <div className="flex items-center gap-2">
-          <Badge tone="indigo">Next step</Badge>
+          <Badge tone="indigo">Next Step</Badge>
           <p className="text-sm font-semibold text-white">{title}</p>
         </div>
         <p className="mt-1 text-sm text-indigo-200/80">{description}</p>

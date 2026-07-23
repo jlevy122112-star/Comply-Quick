@@ -69,7 +69,7 @@ export function ClientDashboardView({
             <span className="hidden h-4 w-px bg-gray-700 sm:inline-block" />
             <h1 className="text-lg font-bold text-white">{client.name}</h1>
             <select
-              aria-label="Switch client workspace"
+              aria-label="Switch Client Workspace"
               value={client.id}
               onChange={(e) => router.push(`${basePath}/${e.target.value}`)}
               className="h-8 rounded-lg border border-gray-700 bg-gray-950 px-3 text-sm text-white outline-none focus:border-indigo-500"
@@ -157,7 +157,7 @@ export function ClientDashboardView({
               {monitors.length === 0 ? (
                 <EmptyState
                   icon="🔍"
-                  title="No monitors"
+                  title="No Monitors"
                   description="Add a monitor for this client to track compliance over time."
                 />
               ) : (
@@ -166,8 +166,8 @@ export function ClientDashboardView({
                     <TR>
                       <TH>Label</TH>
                       <TH>Status</TH>
-                      <TH>Last score</TH>
-                      <TH>Last scan</TH>
+                      <TH>Last Score</TH>
+                      <TH>Last Scan</TH>
                     </TR>
                   </THead>
                   <TBody>
@@ -201,7 +201,7 @@ export function ClientDashboardView({
             />
             <CardBody>
               {projects.length === 0 ? (
-                <EmptyState icon="📁" title="No projects" description="Create a compliance project for this client." />
+                <EmptyState icon="📁" title="No Projects" description="Create a compliance project for this client." />
               ) : (
                 <Table>
                   <THead>
@@ -234,14 +234,14 @@ export function ClientDashboardView({
         <Card>
           <CardHeader
             icon={<Shield className="h-5 w-5 text-sky-400" />}
-            title="Current policies & regulations"
+            title="Current Policies & Regulations"
             description="Latest compliance package versions tracked for this client"
           />
           <CardBody>
             {documents.length === 0 ? (
               <EmptyState
                 icon="📜"
-                title="No policy documents"
+                title="No Policy Documents"
                 description="Autopilot will propose compliance package updates when tracked regulations change."
               />
             ) : (
@@ -276,12 +276,12 @@ export function ClientDashboardView({
           <Card>
             <CardHeader
               icon={<Shield className="h-5 w-5 text-rose-400" />}
-              title="Open findings"
+              title="Open Findings"
               description="Unresolved compliance gaps"
             />
             <CardBody>
               {findings.length === 0 ? (
-                <EmptyState icon="🛡️" title="No open findings" description="All tracked findings are resolved." />
+                <EmptyState icon="🛡️" title="No Open Findings" description="All tracked findings are resolved." />
               ) : (
                 <div className="space-y-3">
                   {findings.map((finding) => (
@@ -317,7 +317,7 @@ export function ClientDashboardView({
               {alerts.length === 0 ? (
                 <EmptyState
                   icon="🔔"
-                  title="No alerts"
+                  title="No Alerts"
                   description="No unresolved compliance alerts for this client."
                 />
               ) : (

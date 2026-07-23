@@ -5,7 +5,7 @@ export default function BillingLoading() {
     <main
       className="mx-auto max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8"
       aria-busy="true"
-      aria-label="Loading plans and billing"
+      aria-label="Loading Plans and Billing"
     >
       <div className="flex items-end justify-between gap-4">
         <div className="space-y-2">

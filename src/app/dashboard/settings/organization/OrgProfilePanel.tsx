@@ -37,7 +37,7 @@ export function OrgProfilePanel({ org, canManage }: { org: Organization; canMana
   return (
     <Card>
       <CardBody>
-        <h2 className="text-sm font-semibold text-white">Organization profile</h2>
+        <h2 className="text-sm font-semibold text-white">Organization Profile</h2>
         <p className="mt-1 text-sm text-gray-400">
           The organization is the top of your tenant hierarchy — workspaces and projects live inside it.
         </p>

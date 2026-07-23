@@ -33,13 +33,13 @@ export function Sidebar({
       {mobileOpen && (
         <button
           type="button"
-          aria-label="Close navigation"
+          aria-label="Close Navigation"
           onClick={onMobileClose}
           className="fixed inset-0 z-30 bg-text-primary/20 backdrop-blur-sm lg:hidden"
         />
       )}
       <aside
-        aria-label="Dashboard navigation"
+        aria-label="Dashboard Navigation"
         className={cn(
           "fixed inset-y-0 left-0 z-40 flex flex-col border-r border-border-default bg-surface-card transition-[width,transform] duration-200",
           "lg:translate-x-0",
@@ -56,7 +56,7 @@ export function Sidebar({
           <Logo href="/dashboard/home" tone="light" size={collapsed ? "sm" : "md"} markOnly={collapsed} />
           <button
             type="button"
-            aria-label="Close navigation"
+            aria-label="Close Navigation"
             onClick={onMobileClose}
             className="ml-auto rounded-lg p-2 text-text-muted hover:bg-surface-elevated hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary lg:hidden"
           >
@@ -90,7 +90,7 @@ export function Sidebar({
       </aside>
       <button
         type="button"
-        aria-label="Open navigation"
+        aria-label="Open Navigation"
         onClick={onMobileOpen}
         className={cn(
           "fixed bottom-5 left-5 z-20 rounded-full border border-border-default bg-surface-card p-3 text-text-primary shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary lg:hidden",

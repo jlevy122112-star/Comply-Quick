@@ -40,7 +40,7 @@ export function Drawer({
     >
       <button
         type="button"
-        aria-label="Close panel"
+        aria-label="Close Panel"
         onClick={onClose}
         className="absolute inset-0 h-full w-full cursor-default bg-black/60 backdrop-blur-sm"
       />

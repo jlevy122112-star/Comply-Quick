@@ -38,7 +38,7 @@ export function Modal({
     >
       <button
         type="button"
-        aria-label="Close dialog"
+        aria-label="Close Dialog"
         onClick={onClose}
         className="absolute inset-0 h-full w-full cursor-default bg-black/60 backdrop-blur-sm"
       />

@@ -109,7 +109,7 @@ export default function PartnerView({
 
       {/* Referral link */}
       <section className="rounded-xl border border-gray-800 bg-gray-900/50 p-5">
-        <h2 className="text-sm font-semibold text-gray-300 mb-2">Your referral link</h2>
+        <h2 className="text-sm font-semibold text-gray-300 mb-2">Your Referral Link</h2>
         <div className="flex flex-col sm:flex-row gap-2">
           <code className="flex-1 truncate rounded-lg bg-gray-950 border border-gray-800 px-3 py-2 text-sm text-emerald-300">
             {referralLink}
@@ -128,10 +128,10 @@ export default function PartnerView({
 
       {/* Earnings summary */}
       <section className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard label="Referred customers" value={String(referredCustomers)} />
-        <StatCard label="Total earned" value={formatUsd(earnings.totalCents, earnings.currency)} />
-        <StatCard label="Pending payout" value={formatUsd(earnings.accruedCents, earnings.currency)} accent />
-        <StatCard label="Paid out" value={formatUsd(earnings.paidCents, earnings.currency)} />
+        <StatCard label="Referred Customers" value={String(referredCustomers)} />
+        <StatCard label="Total Earned" value={formatUsd(earnings.totalCents, earnings.currency)} />
+        <StatCard label="Pending Payout" value={formatUsd(earnings.accruedCents, earnings.currency)} accent />
+        <StatCard label="Paid Out" value={formatUsd(earnings.paidCents, earnings.currency)} />
       </section>
 
       {/* Payouts */}
@@ -166,7 +166,7 @@ export default function PartnerView({
 
       {/* Commission ledger */}
       <section className="rounded-xl border border-gray-800 bg-gray-900/50 p-5">
-        <h2 className="text-sm font-semibold text-gray-300 mb-3">Commission history</h2>
+        <h2 className="text-sm font-semibold text-gray-300 mb-3">Commission History</h2>
         {commissions.length === 0 ? (
           <p className="text-sm text-gray-500">
             No commissions yet. Share your referral link — you&apos;ll earn {pct}% each time a referred customer is
@@ -177,8 +177,8 @@ export default function PartnerView({
             <thead>
               <tr className="text-left text-gray-500 border-b border-gray-800">
                 <th className="pb-2 font-medium">Date</th>
-                <th className="pb-2 font-medium">Customer payment</th>
-                <th className="pb-2 font-medium">Your commission</th>
+                <th className="pb-2 font-medium">Customer Payment</th>
+                <th className="pb-2 font-medium">Your Commission</th>
                 <th className="pb-2 font-medium">Status</th>
               </tr>
             </thead>

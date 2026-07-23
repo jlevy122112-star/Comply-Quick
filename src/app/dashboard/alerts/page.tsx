@@ -49,7 +49,7 @@ export default async function AlertsCenterPage() {
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">Alerts center</h1>
+            <h1 className="text-2xl font-bold text-white">Alerts Center</h1>
             <p className="mt-1 text-sm text-gray-400">
               Live regulatory developments across the jurisdictions your projects target, plus any open exposure
               weighing on your compliance score.
@@ -60,7 +60,7 @@ export default async function AlertsCenterPage() {
 
         {/* Open exposure — changes actively lowering the score */}
         <section className="mt-8">
-          <h2 className="mb-3 text-sm font-semibold text-gray-300">Action needed</h2>
+          <h2 className="mb-3 text-sm font-semibold text-gray-300">Action Needed</h2>
           {impacts.length === 0 ? (
             <EmptyState
               icon="✅"
@@ -99,7 +99,7 @@ export default async function AlertsCenterPage() {
 
         {/* Regulatory feed */}
         <section className="mt-10">
-          <h2 className="mb-3 text-sm font-semibold text-gray-300">Regulatory developments</h2>
+          <h2 className="mb-3 text-sm font-semibold text-gray-300">Regulatory Developments</h2>
           {alerts.length === 0 ? (
             <EmptyState
               icon="📡"

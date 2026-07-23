@@ -38,7 +38,7 @@ export function FeatureFlagsPanel({
   return (
     <section className="space-y-6 rounded-2xl border border-gray-800 bg-gray-900 p-5">
       <div>
-        <h2 className="text-lg font-semibold text-white">Feature flags</h2>
+        <h2 className="text-lg font-semibold text-white">Feature Flags</h2>
         <p className="mt-1 text-sm text-gray-300">Managing feature flags for {organizationName}</p>
         <p className="mt-1 text-sm text-gray-400">Organization overrides take precedence over environment defaults.</p>
       </div>
@@ -70,7 +70,7 @@ export function FeatureFlagsPanel({
         ))}
       </div>
       <div>
-        <h3 className="font-medium text-white">Recent changes</h3>
+        <h3 className="font-medium text-white">Recent Changes</h3>
         {audit.length === 0 ? (
           <p className="mt-2 text-sm text-gray-400">No changes recorded yet.</p>
         ) : (

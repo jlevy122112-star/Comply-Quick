@@ -21,7 +21,7 @@ export default async function GitHubIntegrationPage() {
           </Link>
         </div>
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-white">GitHub integration</h1>
+          <h1 className="text-2xl font-semibold text-white">GitHub Integration</h1>
           <p className="mt-1 text-sm text-gray-400">
             Connect GitHub repositories and scan source code for compliance signals.
           </p>

@@ -234,7 +234,7 @@ export function IntakeWizard({
     <div>
       {/* Heading */}
       <div className="mb-6">
-        <p className="text-xs font-medium uppercase tracking-wider text-indigo-400">Onboarding intake</p>
+        <p className="text-xs font-medium uppercase tracking-wider text-indigo-400">Onboarding Intake</p>
         <h1 className="mt-1 text-2xl font-bold text-white">{clientName}</h1>
         <p className="mt-1 text-sm text-gray-400">
           Capture everything needed to kick off {clientName}&apos;s project — this pre-fills their compliance scan and
@@ -543,7 +543,7 @@ function StepBusiness({ answers, patch }: StepProps) {
   const b = answers.business;
   return (
     <div className="space-y-5">
-      <Field label="Legal / business name">
+      <Field label="Legal / Business Name">
         <TextInput
           value={b.legalName}
           onChange={(e) => patch("business", { legalName: e.target.value })}
@@ -557,7 +557,7 @@ function StepBusiness({ answers, patch }: StepProps) {
           placeholder="Home services, SaaS, retail…"
         />
       </Field>
-      <Field label="Target audience" hint="Who are their customers?">
+      <Field label="Target Audience" hint="Who are their customers?">
         <TextArea
           value={b.targetAudience}
           onChange={(e) => patch("business", { targetAudience: e.target.value })}
@@ -579,7 +579,7 @@ function StepGoals({ answers, patch }: StepProps) {
   const g = answers.goals;
   return (
     <div className="space-y-5">
-      <Field label="Primary objective for the website">
+      <Field label="Primary Objective for the Website">
         <RadioCards
           value={g.primaryObjective}
           options={PRIMARY_OBJECTIVES}
@@ -615,7 +615,7 @@ function StepBranding({ answers, patch }: StepProps) {
         hint="Logo, colors, fonts, style guide"
         onChange={(v) => patch("branding", { hasBrandAssets: v })}
       />
-      <Field label="Preferred visual style">
+      <Field label="Preferred Visual Style">
         <RadioCards
           value={br.visualStyle}
           options={VISUAL_STYLES}
@@ -623,14 +623,14 @@ function StepBranding({ answers, patch }: StepProps) {
           onChange={(v) => patch("branding", { visualStyle: v })}
         />
       </Field>
-      <Field label="Brand notes" hint="Colors, tone, do's and don'ts">
+      <Field label="Brand Notes" hint="Colors, tone, do's and don'ts">
         <TextArea
           value={br.brandNotes}
           onChange={(e) => patch("branding", { brandNotes: e.target.value })}
           placeholder="Navy + gold, confident but friendly tone, avoid stock-photo look…"
         />
       </Field>
-      <Field label="Inspiration links" hint="Sites they love — press Enter to add">
+      <Field label="Inspiration Links" hint="Sites they love — press Enter to add">
         <ChipMultiSelect
           values={br.inspirationLinks}
           suggestions={[]}
@@ -646,7 +646,7 @@ function StepTechnical({ answers, patch }: StepProps) {
   const t = answers.technical;
   return (
     <div className="space-y-5">
-      <Field label="Required features" hint="Pick suggestions or add your own">
+      <Field label="Required Features" hint="Pick suggestions or add your own">
         <ChipMultiSelect
           values={t.features}
           suggestions={FEATURE_SUGGESTIONS}
@@ -661,7 +661,7 @@ function StepTechnical({ answers, patch }: StepProps) {
           placeholder="Client provides copy; we handle design"
         />
       </Field>
-      <Field label="Domain status">
+      <Field label="Domain Status">
         <RadioCards
           value={t.domainStatus}
           options={DOMAIN_STATUSES}
@@ -685,14 +685,14 @@ function StepLogistics({ answers, patch }: StepProps) {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="Target launch">
+        <Field label="Target Launch">
           <TextInput
             value={l.targetLaunch}
             onChange={(e) => patch("logistics", { targetLaunch: e.target.value })}
             placeholder="e.g. Q3, or 2026-09-01"
           />
         </Field>
-        <Field label="Review turnaround" hint="How fast can they give feedback?">
+        <Field label="Review Turnaround" hint="How fast can they give feedback?">
           <TextInput
             value={l.reviewTurnaround}
             onChange={(e) => patch("logistics", { reviewTurnaround: e.target.value })}
@@ -700,7 +700,7 @@ function StepLogistics({ answers, patch }: StepProps) {
           />
         </Field>
       </div>
-      <Field label="Budget range">
+      <Field label="Budget Range">
         <RadioCards
           value={l.budgetRange}
           options={BUDGET_RANGES}
@@ -709,7 +709,7 @@ function StepLogistics({ answers, patch }: StepProps) {
         />
       </Field>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="Day-to-day contact">
+        <Field label="Day-to-Day Contact">
           <TextInput
             value={l.dayToDayContact}
             onChange={(e) => patch("logistics", { dayToDayContact: e.target.value })}
@@ -724,7 +724,7 @@ function StepLogistics({ answers, patch }: StepProps) {
           />
         </Field>
       </div>
-      <Field label="Preferred communication channel">
+      <Field label="Preferred Communication Channel">
         <RadioCards
           value={l.commChannel}
           options={COMM_CHANNELS}
@@ -744,7 +744,7 @@ function StepCompliance({ answers, patch }: StepProps) {
         This section feeds the compliance scan and the documents Comply-Quick generates. It is informational only and
         not legal advice.
       </div>
-      <Field label="Jurisdictions served" hint="Where are the client's users?">
+      <Field label="Jurisdictions Served" hint="Where are the client's users?">
         <ChipMultiSelect
           values={c.jurisdictions}
           suggestions={JURISDICTION_SUGGESTIONS}
@@ -752,7 +752,7 @@ function StepCompliance({ answers, patch }: StepProps) {
           onChange={(v) => patch("compliance", { jurisdictions: v })}
         />
       </Field>
-      <Field label="Personal data collected">
+      <Field label="Personal Data Collected">
         <ChipMultiSelect
           values={c.dataCollected}
           suggestions={DATA_SUGGESTIONS}
@@ -760,7 +760,7 @@ function StepCompliance({ answers, patch }: StepProps) {
           onChange={(v) => patch("compliance", { dataCollected: v })}
         />
       </Field>
-      <Field label="Known trackers / pixels" hint="GA4, Meta Pixel, ad platforms…">
+      <Field label="Known Trackers / Pixels" hint="GA4, Meta Pixel, ad platforms…">
         <TextArea
           value={c.trackers}
           onChange={(e) => patch("compliance", { trackers: e.target.value })}

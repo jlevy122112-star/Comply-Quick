@@ -25,7 +25,7 @@ export default async function PlatformIntegrationsPage() {
           </Link>
         </div>
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-white">Platform integrations</h1>
+          <h1 className="text-2xl font-semibold text-white">Platform Integrations</h1>
           <p className="mt-1 text-sm text-gray-400">
             Generate copy-paste consent banners and policy links for the most common website builders and CMSs.
           </p>

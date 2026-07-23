@@ -26,7 +26,7 @@ export function WorkspaceHeader({
   return (
     <header className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-5">
-        <ScoreRing score={project.complianceScore.overall} size="lg" label="overall" />
+        <ScoreRing score={project.complianceScore.overall} size="lg" label="Overall" />
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <h1 className="truncate text-2xl font-bold">{project.name}</h1>

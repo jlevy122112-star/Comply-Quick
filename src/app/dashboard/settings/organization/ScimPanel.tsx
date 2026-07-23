@@ -108,7 +108,7 @@ export function ScimPanel({
       {canManage && (
         <Card>
           <CardBody>
-            <h2 className="text-sm font-semibold text-white">Create SCIM token</h2>
+            <h2 className="text-sm font-semibold text-white">Create SCIM Token</h2>
             <p className="mt-1 text-sm text-gray-400">A bearer token your IdP presents on every SCIM request.</p>
             <form onSubmit={create} className="mt-4 flex flex-wrap items-end gap-3">
               <label className="text-sm">
@@ -129,7 +129,7 @@ export function ScimPanel({
         {active.length === 0 ? (
           <EmptyState
             icon="🔑"
-            title="No active tokens"
+            title="No Active Tokens"
             description="Create a token to connect your identity provider."
           />
         ) : (
@@ -160,9 +160,9 @@ export function ScimPanel({
       </div>
 
       <div>
-        <h3 className="mb-2 text-sm font-semibold text-white">Provisioned users ({users.length})</h3>
+        <h3 className="mb-2 text-sm font-semibold text-white">Provisioned Users ({users.length})</h3>
         {users.length === 0 ? (
-          <EmptyState icon="👥" title="No provisioned users" description="Users pushed by your IdP appear here." />
+          <EmptyState icon="👥" title="No Provisioned Users" description="Users pushed by your IdP appear here." />
         ) : (
           <div className="space-y-2">
             {users.map((u) => (

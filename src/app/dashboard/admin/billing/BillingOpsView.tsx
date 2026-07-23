@@ -127,7 +127,7 @@ export default function BillingOpsView({ tenants, detail, selectedId, stripeConf
             <CardBody>
               <div className="mb-5 flex flex-col gap-4 rounded-xl border border-border-default bg-surface-elevated/60 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-text-primary">Stripe billing account</p>
+                  <p className="text-sm font-semibold text-text-primary">Stripe Billing Account</p>
                   <p className="mt-1 text-xs text-text-secondary">
                     {account?.stripeCustomerId
                       ? `Customer linked: ${account.stripeCustomerId}`
@@ -148,7 +148,7 @@ export default function BillingOpsView({ tenants, detail, selectedId, stripeConf
                       size="sm"
                       disabled={pending || !stripeConfigured || Boolean(account?.stripeCustomerId)}
                     >
-                      {account?.stripeCustomerId ? "Customer linked" : "Link Stripe customer"}
+                      {account?.stripeCustomerId ? "Customer Linked" : "Link Stripe Customer"}
                     </Button>
                   </form>
                   <form
@@ -171,7 +171,7 @@ export default function BillingOpsView({ tenants, detail, selectedId, stripeConf
                       size="sm"
                       disabled={pending || !stripeConfigured || !account?.stripeCustomerId}
                     >
-                      Set up ACH
+                      Set Up ACH
                     </Button>
                   </form>
                 </div>
@@ -251,8 +251,8 @@ export default function BillingOpsView({ tenants, detail, selectedId, stripeConf
                     defaultValue={account?.collectionMethod ?? "charge_automatically"}
                     className="mt-2 w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/30"
                   >
-                    <option value="charge_automatically">Charge automatically</option>
-                    <option value="send_invoice">Send invoice</option>
+                    <option value="charge_automatically">Charge Automatically</option>
+                    <option value="send_invoice">Send Invoice</option>
                   </select>
                 </label>
                 <label className="text-sm text-gray-300">
@@ -262,7 +262,7 @@ export default function BillingOpsView({ tenants, detail, selectedId, stripeConf
                     defaultValue={account?.paymentTerms ?? "due_on_receipt"}
                     className="mt-2 w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/30"
                   >
-                    <option value="due_on_receipt">Due on receipt</option>
+                    <option value="due_on_receipt">Due on Receipt</option>
                     <option value="net_15">Net 15</option>
                     <option value="net_30">Net 30</option>
                     <option value="net_60">Net 60</option>
@@ -284,7 +284,7 @@ export default function BillingOpsView({ tenants, detail, selectedId, stripeConf
                     className="mt-2 w-full rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/30"
                   >
                     <option value="active">Active</option>
-                    <option value="past_due">Past due</option>
+                    <option value="past_due">Past Due</option>
                     <option value="suspended">Suspended</option>
                   </select>
                 </label>
@@ -344,7 +344,7 @@ export default function BillingOpsView({ tenants, detail, selectedId, stripeConf
                         name="description"
                         required
                         defaultValue={invoice.lineItems[0]?.description ?? ""}
-                        aria-label="Draft line item description"
+                        aria-label="Draft Line Item Description"
                         className="rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/30"
                       />
                       <input
@@ -353,7 +353,7 @@ export default function BillingOpsView({ tenants, detail, selectedId, stripeConf
                         min="0"
                         type="number"
                         defaultValue={invoice.lineItems[0]?.unitAmountCents ?? 0}
-                        aria-label="Draft unit amount in cents"
+                        aria-label="Draft Unit Amount in Cents"
                         className="rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/30"
                       />
                       <input
@@ -362,28 +362,28 @@ export default function BillingOpsView({ tenants, detail, selectedId, stripeConf
                         min="1"
                         type="number"
                         defaultValue={invoice.lineItems[0]?.quantity ?? 1}
-                        aria-label="Draft quantity"
+                        aria-label="Draft Quantity"
                         className="rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/30"
                       />
                       <input
                         name="poNumber"
                         defaultValue={invoice.poNumber ?? ""}
                         placeholder="PO number"
-                        aria-label="Draft PO number"
+                        aria-label="Draft PO Number"
                         className="rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/30"
                       />
                       <input
                         name="dueAt"
                         type="date"
                         defaultValue={invoice.dueAt?.slice(0, 10) ?? ""}
-                        aria-label="Draft due date"
+                        aria-label="Draft Due Date"
                         className="rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/30"
                       />
                       <input
                         name="notes"
                         defaultValue={invoice.notes ?? ""}
                         placeholder="Internal notes"
-                        aria-label="Draft notes"
+                        aria-label="Draft Notes"
                         className="rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/30"
                       />
                       <Button type="submit" variant="secondary" disabled={pending} className="sm:col-span-2">
@@ -407,7 +407,7 @@ export default function BillingOpsView({ tenants, detail, selectedId, stripeConf
                       )}
                       {invoice.stripeInvoiceId && invoice.status === "draft" && (
                         <InvoiceStripeAction
-                          label="Finalize / send"
+                          label="Finalize / Send"
                           action={finalizeInvoiceOnStripe}
                           invoice={invoice}
                           organizationId={tenant.id}
@@ -423,12 +423,12 @@ export default function BillingOpsView({ tenants, detail, selectedId, stripeConf
                           rel="noreferrer"
                           className="inline-flex items-center rounded-lg border border-border-default px-3 py-1.5 text-xs font-medium text-text-secondary transition hover:border-border-strong hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary"
                         >
-                          Open hosted invoice
+                          Open Hosted Invoice
                         </a>
                       )}
                       {invoice.status === "draft" && !invoice.stripeInvoiceId && (
                         <InvoiceAction
-                          label="Open invoice"
+                          label="Open Invoice"
                           status="open"
                           invoice={invoice}
                           organizationId={tenant.id}
@@ -438,7 +438,7 @@ export default function BillingOpsView({ tenants, detail, selectedId, stripeConf
                       )}
                       {invoice.status === "open" && (
                         <InvoiceAction
-                          label="Mark paid"
+                          label="Mark Paid"
                           status="paid"
                           invoice={invoice}
                           organizationId={tenant.id}
@@ -515,7 +515,7 @@ export default function BillingOpsView({ tenants, detail, selectedId, stripeConf
 
           <Card>
             <CardHeader
-              title="Manual entitlement override"
+              title="Manual Entitlement Override"
               description="Changes the organization's plan tier on org-entitlement surfaces. The reason is retained on the audit trail."
             />
             <CardBody>

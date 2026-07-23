@@ -102,7 +102,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
         {related.length > 0 && (
           <section className="mt-12 border-t border-gray-800 pt-8">
-            <h2 className="text-lg font-semibold text-white">Related guides</h2>
+            <h2 className="text-lg font-semibold text-white">Related Guides</h2>
             <ul className="mt-4 space-y-3">
               {related.map((r) => (
                 <li key={r.slug}>

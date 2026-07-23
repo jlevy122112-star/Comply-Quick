@@ -24,7 +24,7 @@ export default function PortalLanding({ agency }: { agency: Agency }) {
       </header>
 
       <main className="max-w-2xl mx-auto px-6 py-20 text-center">
-        <h1 className="text-3xl font-bold text-white mb-3">Compliance, managed for you</h1>
+        <h1 className="text-3xl font-bold text-white mb-3">Compliance, Managed for You</h1>
         <p className="text-gray-400 mb-8">
           {agency.name} monitors and maintains your website compliance — privacy policies, cookie consent, tracking
           disclosures, and ongoing risk alerts.

@@ -255,7 +255,7 @@ export default function CreatorView({
 
         {/* New template */}
         <section className="rounded-xl border border-gray-800 bg-gray-900/40 p-5 space-y-3">
-          <h2 className="font-semibold text-white">Create a template</h2>
+          <h2 className="font-semibold text-white">Create a Template</h2>
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -330,7 +330,7 @@ export default function CreatorView({
 
         {/* My templates */}
         <section className="space-y-3">
-          <h2 className="font-semibold text-white">Your templates</h2>
+          <h2 className="font-semibold text-white">Your Templates</h2>
           {templates.length === 0 ? (
             <div className="rounded-xl border border-gray-800 bg-gray-900/40 p-8 text-center text-gray-500">
               No templates yet. Create your first draft above.

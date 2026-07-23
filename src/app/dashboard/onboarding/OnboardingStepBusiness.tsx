@@ -29,7 +29,7 @@ export function OnboardingStepBusiness({
     <Card>
       <CardBody className="space-y-6">
         <div>
-          <h2 className="text-lg font-semibold text-white">Tell us about your business</h2>
+          <h2 className="text-lg font-semibold text-white">Tell Us About Your Business</h2>
           <p className="mt-1 text-sm text-gray-400">
             The Onboarding agent classifies your industry and recommends exactly which frameworks and jurisdictions to
             track — nothing is created until you approve it.

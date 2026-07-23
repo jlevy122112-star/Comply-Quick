@@ -114,7 +114,7 @@ export default async function ComparePage({ params }: { params: Promise<{ slug: 
         </div>
 
         <section className="mt-14">
-          <h2 className="text-2xl font-bold text-white">Frequently asked questions</h2>
+          <h2 className="text-2xl font-bold text-white">Frequently Asked Questions</h2>
           <div className="mt-6 space-y-4">
             {c.faqs.map((f) => (
               <details

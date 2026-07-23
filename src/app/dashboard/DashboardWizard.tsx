@@ -871,7 +871,7 @@ function PaywallGate({
                 }`}
               >
                 Annual
-                <span className="ml-1 text-emerald-400">save ~17%</span>
+                <span className="ml-1 text-emerald-400">Save ~17%</span>
               </button>
             </div>
           </div>

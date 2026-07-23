@@ -65,7 +65,7 @@ export default function ResetPasswordPage() {
           ) : done ? (
             <div className="space-y-3 text-center">
               <div className="text-3xl">✅</div>
-              <h2 className="text-lg font-semibold text-white">Password updated</h2>
+              <h2 className="text-lg font-semibold text-white">Password Updated</h2>
               <p className="text-sm text-gray-400">Your password has been changed.</p>
               <a
                 href="/dashboard/home"
@@ -77,7 +77,7 @@ export default function ResetPasswordPage() {
           ) : !hasSession ? (
             <div className="space-y-3 text-center">
               <div className="text-3xl">⚠️</div>
-              <h2 className="text-lg font-semibold text-white">Reset link expired</h2>
+              <h2 className="text-lg font-semibold text-white">Reset Link Expired</h2>
               <p className="text-sm text-gray-400">
                 This password-reset link is invalid or has expired. Request a new one from the sign-in page.
               </p>
@@ -97,7 +97,7 @@ export default function ResetPasswordPage() {
               className="space-y-4"
             >
               <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-gray-300">New password</span>
+                <span className="mb-1.5 block text-sm font-medium text-gray-300">New Password</span>
                 <div className="relative">
                   <input
                     type={show ? "text" : "password"}
@@ -118,7 +118,7 @@ export default function ResetPasswordPage() {
                 </div>
               </label>
               <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-gray-300">Confirm new password</span>
+                <span className="mb-1.5 block text-sm font-medium text-gray-300">Confirm New Password</span>
                 <input
                   type={show ? "text" : "password"}
                   required

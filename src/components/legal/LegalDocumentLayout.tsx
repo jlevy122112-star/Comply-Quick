@@ -71,7 +71,7 @@ export function LegalDocumentLayout({
                 </nav>
               </div>
               <div className="rounded-2xl border border-gray-800 bg-gray-900/60 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Legal center</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Legal Center</p>
                 <div className="mt-3 space-y-2 text-sm">
                   <Link className="block text-gray-300 transition-colors hover:text-white" href="/legal">
                     View all legal documents

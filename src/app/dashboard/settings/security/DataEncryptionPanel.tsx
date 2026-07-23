@@ -56,7 +56,7 @@ export function DataEncryptionPanel({ isEnterprise, initialStatus }: Props) {
             protected by pooled-database RLS.
           </p>
           <div className="mt-5 max-w-sm">
-            <UpsellCta tier="agency" feature="enterprisePortal" title="Unlock tenant encryption" />
+            <UpsellCta tier="agency" feature="enterprisePortal" title="Unlock Tenant Encryption" />
           </div>
         </CardBody>
       </Card>
@@ -98,11 +98,11 @@ export function DataEncryptionPanel({ isEnterprise, initialStatus }: Props) {
             <dd className="mt-1 text-sm font-semibold text-gray-100">{providerLabel}</dd>
           </div>
           <div className="rounded-lg border border-gray-800 bg-gray-950/50 p-4">
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">KEK version</dt>
+            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">KEK Version</dt>
             <dd className="mt-1 text-sm font-semibold text-gray-100">{status?.keyVersion ?? "Not initialized"}</dd>
           </div>
           <div className="rounded-lg border border-gray-800 bg-gray-950/50 p-4">
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Last rotation</dt>
+            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Last Rotation</dt>
             <dd className="mt-1 text-sm font-semibold text-gray-100">{formatRotation(status?.lastRotation ?? null)}</dd>
           </div>
         </dl>

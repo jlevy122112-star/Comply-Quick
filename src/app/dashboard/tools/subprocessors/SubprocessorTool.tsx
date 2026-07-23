@@ -36,7 +36,7 @@ export default function SubprocessorTool() {
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
       <div className="lg:col-span-2">
         <Card>
-          <CardHeader title="Select vendors" description="Pick the tracking pixels active on your site." icon="🔗" />
+          <CardHeader title="Select Vendors" description="Pick the tracking pixels active on your site." icon="🔗" />
           <CardBody className="space-y-5">
             <PixelPicker selected={pixels} onToggle={toggle} />
             <div className="flex flex-wrap gap-2">
@@ -63,7 +63,7 @@ export default function SubprocessorTool() {
 
         <Card>
           <CardHeader
-            title="Subprocessor register"
+            title="Subprocessor Register"
             description="GDPR Art. 30 record of processing / DPA Annex II."
             icon="🔗"
             actions={<Badge tone="gray">{map.rows.length} subprocessors</Badge>}
@@ -113,7 +113,7 @@ export default function SubprocessorTool() {
 
         {map.rows.length > 0 && (
           <NextStepCard
-            title="Generate the matching DPA"
+            title="Generate the Matching DPA"
             description="Turn this register into a controller–processor Data Processing Agreement with Annex II filled in."
             href="/dashboard/tools/dpa"
             cta="Build DPA"

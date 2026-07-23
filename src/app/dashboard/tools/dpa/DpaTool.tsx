@@ -64,31 +64,31 @@ export default function DpaTool() {
       <div className="lg:col-span-2">
         <Card>
           <CardHeader
-            title="Agreement details"
+            title="Agreement Details"
             description="Clauses adapt to jurisdictions, vendors & modules."
             icon="⚙️"
           />
           <CardBody className="space-y-5">
             <Input
-              label="Controller (your client)"
+              label="Controller (Your Client)"
               placeholder="Acme Store LLC"
               value={controllerName}
               onChange={(e) => setControllerName(e.target.value)}
             />
             <Input
-              label="Processor (you / vendor)"
+              label="Processor (You / Vendor)"
               placeholder="Your Agency Ltd"
               value={processorName}
               onChange={(e) => setProcessorName(e.target.value)}
             />
             <Input
-              label="Effective date"
+              label="Effective Date"
               type="date"
               value={effectiveDate}
               onChange={(e) => setEffectiveDate(e.target.value)}
             />
             <div>
-              <p className="mb-2 text-xs font-medium text-gray-300">Governing jurisdictions</p>
+              <p className="mb-2 text-xs font-medium text-gray-300">Governing Jurisdictions</p>
               <RegionPicker selected={regions} onToggle={toggle(setRegions)} />
             </div>
             <div>
@@ -96,7 +96,7 @@ export default function DpaTool() {
               <PixelPicker selected={pixels} onToggle={toggle(setPixels)} />
             </div>
             <div>
-              <p className="mb-2 text-xs font-medium text-gray-300">Additional security modules</p>
+              <p className="mb-2 text-xs font-medium text-gray-300">Additional Security Modules</p>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {MODULE_OPTIONS.map((m) => (
                   <CheckboxRow
@@ -158,7 +158,7 @@ export default function DpaTool() {
               </CardBody>
             </Card>
             <NextStepCard
-              title="Add a consent banner"
+              title="Add a Consent Banner"
               description="Pair this DPA with a jurisdiction-aware cookie consent banner for the same vendors."
               href="/dashboard/tools/cookie-banner"
               cta="Generate banner"

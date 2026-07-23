@@ -280,7 +280,7 @@ export default function LandingPage() {
                 </div>
                 <div className="mt-6 flex items-center justify-between rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4">
                   <div>
-                    <div className="text-xs uppercase tracking-wider text-emerald-300">Compliance score</div>
+                    <div className="text-xs uppercase tracking-wider text-emerald-300">Compliance Score</div>
                     <div className="text-xs text-gray-300 mt-1">Embeddable Trust Badge</div>
                   </div>
                   <div className="flex items-center justify-center w-16 h-16 rounded-full border-4 border-emerald-400/60 text-xl font-bold text-white">
@@ -430,7 +430,7 @@ export default function LandingPage() {
         <section id="how-it-works" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12 sm:mb-16">
-              <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">Agency edition</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">Agency Edition</span>
               <h2 className="mt-3 text-2xl sm:text-3xl font-bold text-white">How It Works</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
@@ -513,7 +513,7 @@ export default function LandingPage() {
         <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12 sm:mb-16">
-              <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">See your numbers</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">See Your Numbers</span>
               <h2 className="mt-3 text-2xl sm:text-3xl font-bold text-white">Agency Revenue Calculator</h2>
             </div>
             <AgencyRevenueCalculator startHref={START_HREF} />
@@ -582,7 +582,7 @@ export default function LandingPage() {
         <section id="partners" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50 scroll-mt-20">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12 sm:mb-16">
-              <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">Partner program</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">Partner Program</span>
               <h2 className="mt-3 text-2xl sm:text-3xl font-bold text-white">
                 Earn Recurring Revenue on Every Client You Bring.
               </h2>

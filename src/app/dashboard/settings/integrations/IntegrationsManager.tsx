@@ -76,7 +76,7 @@ export function IntegrationsManager({ integrations, canManage }: { integrations:
       {canManage && (
         <Card>
           <CardBody>
-            <h2 className="text-sm font-semibold text-white">Connect an endpoint</h2>
+            <h2 className="text-sm font-semibold text-white">Connect an Endpoint</h2>
             <p className="mt-1 text-sm text-gray-400">
               Deliver Comply-Quick events (new alerts, approvals, findings) to an external system.
             </p>
@@ -134,7 +134,7 @@ export function IntegrationsManager({ integrations, canManage }: { integrations:
       {integrations.length === 0 ? (
         <EmptyState
           icon="🔌"
-          title="No integrations yet"
+          title="No Integrations Yet"
           description="Add a webhook endpoint above to start receiving event notifications."
         />
       ) : (

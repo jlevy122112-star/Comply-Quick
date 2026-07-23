@@ -53,7 +53,7 @@ export default async function AuditPage() {
 
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white">Audit trail</h1>
+          <h1 className="text-2xl font-bold text-white">Audit Trail</h1>
           <p className="mt-1 text-sm text-gray-400">
             An immutable, append-only record of every consequential action — approvals, published scores, and exports.
             Entries can never be edited or deleted, so this is your defensible history for an audit.

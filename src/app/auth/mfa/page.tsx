@@ -111,7 +111,7 @@ function MfaChallengePage() {
         </div>
 
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-8">
-          <h1 className="text-lg font-semibold text-white">Enter your code</h1>
+          <h1 className="text-lg font-semibold text-white">Enter Your Code</h1>
           <p className="mt-1 text-sm text-gray-400">
             Open your authenticator app and enter the current 6-digit code for Comply-Quick.
           </p>

@@ -170,7 +170,7 @@ export function HierarchyPanel({ root, canManage }: { root: OrganizationTreeNode
     <Card>
       <CardHeader
         icon={<Network className="h-5 w-5 text-indigo-400" />}
-        title="Organization hierarchy"
+        title="Organization Hierarchy"
         description="Structure management does not grant access to child organization data."
       />
       <CardBody className="space-y-6">
@@ -178,7 +178,7 @@ export function HierarchyPanel({ root, canManage }: { root: OrganizationTreeNode
           <div className="flex flex-wrap items-end gap-3 rounded-xl border border-gray-800 bg-gray-950 p-4">
             <div className="min-w-[12rem] flex-1">
               <Input
-                label="Child name"
+                label="Child Name"
                 placeholder="e.g. West Coast Agency"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
@@ -226,7 +226,7 @@ export function HierarchyPanel({ root, canManage }: { root: OrganizationTreeNode
             No child organizations yet. Add one above to model departments, regions, or client groups.
           </p>
         ) : (
-          <ul aria-label="Organization hierarchy" className="space-y-1">
+          <ul aria-label="Organization Hierarchy" className="space-y-1">
             <TreeNode node={root} canManage={canManage} options={allNodes} onMove={move} movingId={movingId} />
           </ul>
         )}

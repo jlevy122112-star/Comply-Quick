@@ -50,7 +50,7 @@ export function WorkspacesPanel({ orgId, role, workspaces }: { orgId: string; ro
       {canCreate && (
         <Card>
           <CardBody>
-            <h2 className="text-sm font-semibold text-white">New workspace</h2>
+            <h2 className="text-sm font-semibold text-white">New Workspace</h2>
             <p className="mt-1 text-sm text-gray-400">
               Workspaces group projects for a team or client engagement inside your organization.
             </p>
@@ -76,7 +76,7 @@ export function WorkspacesPanel({ orgId, role, workspaces }: { orgId: string; ro
       {workspaces.length === 0 ? (
         <EmptyState
           icon="🗂️"
-          title="No workspaces yet"
+          title="No Workspaces Yet"
           description="Create a workspace to organize projects by team or client."
         />
       ) : (

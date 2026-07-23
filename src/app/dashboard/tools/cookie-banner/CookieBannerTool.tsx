@@ -78,23 +78,23 @@ export default function CookieBannerTool() {
           />
           <CardBody className="space-y-5">
             <Input
-              label="Company / site name"
+              label="Company / Site Name"
               placeholder="Acme Store"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
             />
             <Input
-              label="Privacy policy URL"
+              label="Privacy Policy URL"
               placeholder="/privacy"
               value={privacyPolicyUrl}
               onChange={(e) => setPrivacyPolicyUrl(e.target.value)}
             />
             <div>
-              <p className="mb-2 text-xs font-medium text-gray-300">Target jurisdictions</p>
+              <p className="mb-2 text-xs font-medium text-gray-300">Target Jurisdictions</p>
               <RegionPicker selected={regions} onToggle={toggle(setRegions)} />
             </div>
             <div>
-              <p className="mb-2 text-xs font-medium text-gray-300">Tracking pixels to gate</p>
+              <p className="mb-2 text-xs font-medium text-gray-300">Tracking Pixels to Gate</p>
               <PixelPicker selected={pixels} onToggle={toggle(setPixels)} />
             </div>
             <Button onClick={generate} loading={generating} disabled={!canGenerate} className="w-full" size="lg">
@@ -125,7 +125,7 @@ export default function CookieBannerTool() {
 
             <Card>
               <CardHeader
-                title="Your consent banner"
+                title="Your Consent Banner"
                 description="Framework-agnostic — works on any site."
                 icon="🍪"
                 actions={<Badge tone={CONSENT_TONE[result.consentModel]}>{result.consentModel} model</Badge>}
@@ -138,7 +138,7 @@ export default function CookieBannerTool() {
                       {c}
                     </Badge>
                   ))}
-                  {result.requiresDoNotSell && <Badge tone="amber">Do Not Sell control</Badge>}
+                  {result.requiresDoNotSell && <Badge tone="amber">Do Not Sell Control</Badge>}
                 </div>
 
                 <div className="flex gap-2 border-b border-gray-800">
@@ -160,7 +160,7 @@ export default function CookieBannerTool() {
 
                 {tab === "preview" ? (
                   <iframe
-                    title="Consent banner preview"
+                    title="Consent Banner Preview"
                     srcDoc={previewSrcDoc}
                     className="h-64 w-full rounded-lg border border-gray-800 bg-gray-900"
                   />
@@ -170,7 +170,7 @@ export default function CookieBannerTool() {
                       <code>{result.snippet}</code>
                     </pre>
                     <div className="flex flex-wrap gap-2">
-                      <CopyButton value={result.snippet} label="Copy snippet" />
+                      <CopyButton value={result.snippet} label="Copy Snippet" />
                       <Button
                         variant="secondary"
                         size="sm"
@@ -183,7 +183,7 @@ export default function CookieBannerTool() {
                 )}
 
                 <div>
-                  <p className="mb-2 text-xs font-semibold text-gray-300">Integration steps</p>
+                  <p className="mb-2 text-xs font-semibold text-gray-300">Integration Steps</p>
                   <ol className="list-decimal space-y-1.5 pl-5 text-xs text-gray-400">
                     {result.instructions.map((line, i) => (
                       <li key={i}>{line}</li>
@@ -194,7 +194,7 @@ export default function CookieBannerTool() {
             </Card>
 
             <NextStepCard
-              title="Document these vendors"
+              title="Document These Vendors"
               description="Map where this data flows and generate a subprocessor register for your DPA."
               href="/dashboard/tools/subprocessors"
               cta="Map subprocessors"

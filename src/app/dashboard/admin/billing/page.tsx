@@ -18,8 +18,8 @@ export default async function BillingAdminPage({ searchParams }: { searchParams:
       <div className="mx-auto max-w-7xl space-y-8">
         <header className="flex flex-col gap-3 border-b border-gray-800/70 pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300">Platform operations</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Enterprise billing operations</h1>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300">Platform Operations</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Enterprise Billing Operations</h1>
             <p className="mt-2 max-w-2xl text-sm text-gray-400">
               Manage tenant billing records, invoices, and manual entitlements. Stripe customer linking, invoice push,
               and ACH setup are available when Stripe is configured.

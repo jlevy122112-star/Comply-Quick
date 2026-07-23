@@ -40,7 +40,7 @@ export const DASHBOARD_NAV_GROUPS: DashboardNavGroup[] = [
     label: "Compliance Ops",
     items: [
       { label: "Command Center", href: "/dashboard/home", icon: LayoutDashboard },
-      { label: "Guided setup", href: "/dashboard/onboarding", icon: Rocket },
+      { label: "Guided Setup", href: "/dashboard/onboarding", icon: Rocket },
       { label: "Alerts", href: "/dashboard/alerts", icon: Bell },
       { label: "Approvals", href: "/dashboard/approvals", icon: CheckSquare },
       { label: "Audit Trail", href: "/dashboard/audit", icon: FileSearch },

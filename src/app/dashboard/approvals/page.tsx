@@ -94,7 +94,7 @@ export default async function ApprovalsPage() {
         </div>
 
         <section className="mt-8">
-          <h2 className="mb-3 text-sm font-semibold text-gray-300">Awaiting your review</h2>
+          <h2 className="mb-3 text-sm font-semibold text-gray-300">Awaiting Your Review</h2>
           {pending.length === 0 ? (
             <EmptyState
               icon="✅"

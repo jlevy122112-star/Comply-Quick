@@ -131,7 +131,7 @@ export default async function SharedScanPage({ params }: ShareScanPageProps) {
             {scan.score !== null && (
               <div className="shrink-0 text-center">
                 <span className={`text-4xl font-bold ${scoreColorClass(scan.score)}`}>{scan.score}</span>
-                <p className="text-xs text-gray-500">compliance score</p>
+                <p className="text-xs text-gray-500">Compliance Score</p>
               </div>
             )}
           </div>
