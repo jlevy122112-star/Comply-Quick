@@ -48,6 +48,11 @@ export interface PlannedRemediation {
   disposition: "auto_apply" | "propose";
 }
 
+/** Shared safety predicate for automatic writes and execution re-checks. */
+export function isAutoApplySafe(change: RemediationChange): boolean {
+  return change.risk !== "high" && !change.target.startsWith("page:");
+}
+
 /**
  * Builds the plan from lint findings. DPA findings are intentionally excluded —
  * signing a processor DPA is an off-site legal action, not a site write, so it
@@ -65,9 +70,7 @@ export function planRemediations(
     if (seen.has(mapped.id)) continue;
     seen.add(mapped.id);
     const change: RemediationChange = { ...mapped, obligationId: f.obligationId };
-    // A "page:" target publishes/edits a document, which always needs approval.
-    const isDocumentChange = change.target.startsWith("page:");
-    const auto = canAutoWrite(ctx.status, ctx.mode) && change.risk !== "high" && !isDocumentChange;
+    const auto = canAutoWrite(ctx.status, ctx.mode) && isAutoApplySafe(change);
     plan.push({ change, disposition: auto ? "auto_apply" : "propose" });
   }
   return plan;

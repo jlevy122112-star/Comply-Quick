@@ -5,11 +5,14 @@ import {
   getRemediationCapabilities,
   rollbackRemediation,
 } from "@/lib/connector/executor";
+import { isAutoApplySafe, planRemediations } from "@/lib/connector/remediation";
 import type { RemediationChange } from "@/lib/connector/types";
 
 function response(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 }
+
+const allowTestHost = async (): Promise<string[]> => [];
 
 const consentChange: RemediationChange = {
   id: "inject_consent_banner",
@@ -80,6 +83,47 @@ describe("connector executor capabilities", () => {
 });
 
 describe("WordPress executor", () => {
+  it("rejects private API targets before sending bearer credentials", async () => {
+    let calls = 0;
+    await expect(
+      applyApprovedRemediation(consentChange, {
+        connection: { id: "wp-private", platform: "wordpress", externalAccountId: "http://127.0.0.1" },
+        accessToken: "secret-token",
+        fetchImpl: (async () => {
+          calls += 1;
+          return response({});
+        }) as typeof fetch,
+      })
+    ).rejects.toThrow(/private network/);
+    expect(calls).toBe(0);
+  });
+
+  it("treats missing consent and page endpoints as absent before creating them", async () => {
+    const calls: Array<{ method: string; url: string }> = [];
+    const fetchImpl = (async (url: string, init: RequestInit) => {
+      calls.push({ method: init.method ?? "GET", url });
+      if (calls.length === 1 || calls.length === 4) return response({ error: "not found" }, 404);
+      if (calls.length === 2) return response({ ok: true });
+      if (calls.length === 3) return response({ installed: true, script: "<script>consent</script>" });
+      if (calls.length === 5) return response({ id: 55 });
+      return response([{ id: 55, slug: "privacy-policy" }]);
+    }) as typeof fetch;
+
+    await applyApprovedRemediation(consentChange, {
+      connection: { id: "wp-404", platform: "wordpress", externalAccountId: "https://wp.test" },
+      consentScript: "<script>consent</script>",
+      fetchImpl,
+      assertHost: allowTestHost,
+    });
+    await applyApprovedRemediation(privacyChange, {
+      connection: { id: "wp-404", platform: "wordpress", externalAccountId: "https://wp.test" },
+      privacyPolicyHtml: "<p>New</p>",
+      fetchImpl,
+      assertHost: allowTestHost,
+    });
+    expect(calls.map((call) => call.method)).toEqual(["GET", "POST", "GET", "GET", "POST", "GET"]);
+  });
+
   it("is idempotent when the consent endpoint already has the requested script", async () => {
     const calls: string[] = [];
     const fetchImpl = (async (url: string, init: RequestInit) => {
@@ -90,6 +134,7 @@ describe("WordPress executor", () => {
       connection: { id: "wp-1", platform: "wordpress", externalAccountId: "https://wp.test" },
       consentScript: "<script>consent</script>",
       fetchImpl,
+      assertHost: allowTestHost,
       snapshotRef: "snapshot:wp-consent",
     });
     expect(result.status).toBe("applied");
@@ -112,6 +157,7 @@ describe("WordPress executor", () => {
       connection: { id: "wp-2", platform: "wordpress", externalAccountId: "https://wp.test" },
       privacyPolicyHtml: "<p>New</p>",
       fetchImpl,
+      assertHost: allowTestHost,
       snapshotRef: "snapshot:wp-page",
     });
     expect(result.status).toBe("applied");
@@ -134,6 +180,22 @@ describe("WordPress executor", () => {
 });
 
 describe("Webflow and Shopify executors", () => {
+  it("rejects private Webflow API targets before sending bearer credentials", async () => {
+    let calls = 0;
+    await expect(
+      applyApprovedRemediation(consentChange, {
+        connection: { id: "wf-private", platform: "webflow", externalAccountId: "site-123" },
+        apiBaseUrl: "http://169.254.169.254",
+        apiToken: "secret-token",
+        fetchImpl: (async () => {
+          calls += 1;
+          return response({});
+        }) as typeof fetch,
+      })
+    ).rejects.toThrow(/private network/);
+    expect(calls).toBe(0);
+  });
+
   it("writes Webflow head custom code once and rolls it back", async () => {
     const calls: Array<{ method: string; url: string }> = [];
     const fetchImpl = (async (url: string, init: RequestInit) => {
@@ -151,6 +213,7 @@ describe("Webflow and Shopify executors", () => {
       consentScript: "<script>consent</script>",
       apiToken: "wf-token",
       fetchImpl,
+      assertHost: allowTestHost,
       snapshotRef: "snapshot:wf",
     });
     expect(result.status).toBe("applied");
@@ -166,6 +229,7 @@ describe("Webflow and Shopify executors", () => {
         calls.push({ method: init.method ?? "GET", url });
         return response([{ id: "custom-1", displayName: "Comply-Quick Consent" }]);
       }) as typeof fetch,
+      assertHost: allowTestHost,
     });
     expect(rolledBack.status).toBe("reverted");
     expect(calls.at(-1)).toEqual({
@@ -195,5 +259,46 @@ describe("Webflow and Shopify executors", () => {
     expect(result.status).toBe("applied");
     expect(result.previousStateRef).toBe("snapshot:shopify");
     expect(calls.map((call) => call.method)).toEqual(["GET", "POST", "GET"]);
+  });
+
+  it("rolls back a Shopify-created script by its snapshot id without a URL", async () => {
+    const calls: Array<{ method: string; url: string }> = [];
+    const fetchImpl = (async (url: string, init: RequestInit) => {
+      calls.push({ method: init.method ?? "GET", url });
+      if (init.method === "GET") {
+        return calls.length === 1
+          ? response({ script_tags: [] })
+          : response({ script_tags: [{ id: 42, src: "https://cdn.test/consent.js" }] });
+      }
+      return response({ script_tag: { id: 42, src: "https://cdn.test/consent.js" } });
+    }) as typeof fetch;
+    const result = await applyApprovedRemediation(consentChange, {
+      connection: { id: "shop-rollback", platform: "shopify", externalAccountId: "shop.test" },
+      accessToken: "token",
+      consentScriptUrl: "https://cdn.test/consent.js",
+      fetchImpl,
+    });
+    const rolledBack = await rollbackRemediation(result, {
+      connection: { id: "shop-rollback", platform: "shopify", externalAccountId: "shop.test" },
+      accessToken: "token",
+      fetchImpl,
+    });
+    expect(rolledBack.status).toBe("reverted");
+    expect(calls.at(-1)).toEqual({
+      method: "DELETE",
+      url: "https://shop.test/admin/api/2024-10/script_tags/42.json",
+    });
+  });
+
+  it("keeps planner and executor aligned for medium non-document changes", async () => {
+    const finding = { id: "pci_not_addressed", severity: "warning" as const, message: "PCI", obligationId: "pci" };
+    const planned = planRemediations([finding], { mode: "auto", status: "active" });
+    expect(planned[0].disposition).toBe("propose");
+    expect(isAutoApplySafe(planned[0].change)).toBe(false);
+    const result = await executePlannedRemediation(planned[0], {
+      connection: { id: "generic", platform: "gtm", externalAccountId: "site.test" },
+    });
+    expect(result.status).toBe("proposed");
+    expect(result.detail).toContain("human approval");
   });
 });

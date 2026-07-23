@@ -5,6 +5,7 @@ import type {
   PreviousStateSnapshot,
 } from "../executor";
 import type { RemediationChange } from "../types";
+import { assertPublicScanHost } from "@/lib/security";
 
 interface WebflowCustomCode {
   id?: string;
@@ -22,7 +23,11 @@ const capabilities: RemediationCapabilityDescriptor = {
 
 function baseUrl(context: RemediationExecutionContext): string {
   const raw = context.apiBaseUrl ?? "https://api.webflow.com";
-  return raw.replace(/\/+$/, "");
+  const parsed = new URL(raw);
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error("Webflow API URL must use http or https.");
+  }
+  return parsed.toString().replace(/\/+$/, "");
 }
 
 function siteId(context: RemediationExecutionContext): string {
@@ -36,6 +41,9 @@ async function request<T>(
   body?: unknown
 ): Promise<T> {
   const fetchImpl = context.fetchImpl ?? fetch;
+  const rawBase = baseUrl(context);
+  const token = context.apiToken ?? context.accessToken;
+  if (token) await (context.assertHost ?? assertPublicScanHost)(new URL(rawBase).hostname);
   const headers: Record<string, string> = {
     Accept: "application/json",
     ...(context.apiToken || context.accessToken
@@ -43,7 +51,7 @@ async function request<T>(
       : {}),
   };
   if (body !== undefined) headers["Content-Type"] = "application/json";
-  const response = await fetchImpl(`${baseUrl(context)}${path}`, {
+  const response = await fetchImpl(`${rawBase}${path}`, {
     method,
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
