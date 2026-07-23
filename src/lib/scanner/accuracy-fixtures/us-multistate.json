@@ -20,7 +20,8 @@
     "lintFindings": [
       { "id": "pci_not_addressed", "severity": "warning" },
       { "id": "trackers_without_consent", "severity": "warning" },
-      { "id": "universal_opt_out_not_honored", "severity": "error" }
+      { "id": "universal_opt_out_not_honored_us_co", "severity": "error" },
+      { "id": "universal_opt_out_not_honored_us_ct", "severity": "error" }
     ],
     "obligations": [
       "vcdpa.privacy_notice",

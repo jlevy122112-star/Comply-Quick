@@ -127,17 +127,28 @@ export function lintCompliance(state: ComplianceState): LintFinding[] {
     state.honorsUniversalOptOut === false &&
     (state.jurisdictions.includes("us_co") || state.jurisdictions.includes("us_ct"))
   ) {
-    const jurisdictions = [
-      state.jurisdictions.includes("us_co") ? "Colorado" : "",
-      state.jurisdictions.includes("us_ct") ? "Connecticut" : "",
-    ].filter(Boolean);
-    findings.push({
-      id: "universal_opt_out_not_honored",
-      severity: "error",
-      message: `${jurisdictions.join(" and ")} universal opt-out / GPC signals are not recorded as honored.`,
-      obligationId: state.jurisdictions.includes("us_co") ? "cpa.universal_opt_out" : "ctdpa.universal_opt_out",
-      serviceIds: trackers.map((e) => e.id),
-    });
+    const universalOptOutStates = [
+      {
+        jurisdiction: "us_co",
+        name: "Colorado",
+        obligationId: "cpa.universal_opt_out",
+      },
+      {
+        jurisdiction: "us_ct",
+        name: "Connecticut",
+        obligationId: "ctdpa.universal_opt_out",
+      },
+    ] as const;
+    for (const stateLaw of universalOptOutStates) {
+      if (!state.jurisdictions.includes(stateLaw.jurisdiction)) continue;
+      findings.push({
+        id: `universal_opt_out_not_honored_${stateLaw.jurisdiction}`,
+        severity: "error",
+        message: `${stateLaw.name} universal opt-out / GPC signals may not be honored based on the recorded site configuration.`,
+        obligationId: stateLaw.obligationId,
+        serviceIds: trackers.map((e) => e.id),
+      });
+    }
   }
 
   // Rule 4: EU/UK data + a non-EU vendor + SCCs not addressed → error.

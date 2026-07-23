@@ -180,6 +180,21 @@ describe("connector/agent — continuous cycle", () => {
     expect(r.nextStatus).toBe("active");
   });
 
+  it("forwards declared data categories into the connection obligation cycle", () => {
+    const r = evaluateConnectionCycle({
+      connection: { mode: "propose_only", status: "active" },
+      detectedServices: ["meta"],
+      jurisdictions: ["us_tx"],
+      dataCategories: ["children", "email"],
+      coverage,
+      breakerSignals: [],
+      now: Date.now(),
+    });
+    expect(r.obligations.map((result) => result.obligation.id)).toEqual(
+      expect.arrayContaining(["coppa.child_directed_privacy", "can_spam.commercial_email"])
+    );
+  });
+
   it("freezes the connection and forces propose_only when the breaker trips", () => {
     const now = Date.now();
     const r = evaluateConnectionCycle({

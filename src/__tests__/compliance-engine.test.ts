@@ -181,6 +181,25 @@ describe("deriveObligations — deterministic traversal", () => {
       expect.arrayContaining(["coppa.child_directed_privacy", "can_spam.commercial_email"])
     );
   });
+
+  it("applies explicit federal context to a specific US state but not EU-only sites", () => {
+    const texas = deriveObligations({
+      services: ["meta"],
+      jurisdictions: ["us_tx"],
+      dataCategories: ["children", "email"],
+    });
+    expect(texas.map((result) => result.obligation.id)).toEqual(
+      expect.arrayContaining(["coppa.child_directed_privacy", "can_spam.commercial_email"])
+    );
+
+    const eu = deriveObligations({
+      services: ["meta"],
+      jurisdictions: ["eu"],
+      dataCategories: ["children", "email"],
+    });
+    expect(eu.some((result) => result.obligation.framework === "coppa")).toBe(false);
+    expect(eu.some((result) => result.obligation.framework === "can_spam")).toBe(false);
+  });
 });
 
 describe("lintCompliance — rule-based checker", () => {
@@ -267,12 +286,19 @@ describe("lintCompliance — rule-based checker", () => {
       jurisdictions: ["us_co", "us_ct"],
       honorsUniversalOptOut: false,
     });
-    expect(findings).toContainEqual(
-      expect.objectContaining({
-        id: "universal_opt_out_not_honored",
-        severity: "error",
-        obligationId: "cpa.universal_opt_out",
-      })
+    expect(findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "universal_opt_out_not_honored_us_co",
+          severity: "error",
+          obligationId: "cpa.universal_opt_out",
+        }),
+        expect.objectContaining({
+          id: "universal_opt_out_not_honored_us_ct",
+          severity: "error",
+          obligationId: "ctdpa.universal_opt_out",
+        }),
+      ])
     );
   });
 });
@@ -284,6 +310,17 @@ describe("buildObligationReport — orchestration", () => {
     expect(report.obligations.some((o) => o.obligation.id === "gdpr.art28.dpa")).toBe(true);
     expect(report.detectionConfidence).toBeGreaterThan(0);
     expect(report.dataCategories).toEqual(expect.arrayContaining(["financial", "online_activity"]));
+  });
+
+  it("threads declared data categories into conditional federal obligations", () => {
+    const report = buildObligationReport({
+      html: '<html><body><a href="/privacy">Privacy</a></body></html>',
+      jurisdictions: ["us_tx"],
+      dataCategories: ["children", "email"],
+    });
+    expect(report.obligations.map((result) => result.obligation.id)).toEqual(
+      expect.arrayContaining(["coppa.child_directed_privacy", "can_spam.commercial_email"])
+    );
   });
 
   it("does NOT derive obligations from a weak-only detection (self-hosted analytics.min.js)", () => {

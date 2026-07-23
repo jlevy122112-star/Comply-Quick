@@ -10,7 +10,7 @@
 
 import { deriveObligations, type ObligationResult } from "@/lib/compliance/traverse";
 import { lintCompliance, type ComplianceState, type LintFinding } from "@/lib/compliance/linter";
-import type { JurisdictionId } from "@/lib/compliance/graph";
+import type { DataCategory, JurisdictionId } from "@/lib/compliance/graph";
 import { planRemediations, type PlannedRemediation } from "./remediation";
 import { canTransition } from "./state-machine";
 import {
@@ -30,6 +30,8 @@ export interface CycleInput {
   /** Service ids the re-scan detected on the connected site. */
   detectedServices: string[];
   jurisdictions: JurisdictionId[];
+  /** Explicit contextual data-flow signals supplied by the connected site. */
+  dataCategories?: DataCategory[];
   coverage: CoverageState;
   /** Recent breaker signals (human undos + write outcomes). */
   breakerSignals: BreakerSignal[];
@@ -55,7 +57,11 @@ export interface CycleResult {
  * so the agent stops pushing writes until a human intervenes.
  */
 export function evaluateConnectionCycle(input: CycleInput): CycleResult {
-  const obligations = deriveObligations({ services: input.detectedServices, jurisdictions: input.jurisdictions });
+  const obligations = deriveObligations({
+    services: input.detectedServices,
+    jurisdictions: input.jurisdictions,
+    dataCategories: input.dataCategories,
+  });
   const findings = lintCompliance({
     ...input.coverage,
     services: input.detectedServices,
