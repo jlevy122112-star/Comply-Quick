@@ -35,7 +35,7 @@ export function TaskRow({
         </TD>
         <TD>
           <span className="font-medium text-white">{task.title}</span>
-          {task.source === "auto" && <span className="ml-2 text-xs text-gray-500">auto</span>}
+          {task.source === "auto" && <span className="ml-2 text-xs text-gray-500">Auto</span>}
         </TD>
         <TD className="tabular-nums text-gray-400">{task.dueDate}</TD>
         <TD className="text-right">

@@ -293,7 +293,7 @@ function TeamTab({
         </div>
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
           <div className="flex items-baseline justify-between">
-            <h2 className="text-sm font-semibold text-white">Scans this month</h2>
+            <h2 className="text-sm font-semibold text-white">Scans This Month</h2>
             <span className="text-xs text-gray-500">
               {billing.scans.used} / {scanLabel}
             </span>

@@ -9,7 +9,7 @@ export function KpiBand({ summary }: { summary: EventSummary }) {
   return (
     <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
       <div className="flex items-center gap-4 rounded-xl border border-gray-800 bg-gray-900/40 p-4">
-        <ScoreRing score={summary.onTrack} size="sm" label="on track" />
+        <ScoreRing score={summary.onTrack} size="sm" label="On Track" />
         <div>
           <div className="text-sm font-semibold text-white">Compliance health</div>
           <div className="text-xs text-gray-400">
@@ -18,7 +18,7 @@ export function KpiBand({ summary }: { summary: EventSummary }) {
         </div>
       </div>
       <div className="flex items-center gap-4 rounded-xl border border-gray-800 bg-gray-900/40 p-4">
-        <ScoreRing score={summary.completionRate} size="sm" label="done" />
+        <ScoreRing score={summary.completionRate} size="sm" label="Done" />
         <div>
           <div className="text-sm font-semibold text-white">Completion</div>
           <div className="text-xs text-gray-400">

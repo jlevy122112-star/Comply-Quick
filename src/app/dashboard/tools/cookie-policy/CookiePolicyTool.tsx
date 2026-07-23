@@ -156,7 +156,7 @@ export default function CookiePolicyTool() {
                 <div className="flex flex-wrap gap-2">
                   <Badge tone="gray">{result.vendors.length} technologies disclosed</Badge>
                   <Badge tone="violet">{result.categories.length} categories</Badge>
-                  {result.requiresDoNotSell && <Badge tone="amber">Do Not Sell clause</Badge>}
+                  {result.requiresDoNotSell && <Badge tone="amber">Do Not Sell Clause</Badge>}
                 </div>
 
                 <div className="flex gap-2 border-b border-gray-800">

@@ -99,7 +99,7 @@ export default function HeroStatusPanel({
         </CardBody>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-2" aria-label="Compliance details">
+      <div className="grid gap-4 md:grid-cols-2" aria-label="Compliance Details">
         <Card variant="glass">
           <CardHeader title="Score Detail" description="How your current baseline is tracking." />
           <CardBody className="grid grid-cols-2 gap-x-5 gap-y-4 sm:grid-cols-4">
@@ -131,7 +131,7 @@ export default function HeroStatusPanel({
                   <ProgressBar
                     value={scanUsage.used}
                     max={scanUsage.limit}
-                    label="Scans used"
+                    label="Scans Used"
                     showValue
                     asPercent={false}
                   />

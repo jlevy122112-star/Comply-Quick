@@ -176,7 +176,7 @@ export default function PlatformIntegrationsTool() {
               </pre>
 
               <div className="flex flex-wrap gap-2">
-                <CopyButton value={result.snippet} label="Copy snippet" />
+                <CopyButton value={result.snippet} label="Copy Snippet" />
                 <Button
                   variant="secondary"
                   size="sm"

@@ -21,7 +21,7 @@ export function EvidenceReadinessCard({
     <Card>
       <CardBody className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-5">
-          <ScoreRing score={pack.readiness} size="lg" label="ready" />
+          <ScoreRing score={pack.readiness} size="lg" label="Ready" />
           <div>
             <h2 className="text-lg font-semibold text-white">Audit readiness</h2>
             <p className="mt-1 text-sm text-gray-400">

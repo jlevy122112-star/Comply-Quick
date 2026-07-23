@@ -97,7 +97,7 @@ export default function ResetPasswordPage() {
               className="space-y-4"
             >
               <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-gray-300">New password</span>
+                <span className="mb-1.5 block text-sm font-medium text-gray-300">New Password</span>
                 <div className="relative">
                   <input
                     type={show ? "text" : "password"}
@@ -118,7 +118,7 @@ export default function ResetPasswordPage() {
                 </div>
               </label>
               <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-gray-300">Confirm new password</span>
+                <span className="mb-1.5 block text-sm font-medium text-gray-300">Confirm New Password</span>
                 <input
                   type={show ? "text" : "password"}
                   required

@@ -77,7 +77,7 @@ export function DomainsPanel({ projectId, domains }: { projectId: string; domain
                 >
                   <span className="flex items-center gap-2">
                     <span className="text-sm font-medium text-white">{d.domain}</span>
-                    {d.verified && <Badge tone="emerald">verified</Badge>}
+                    {d.verified && <Badge tone="emerald">Verified</Badge>}
                   </span>
                   <Button size="sm" variant="ghost" disabled={disabled} onClick={() => remove(d.id)}>
                     Remove

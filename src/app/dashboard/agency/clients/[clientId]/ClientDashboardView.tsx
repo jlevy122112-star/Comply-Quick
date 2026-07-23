@@ -146,8 +146,8 @@ export function ClientDashboardView({
                     <TR>
                       <TH>Label</TH>
                       <TH>Status</TH>
-                      <TH>Last score</TH>
-                      <TH>Last scan</TH>
+                      <TH>Last Score</TH>
+                      <TH>Last Scan</TH>
                     </TR>
                   </THead>
                   <TBody>
@@ -181,7 +181,7 @@ export function ClientDashboardView({
             />
             <CardBody>
               {projects.length === 0 ? (
-                <EmptyState icon="📁" title="No projects" description="Create a compliance project for this client." />
+                <EmptyState icon="📁" title="No Projects" description="Create a compliance project for this client." />
               ) : (
                 <Table>
                   <THead>
@@ -261,7 +261,7 @@ export function ClientDashboardView({
             />
             <CardBody>
               {findings.length === 0 ? (
-                <EmptyState icon="🛡️" title="No open findings" description="All tracked findings are resolved." />
+                <EmptyState icon="🛡️" title="No Open Findings" description="All tracked findings are resolved." />
               ) : (
                 <div className="space-y-3">
                   {findings.map((finding) => (

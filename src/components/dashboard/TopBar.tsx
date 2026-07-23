@@ -57,7 +57,7 @@ export function TopBar({
       <div className="flex min-h-16 items-center gap-3 px-4 sm:px-6">
         <button
           type="button"
-          aria-label="Open navigation"
+          aria-label="Open Navigation"
           onClick={onMenuClick}
           className="rounded-lg p-2 text-text-secondary hover:bg-surface-elevated hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary lg:hidden"
         >
@@ -149,7 +149,7 @@ export function TopBar({
           </Button>
           <Link
             href="/dashboard/alerts"
-            aria-label="View notifications and alerts"
+            aria-label="View Notifications and Alerts"
             className="rounded-lg p-2 text-text-secondary hover:bg-surface-elevated hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary"
           >
             <Bell className="h-4 w-4" aria-hidden="true" />

@@ -138,7 +138,7 @@ export default function CookieBannerTool() {
                       {c}
                     </Badge>
                   ))}
-                  {result.requiresDoNotSell && <Badge tone="amber">Do Not Sell control</Badge>}
+                  {result.requiresDoNotSell && <Badge tone="amber">Do Not Sell Control</Badge>}
                 </div>
 
                 <div className="flex gap-2 border-b border-gray-800">
@@ -170,7 +170,7 @@ export default function CookieBannerTool() {
                       <code>{result.snippet}</code>
                     </pre>
                     <div className="flex flex-wrap gap-2">
-                      <CopyButton value={result.snippet} label="Copy snippet" />
+                      <CopyButton value={result.snippet} label="Copy Snippet" />
                       <Button
                         variant="secondary"
                         size="sm"

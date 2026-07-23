@@ -132,7 +132,7 @@ export function WhiteLabelPanel({ org, canManage }: { org: Organization; canMana
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Logo */}
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-gray-300">Organization logo</label>
+              <label className="mb-1.5 block text-xs font-medium text-gray-300">Organization Logo</label>
               <div className="flex items-center gap-4">
                 <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-700 bg-gray-950">
                   {logoUrl ? (

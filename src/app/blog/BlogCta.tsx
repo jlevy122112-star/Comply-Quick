@@ -6,7 +6,7 @@ export function BlogCta({ campaign }: { campaign: string }) {
   const utm = `utm_source=blog&utm_medium=content&utm_campaign=${encodeURIComponent(campaign)}`;
   return (
     <aside className="mt-12 rounded-xl border border-indigo-500/30 bg-gradient-to-br from-indigo-500/10 to-gray-900 p-6">
-      <h2 className="text-xl font-bold text-white">Scan your site for free</h2>
+      <h2 className="text-xl font-bold text-white">Scan Your Site for Free</h2>
       <p className="mt-2 text-sm leading-relaxed text-gray-300">
         Comply-Quick renders your site in a real browser, flags hidden trackers and compliance gaps, and generates the
         policies and checklists to fix them — in about 30 seconds.

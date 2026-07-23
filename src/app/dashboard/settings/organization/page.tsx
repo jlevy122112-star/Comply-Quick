@@ -72,7 +72,7 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
     { key: "hierarchy", label: "Hierarchy" },
     { key: "sso", label: "SSO" },
     { key: "scim", label: "SCIM" },
-    ...(flagsAdmin ? [{ key: "flags", label: "Feature flags" } satisfies TabItem] : []),
+    ...(flagsAdmin ? [{ key: "flags", label: "Feature Flags" } satisfies TabItem] : []),
   ];
 
   let scimBaseUrl = "/api/scim/v2";
@@ -102,7 +102,7 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
             <h1 className="text-2xl font-bold text-white">{org.name}</h1>
             <p className="mt-1 text-sm text-gray-400">Organization, workspaces, team roles, and single sign-on.</p>
           </div>
-          <Badge tone="indigo">Your role: {ROLE_LABELS[role]}</Badge>
+          <Badge tone="indigo">Your Role: {ROLE_LABELS[role]}</Badge>
         </div>
 
         <TabNav items={tabs} active={tab} basePath={BASE} className="mb-6" />
