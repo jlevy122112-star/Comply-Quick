@@ -1,5 +1,10 @@
+import type { Metadata } from "next";
 import { getOrCreateOrganization } from "@/lib/organizations-db";
 import { getBrandCssVariables } from "@/lib/theme";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const org = await getOrCreateOrganization();
