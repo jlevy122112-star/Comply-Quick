@@ -6,6 +6,7 @@
 
 import { ValidationError, ServiceUnavailableError } from "@/services/errors";
 import { assertPublicScanHost, getScanDispatcher, isBlockedScanHost } from "@/lib/security";
+import type { AccessibilityViolation } from "./accessibility";
 
 const MAX_BYTES = 2_000_000; // 2 MB cap — enough for markup, avoids huge payloads.
 const FETCH_TIMEOUT_MS = 10_000;
@@ -39,6 +40,8 @@ export interface FetchedPage {
   requestUrls: string[];
   /** True when the page was rendered by the headless worker (JS executed). */
   rendered: boolean;
+  /** axe-core violations returned by the headless worker, when available. */
+  accessibilityViolations?: AccessibilityViolation[];
 }
 
 /**
@@ -95,6 +98,7 @@ interface WorkerResponse {
   status: number;
   html: string;
   requestUrls: string[];
+  accessibilityViolations?: AccessibilityViolation[];
 }
 
 function isWorkerResponse(value: unknown): value is WorkerResponse {
@@ -105,7 +109,8 @@ function isWorkerResponse(value: unknown): value is WorkerResponse {
     typeof v.status === "number" &&
     typeof v.html === "string" &&
     Array.isArray(v.requestUrls) &&
-    v.requestUrls.every((u) => typeof u === "string")
+    v.requestUrls.every((u) => typeof u === "string") &&
+    (v.accessibilityViolations === undefined || Array.isArray(v.accessibilityViolations))
   );
 }
 
@@ -149,6 +154,7 @@ export async function renderPageViaWorker(
       html,
       requestUrls: json.requestUrls,
       rendered: true,
+      accessibilityViolations: json.accessibilityViolations,
     };
   } catch (err) {
     if (err instanceof ValidationError || err instanceof ServiceUnavailableError) throw err;

@@ -7,6 +7,7 @@
 import type { AiClient } from "@/services/ai";
 import { scanPage } from "./crawler";
 import { analyzeHtml, type DetectedTool, type Finding } from "./analyzer";
+import { analyzeAccessibility, type AccessibilityAnalysis } from "./accessibility";
 
 export interface ScanOutcome {
   url: string;
@@ -16,6 +17,8 @@ export interface ScanOutcome {
   summary: string;
   /** True when a headless render executed the page's JS (deeper tracker detection). */
   rendered: boolean;
+  /** Accessibility results are separate from the privacy/tracker score and findings. */
+  accessibility: AccessibilityAnalysis;
 }
 
 function buildSummaryPrompt(url: string, tools: DetectedTool[], findings: Finding[], score: number): string {
@@ -55,6 +58,7 @@ export async function runScan(params: {
   const { url, ai, fetchImpl, assertHost } = params;
   const page = await scanPage(url, fetchImpl ?? fetch, assertHost);
   const analysis = analyzeHtml(page.html, page.requestUrls);
+  const accessibility = analyzeAccessibility(page.html, page.accessibilityViolations);
 
   let summary: string;
   if (ai.live) {
@@ -80,6 +84,7 @@ export async function runScan(params: {
     score: analysis.score,
     detectedTools: analysis.detectedTools,
     findings: analysis.findings,
+    accessibility,
     summary,
     rendered: page.rendered,
   };
