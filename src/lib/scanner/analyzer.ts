@@ -16,6 +16,11 @@ export type ToolCategory =
   // Real-user / behavioral monitoring (Datadog RUM etc.) — session-level data,
   // treated as a consent-gated tracker.
   | "monitoring"
+  // Third-party embeds that can set tracking cookies (YouTube/Vimeo).
+  | "embed"
+  // Google-hosted utilities that are not behavioral trackers but may create
+  // international-transfer exposure.
+  | "utility"
   // Pure error/crash monitoring (Sentry etc.) — no behavioral session tracking,
   // so NOT consent-gated by default. Kept a distinct category so the tracker
   // classification below never sweeps it into the consent-warning path.
@@ -76,13 +81,14 @@ const FINGERPRINTS: Fingerprint[] = [
     category: "analytics",
     patterns: [
       /google-analytics\.com/i,
-      /gtag\(/,
       /googletagmanager\.com\/gtag/i,
+      /gtag\(\s*["']config["']\s*,\s*["'](?:G-|UA-|AW-)/i,
       /\/(g|r|j|collect)\/collect\b/i,
       /region\d+\.google-analytics\.com/i,
       /\.googlesyndication\.com/i,
       /\.doubleclick\.net/i,
     ],
+    weakPatterns: [/gtag\(/],
   },
   { id: "gtm", name: "Google Tag Manager", category: "tag_manager", patterns: [/googletagmanager\.com\/gtm\.js/i] },
   { id: "tiktok", name: "TikTok Pixel", category: "advertising", patterns: [/analytics\.tiktok\.com/i, /ttq\./] },
@@ -144,6 +150,180 @@ const FINGERPRINTS: Fingerprint[] = [
     patterns: [/browser\.sentry-cdn\.com/i, /@sentry\//i, /Sentry\.init/],
   },
   { id: "datadog", name: "Datadog RUM", category: "monitoring", patterns: [/datadoghq-browser-agent/i, /DD_RUM/] },
+  {
+    id: "mixpanel",
+    name: "Mixpanel",
+    category: "analytics",
+    patterns: [/cdn\.mxpnl\.com/i, /api(?:-js)?\.mixpanel\.com/i],
+    weakPatterns: [/mixpanel\.init\(/i],
+  },
+  {
+    id: "amplitude",
+    name: "Amplitude",
+    category: "analytics",
+    patterns: [/cdn\.amplitude\.com/i, /api2\.amplitude\.com/i],
+    weakPatterns: [/amplitude\.getInstance\(/i],
+  },
+  {
+    id: "heap",
+    name: "Heap",
+    category: "analytics",
+    patterns: [/heapanalytics\.com/i, /cdn\.heap-api\.com/i],
+    weakPatterns: [/heap\.load\(/i],
+  },
+  {
+    id: "adobe_analytics",
+    name: "Adobe Analytics",
+    category: "analytics",
+    patterns: [/omtrdc\.net/i, /adobedtm\.com/i, /sc\.omtrdc\.net/i],
+    weakPatterns: [/s\.t\(\)/i],
+  },
+  {
+    id: "klaviyo",
+    name: "Klaviyo",
+    category: "analytics",
+    patterns: [/static\.klaviyo\.com/i, /klaviyo\.com\/onsite/i],
+    weakPatterns: [/klaviyo\.identify\(/i],
+  },
+  {
+    id: "mailchimp",
+    name: "Mailchimp",
+    category: "analytics",
+    patterns: [/chimpstatic\.com/i, /list-manage\.com/i],
+    weakPatterns: [/mailchimp/i],
+  },
+  {
+    id: "hubspot",
+    name: "HubSpot",
+    category: "analytics",
+    patterns: [/js\.hs-scripts\.com/i, /js\.hs-analytics\.net/i],
+    weakPatterns: [/hbspt\./i],
+  },
+  {
+    id: "criteo",
+    name: "Criteo",
+    category: "advertising",
+    patterns: [/static\.criteo\.net/i, /criteo\.com/i],
+    weakPatterns: [/criteo_q/i],
+  },
+  {
+    id: "taboola",
+    name: "Taboola",
+    category: "advertising",
+    patterns: [/cdn\.taboola\.com/i, /trc\.taboola\.com/i],
+    weakPatterns: [/_taboola/i],
+  },
+  {
+    id: "outbrain",
+    name: "Outbrain",
+    category: "advertising",
+    patterns: [/widgets\.outbrain\.com/i, /outbrain\.com/i],
+    weakPatterns: [/OB_platform/i],
+  },
+  {
+    id: "bing_uet",
+    name: "Microsoft/Bing UET",
+    category: "advertising",
+    patterns: [/bat\.bing\.com/i, /bing\.com\/action/i],
+    weakPatterns: [/uetq\.push/i],
+  },
+  {
+    id: "reddit",
+    name: "Reddit Pixel",
+    category: "advertising",
+    patterns: [/alb\.reddit\.com/i, /reddit\.com\/pixel/i],
+    weakPatterns: [/rdt\(/i],
+  },
+  {
+    id: "x_twitter",
+    name: "X/Twitter Pixel",
+    category: "advertising",
+    patterns: [/static\.ads-twitter\.com/i, /analytics\.twitter\.com/i],
+    weakPatterns: [/twq\(/i],
+  },
+  {
+    id: "quora",
+    name: "Quora Pixel",
+    category: "advertising",
+    patterns: [/a\.quora\.com/i, /quora\.com\/qevents/i],
+    weakPatterns: [/qp\(/i],
+  },
+  {
+    id: "zendesk",
+    name: "Zendesk",
+    category: "chat",
+    patterns: [/static\.zdassets\.com/i, /ekr\.zdassets\.com/i],
+    weakPatterns: [/zE\(/i],
+  },
+  {
+    id: "tawk",
+    name: "Tawk.to",
+    category: "chat",
+    patterns: [/embed\.tawk\.to/i, /tawk\.to/i],
+    weakPatterns: [/Tawk_API/i],
+  },
+  {
+    id: "crisp",
+    name: "Crisp",
+    category: "chat",
+    patterns: [/client\.crisp\.chat/i, /crisp\.chat/i],
+    weakPatterns: [/\$crisp/i],
+  },
+  {
+    id: "livechat",
+    name: "LiveChat",
+    category: "chat",
+    patterns: [/cdn\.livechatinc\.com/i, /livechatinc\.com/i],
+    weakPatterns: [/LiveChatWidget/i],
+  },
+  {
+    id: "optimizely",
+    name: "Optimizely",
+    category: "analytics",
+    patterns: [/cdn\.optimizely\.com/i, /optimizely\.com/i],
+    weakPatterns: [/optimizely\.push/i],
+  },
+  {
+    id: "vwo",
+    name: "VWO",
+    category: "analytics",
+    patterns: [/dev\.visualwebsiteoptimizer\.com/i, /visualwebsiteoptimizer\.com/i],
+    weakPatterns: [/_vwo_/i],
+  },
+  {
+    id: "youtube",
+    name: "YouTube Embed",
+    category: "embed",
+    patterns: [/youtube\.com\/embed\//i, /youtube-nocookie\.com\/embed\//i],
+    weakPatterns: [/youtube\.com/i],
+  },
+  {
+    id: "vimeo",
+    name: "Vimeo",
+    category: "embed",
+    patterns: [/player\.vimeo\.com/i, /f\.vimeocdn\.com/i],
+    weakPatterns: [/Vimeo\.Player/i],
+  },
+  {
+    id: "google_fonts",
+    name: "Google Fonts",
+    category: "utility",
+    patterns: [/fonts\.googleapis\.com/i, /fonts\.gstatic\.com/i],
+  },
+  {
+    id: "google_maps",
+    name: "Google Maps",
+    category: "utility",
+    patterns: [/maps\.googleapis\.com\/maps\/api\/js/i, /maps\.google\.com/i],
+    weakPatterns: [/google\.maps/i],
+  },
+  {
+    id: "recaptcha",
+    name: "Google reCAPTCHA",
+    category: "utility",
+    patterns: [/www\.google\.com\/recaptcha\//i, /gstatic\.com\/recaptcha/i],
+    weakPatterns: [/grecaptcha/i],
+  },
 ];
 
 /** Maps each known service id to its scanner category (for cross-checks). */
@@ -169,6 +349,7 @@ export const CONSENT_GATED_TRACKER_CATEGORIES: readonly ToolCategory[] = [
   "session_replay",
   "cdp",
   "monitoring",
+  "embed",
 ];
 
 /**

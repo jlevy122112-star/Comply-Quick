@@ -18,8 +18,6 @@
     "analyzerFindings": [],
     "lintFindings": [],
     "obligations": [],
-    "detailed": [],
-    "knownGaps": ["bare_gtag_is_currently_a_google_false_positive"],
-    "knownGapTools": ["google"]
+    "detailed": [{ "id": "google", "layer": "html", "weakOnly": true, "maxConfidence": 0.3 }]
   }
 }
