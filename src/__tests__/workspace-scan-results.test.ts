@@ -83,6 +83,71 @@ describe("buildCanonicalScanResults", () => {
     expect(result.countsByRegulation.ADA).toBe(0);
     expect(result.countsByRegulation.WCAG).toBe(0);
   });
+
+  it("does not force unmapped findings into a regulation", () => {
+    const result = buildCanonicalScanResults(
+      makeScan({
+        findings: [
+          {
+            id: "custom_unknown_finding",
+            title: "Custom finding",
+            severity: "warning",
+            detail: "detail",
+            recommendation: "recommendation",
+          },
+        ],
+        accessibility: null,
+      })
+    );
+
+    expect(result.issues).toHaveLength(0);
+    expect(result.countsByRegulation.GDPR).toBe(0);
+    expect(result.countsByRegulation.CCPA).toBe(0);
+    expect(result.countsByRegulation.ADA).toBe(0);
+    expect(result.countsByRegulation.WCAG).toBe(0);
+  });
+
+  it("returns empty canonical results for failed scans", () => {
+    const result = buildCanonicalScanResults(
+      makeScan({
+        status: "failed",
+        error: "crawler timeout",
+      })
+    );
+
+    expect(result.issues).toHaveLength(0);
+    expect(result.severityCounts.critical).toBe(0);
+    expect(result.countsByRegulation.GDPR).toBe(0);
+    expect(result.countsByRegulation.CCPA).toBe(0);
+    expect(result.countsByRegulation.ADA).toBe(0);
+    expect(result.countsByRegulation.WCAG).toBe(0);
+  });
+
+  it("deduplicates repeated findings across scan and accessibility payloads", () => {
+    const duplicated = {
+      id: "accessibility.image-alt",
+      title: "Images must have alternate text",
+      severity: "critical" as const,
+      detail: "WCAG success criteria: 1.1.1.",
+      recommendation: "Add alt attributes.",
+    };
+
+    const result = buildCanonicalScanResults(
+      makeScan({
+        findings: [duplicated],
+        accessibility: {
+          score: 90,
+          source: "static",
+          violations: [],
+          findings: [duplicated],
+        },
+      })
+    );
+
+    expect(result.countsByRegulation.WCAG).toBe(1);
+    expect(result.countsByRegulation.ADA).toBe(1);
+    expect(result.severityCounts.critical).toBe(1);
+  });
 });
 
 describe("buildScanTimeline", () => {
@@ -99,5 +164,11 @@ describe("buildScanTimeline", () => {
     expect(timeline[0].totalIssues).toBeGreaterThan(0);
     expect(timeline[1].totalIssues).toBe(0);
     expect(timeline[0].severityCounts.critical).toBeGreaterThan(0);
+
+    const failedTimeline = buildScanTimeline([
+      makeScan({ id: "scan-fail", status: "failed", findings: [], accessibility: null, error: "timeout" }),
+    ]);
+    expect(failedTimeline[0].totalIssues).toBe(0);
+    expect(failedTimeline[0].severityCounts.critical).toBe(0);
   });
 });

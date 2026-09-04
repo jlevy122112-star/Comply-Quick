@@ -66,8 +66,20 @@ function regulationsForFinding(finding: Finding): ComplianceRegulation[] {
     case "consent_present":
       return ["GDPR"];
     default:
-      return ["GDPR"];
+      return [];
   }
+}
+
+function dedupeFindings(findings: Finding[]): Finding[] {
+  const seen = new Set<string>();
+  const unique: Finding[] = [];
+  for (const finding of findings) {
+    const key = `${finding.id}|${finding.title}|${finding.severity}|${finding.detail}|${finding.recommendation}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(finding);
+  }
+  return unique;
 }
 
 function issueFromFinding(scan: ScanRecord, finding: Finding, regulation: ComplianceRegulation): CanonicalScanIssue {
@@ -83,11 +95,6 @@ function issueFromFinding(scan: ScanRecord, finding: Finding, regulation: Compli
 }
 
 export function buildCanonicalScanResults(scan: ScanRecord): CanonicalScanResults {
-  const findings = [...scan.findings, ...(scan.accessibility?.findings ?? [])];
-  const issues = findings.flatMap((finding) =>
-    regulationsForFinding(finding).map((regulation) => issueFromFinding(scan, finding, regulation))
-  );
-
   const issuesByRegulation: Record<ComplianceRegulation, CanonicalScanIssue[]> = {
     ADA: [],
     GDPR: [],
@@ -96,9 +103,31 @@ export function buildCanonicalScanResults(scan: ScanRecord): CanonicalScanResult
   };
   const severityCounts: Record<CanonicalSeverity, number> = { critical: 0, warning: 0, info: 0 };
 
+  if (scan.status !== "completed") {
+    return {
+      scanId: scan.id,
+      createdAt: scan.createdAt,
+      target: targetFrom(scan.url),
+      status: scan.status,
+      score: scan.score,
+      issues: [],
+      issuesByRegulation,
+      countsByRegulation: { ADA: 0, GDPR: 0, CCPA: 0, WCAG: 0 },
+      severityCounts,
+    };
+  }
+
+  const findings = dedupeFindings([...scan.findings, ...(scan.accessibility?.findings ?? [])]);
+  for (const finding of findings) {
+    severityCounts[normalizeSeverity(finding.severity)] += 1;
+  }
+
+  const issues = findings.flatMap((finding) =>
+    regulationsForFinding(finding).map((regulation) => issueFromFinding(scan, finding, regulation))
+  );
+
   for (const issue of issues) {
     issuesByRegulation[issue.regulation].push(issue);
-    severityCounts[issue.severity] += 1;
   }
 
   for (const regulation of REGULATIONS) {
@@ -126,17 +155,18 @@ export function buildCanonicalScanResults(scan: ScanRecord): CanonicalScanResult
   };
 }
 
+export function buildScanTimelineFromResults(results: CanonicalScanResults[]): ScanTimelineItem[] {
+  return results.map((result) => ({
+    scanId: result.scanId,
+    createdAt: result.createdAt,
+    status: result.status,
+    target: result.target,
+    score: result.score,
+    totalIssues: result.issues.length,
+    severityCounts: { ...result.severityCounts },
+  }));
+}
+
 export function buildScanTimeline(scans: ScanRecord[]): ScanTimelineItem[] {
-  return scans.map((scan) => {
-    const results = buildCanonicalScanResults(scan);
-    return {
-      scanId: scan.id,
-      createdAt: scan.createdAt,
-      status: scan.status,
-      target: results.target,
-      score: scan.score,
-      totalIssues: results.issues.length,
-      severityCounts: results.severityCounts,
-    };
-  });
+  return buildScanTimelineFromResults(scans.map((scan) => buildCanonicalScanResults(scan)));
 }

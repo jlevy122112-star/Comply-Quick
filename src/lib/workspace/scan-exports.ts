@@ -18,7 +18,7 @@ export interface ScanExportResponse {
 }
 
 /** Phase 1 scaffolding for export actions; file generation ships in a later phase. */
-export async function exportScanResults(request: ScanExportRequest): Promise<ScanExportResponse> {
+export function exportScanResults(request: ScanExportRequest): ScanExportResponse {
   return {
     ok: false,
     message: `${request.format.toUpperCase()} export is not available yet. Action wiring is complete for a later implementation phase.`,

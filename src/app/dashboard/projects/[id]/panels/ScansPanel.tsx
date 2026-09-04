@@ -19,18 +19,34 @@ import {
 } from "@/components/ui";
 import type { WorkspaceData } from "@/lib/workspace/data";
 import { exportScanResults, type ScanExportFormat } from "@/lib/workspace/scan-exports";
-import { buildCanonicalScanResults, buildScanTimeline, REGULATIONS } from "@/lib/workspace/scan-results";
+import { buildCanonicalScanResults, buildScanTimelineFromResults, REGULATIONS } from "@/lib/workspace/scan-results";
 import { ScoreTrend } from "./ScoreTrend";
 
+const SCAN_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+  timeZone: "UTC",
+});
+
 function formatScanDate(value: string): string {
-  const date = new Date(value);
-  return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+  return `${SCAN_DATE_FORMATTER.format(new Date(value))} UTC`;
 }
 
 const STATUS_BADGE = {
   completed: { tone: "emerald" as const, label: "Completed" },
   failed: { tone: "rose" as const, label: "Failed" },
 };
+
+function statusBadge(status: string): { tone: "emerald" | "rose" | "gray"; label: string } {
+  if (status === "completed" || status === "failed") return STATUS_BADGE[status];
+  if (status === "queued") return { tone: "gray", label: "Queued" };
+  if (status === "running" || status === "in_progress") return { tone: "gray", label: "In progress" };
+  return { tone: "gray", label: "Unknown" };
+}
 
 /** Scans tab — canonical scan results grouped by regulation + timeline history. */
 export function ScansPanel({
@@ -50,13 +66,17 @@ export function ScansPanel({
   const [exportMessage, setExportMessage] = useState<string | null>(null);
   const [busyExport, setBusyExport] = useState<ScanExportFormat | null>(null);
 
-  const timeline = useMemo(() => buildScanTimeline(scans), [scans]);
+  const canonicalResults = useMemo(() => scans.map((scan) => buildCanonicalScanResults(scan)), [scans]);
+  const timeline = useMemo(() => buildScanTimelineFromResults(canonicalResults), [canonicalResults]);
   const trend = useMemo(() => [...scans].reverse().map((s) => s.score ?? 0), [scans]);
-  const activeScan = useMemo(
-    () => scans.find((scan) => scan.id === activeScanId) ?? scans[0] ?? null,
-    [activeScanId, scans]
+  const activeResults = useMemo(
+    () => canonicalResults.find((result) => result.scanId === activeScanId) ?? canonicalResults[0] ?? null,
+    [activeScanId, canonicalResults]
   );
-  const activeResults = useMemo(() => (activeScan ? buildCanonicalScanResults(activeScan) : null), [activeScan]);
+  const activeScan = useMemo(
+    () => scans.find((scan) => scan.id === activeResults?.scanId) ?? scans[0] ?? null,
+    [activeResults, scans]
+  );
 
   if (!activeScan || !activeResults) {
     return (
@@ -68,19 +88,24 @@ export function ScansPanel({
     );
   }
 
-  const handleExport = async (format: ScanExportFormat) => {
+  const handleExport = (format: ScanExportFormat) => {
     setBusyExport(format);
-    const result = await exportScanResults({
-      format,
-      workspaceId,
-      workspaceName,
-      projectId,
-      projectName,
-      generatedAt: new Date().toISOString(),
-      timelineItem: timeline.find((item) => item.scanId === activeScan.id) ?? timeline[0],
-    });
-    setBusyExport(null);
-    setExportMessage(result.message);
+    try {
+      const result = exportScanResults({
+        format,
+        workspaceId,
+        workspaceName,
+        projectId,
+        projectName,
+        generatedAt: new Date().toISOString(),
+        timelineItem: timeline.find((item) => item.scanId === activeScan.id) ?? timeline[0],
+      });
+      setExportMessage(result.message);
+    } catch {
+      setExportMessage("Export could not be started. Please try again.");
+    } finally {
+      setBusyExport(null);
+    }
   };
 
   return (
@@ -100,20 +125,10 @@ export function ScansPanel({
           description="Agency-ready issue triage grouped by regulation for this workspace project."
           actions={
             <div className="flex items-center gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                loading={busyExport === "pdf"}
-                onClick={() => void handleExport("pdf")}
-              >
+              <Button variant="secondary" size="sm" loading={busyExport === "pdf"} onClick={() => handleExport("pdf")}>
                 Export PDF
               </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                loading={busyExport === "txt"}
-                onClick={() => void handleExport("txt")}
-              >
+              <Button variant="secondary" size="sm" loading={busyExport === "txt"} onClick={() => handleExport("txt")}>
                 Export TXT
               </Button>
             </div>
@@ -123,7 +138,7 @@ export function ScansPanel({
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <Badge tone="indigo">Workspace: {workspaceName ?? "Unassigned"}</Badge>
             <Badge tone="gray">Project: {projectName}</Badge>
-            <Badge tone={STATUS_BADGE[activeScan.status].tone}>Scan {STATUS_BADGE[activeScan.status].label}</Badge>
+            <Badge tone={statusBadge(activeScan.status).tone}>Scan {statusBadge(activeScan.status).label}</Badge>
             <Badge tone="gray">Target: {activeResults.target}</Badge>
             <Badge tone="gray">Scanned: {formatScanDate(activeScan.createdAt)}</Badge>
             {activeScan.score !== null && (
@@ -206,6 +221,7 @@ export function ScansPanel({
                 <li key={item.scanId}>
                   <button
                     type="button"
+                    aria-pressed={isActive}
                     onClick={() => setActiveScanId(item.scanId)}
                     className={`w-full rounded-xl border px-4 py-3 text-left transition-colors ${
                       isActive
@@ -219,11 +235,11 @@ export function ScansPanel({
                         <p className="text-xs text-gray-400">{formatScanDate(item.createdAt)}</p>
                       </div>
                       <div className="flex flex-wrap items-center gap-2 text-xs">
-                        <Badge tone={STATUS_BADGE[item.status].tone}>{STATUS_BADGE[item.status].label}</Badge>
+                        <Badge tone={statusBadge(item.status).tone}>{statusBadge(item.status).label}</Badge>
                         {item.score !== null && <Badge tone={toneForScore(item.score)}>Score {item.score}/100</Badge>}
-                        <Badge tone="rose">C {item.severityCounts.critical}</Badge>
-                        <Badge tone="amber">W {item.severityCounts.warning}</Badge>
-                        <Badge tone="sky">I {item.severityCounts.info}</Badge>
+                        <Badge tone="rose">Critical {item.severityCounts.critical}</Badge>
+                        <Badge tone="amber">Warning {item.severityCounts.warning}</Badge>
+                        <Badge tone="sky">Info {item.severityCounts.info}</Badge>
                         <Badge tone="gray">Total {item.totalIssues}</Badge>
                       </div>
                     </div>
