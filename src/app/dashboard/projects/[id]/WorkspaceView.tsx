@@ -2,6 +2,7 @@ import Link from "next/link";
 import { TabNav, type TabItem } from "@/components/ui";
 import type { Tier } from "@/lib/pricing";
 import type { WorkspaceData } from "@/lib/workspace/data";
+import type { Workspace } from "@/lib/workspaces-db";
 import { TasksPanel } from "./TasksPanel";
 import { TeamPanel } from "./TeamPanel";
 import { DomainsPanel } from "./DomainsPanel";
@@ -40,14 +41,7 @@ export function WorkspaceView({
   tier: Tier;
   activeTab: WorkspaceTabKey;
   installation: {
-    workspace: {
-      id: string;
-      organizationId: string;
-      name: string;
-      slug: string;
-      projectCount: number;
-      createdAt: string;
-    };
+    workspace: Workspace;
     keys: {
       id: string;
       name: string;
@@ -105,7 +99,6 @@ export function WorkspaceView({
               scans={scans}
               projectId={project.id}
               projectName={project.name}
-              workspaceId={project.workspaceId}
               workspaceName={data.workspace?.name ?? null}
             />
           )}

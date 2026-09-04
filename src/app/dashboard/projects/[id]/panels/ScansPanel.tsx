@@ -18,7 +18,7 @@ import {
   toneForScore,
 } from "@/components/ui";
 import type { WorkspaceData } from "@/lib/workspace/data";
-import { exportScanResults, type ScanExportFormat } from "@/lib/workspace/scan-exports";
+import type { ScanExportFormat } from "@/lib/workspace/scan-exports";
 import { buildCanonicalScanResults, buildScanTimeline, REGULATIONS } from "@/lib/workspace/scan-results";
 import { ScoreTrend } from "./ScoreTrend";
 
@@ -37,13 +37,11 @@ export function ScansPanel({
   scans,
   projectId,
   projectName,
-  workspaceId,
   workspaceName,
 }: {
   scans: WorkspaceData["scans"];
   projectId: string;
   projectName: string;
-  workspaceId: string | null;
   workspaceName: string | null;
 }) {
   const [activeScanId, setActiveScanId] = useState(() => scans[0]?.id ?? "");
@@ -70,17 +68,35 @@ export function ScansPanel({
 
   const handleExport = async (format: ScanExportFormat) => {
     setBusyExport(format);
-    const result = await exportScanResults({
-      format,
-      workspaceId,
-      workspaceName,
-      projectId,
-      projectName,
-      generatedAt: new Date().toISOString(),
-      timelineItem: timeline.find((item) => item.scanId === activeScan.id) ?? timeline[0],
-    });
-    setBusyExport(null);
-    setExportMessage(result.message);
+    setExportMessage(null);
+    try {
+      const response = await fetch(`/api/projects/${projectId}/scans/${activeScan.id}/export?format=${format}`);
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        setExportMessage(payload?.error ?? `Could not export ${format.toUpperCase()} report.`);
+        return;
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      try {
+        const disposition = response.headers.get("content-disposition") ?? "";
+        const filenameMatch = disposition.match(/filename="([^"]+)"/);
+        const filename =
+          filenameMatch?.[1] ?? `${projectName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-report.${format}`;
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      } finally {
+        window.URL.revokeObjectURL(downloadUrl);
+      }
+      setExportMessage(response.headers.get("x-cq-export-message") ?? `${format.toUpperCase()} report downloaded.`);
+    } finally {
+      setBusyExport(null);
+    }
   };
 
   return (

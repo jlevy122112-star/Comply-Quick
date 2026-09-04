@@ -5,6 +5,7 @@ import { buildCanonicalScanResults, buildScanTimeline } from "@/lib/workspace/sc
 function makeScan(overrides: Partial<ScanRecord> = {}): ScanRecord {
   return {
     id: "scan-1",
+    projectId: "project-1",
     url: "https://client.example.com/page",
     status: "completed",
     score: 72,

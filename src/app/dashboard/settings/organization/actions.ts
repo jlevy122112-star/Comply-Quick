@@ -13,7 +13,13 @@ import {
   updateOrgMemberRole,
   removeOrgMember,
 } from "@/lib/organizations-db";
-import { createWorkspace, renameWorkspace, deleteWorkspace } from "@/lib/workspaces-db";
+import {
+  createWorkspace,
+  renameWorkspace,
+  deleteWorkspace,
+  updateWorkspaceBranding,
+  type WorkspaceBrandingPatch,
+} from "@/lib/workspaces-db";
 import { createSsoConnection, setSsoEnabled, deleteSsoConnection, type SsoProtocol } from "@/lib/sso-db";
 import { createScimToken, revokeScimToken } from "@/lib/scim/tokens";
 import { createChildOrganization, reparentOrganization, type OrganizationKind } from "@/lib/org-hierarchy";
@@ -116,6 +122,18 @@ export async function deleteWorkspaceAction(orgId: string, id: string): Promise<
   const ok = await deleteWorkspace(id, orgId);
   revalidatePath(PATH);
   return ok ? { ok: true } : { ok: false, error: "Could not delete the workspace." };
+}
+
+export async function updateWorkspaceBrandingAction(
+  orgId: string,
+  id: string,
+  patch: WorkspaceBrandingPatch
+): Promise<{ ok: true } | Denied> {
+  const gate = await authorize(orgId, "workspace:update");
+  if (!gate.ok) return gate;
+  const ok = await updateWorkspaceBranding(id, patch, orgId);
+  revalidatePath(PATH);
+  return ok ? { ok: true } : { ok: false, error: "Could not update the workspace branding." };
 }
 
 export async function createSsoAction(

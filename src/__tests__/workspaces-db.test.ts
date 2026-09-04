@@ -3,12 +3,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const state = vi.hoisted(() => ({
   matchedRow: { id: "ws-1" } as Record<string, unknown> | null,
   filters: [] as Array<[string, string]>,
+  updatePayload: null as Record<string, unknown> | null,
   activeOrganizationId: "org-1" as string | null,
   workspaceRow: {
     id: "ws-1",
     organization_id: "org-1",
     name: "Workspace One",
     slug: "workspace-one",
+    logo_url: "https://cdn.example.com/workspace.png",
+    primary_color: "#123456",
+    theme_palette: "forest",
+    footer_text: "Prepared by Workspace One.",
     created_at: "2026-09-01T00:00:00.000Z",
   } as Record<string, unknown> | null,
 }));
@@ -20,8 +25,9 @@ vi.mock("@/lib/supabase/server", () => ({
       let operation: "read" | "update" | "delete" = "read";
       const builder = {
         select: () => builder,
-        update: () => {
+        update: (payload: Record<string, unknown>) => {
           operation = "update";
+          state.updatePayload = payload;
           return builder;
         },
         delete: () => {
@@ -54,12 +60,17 @@ describe("workspace write guards", () => {
   beforeEach(() => {
     state.matchedRow = { id: "ws-1" };
     state.filters = [];
+    state.updatePayload = null;
     state.activeOrganizationId = "org-1";
     state.workspaceRow = {
       id: "ws-1",
       organization_id: "org-1",
       name: "Workspace One",
       slug: "workspace-one",
+      logo_url: "https://cdn.example.com/workspace.png",
+      primary_color: "#123456",
+      theme_palette: "forest",
+      footer_text: "Prepared by Workspace One.",
       created_at: "2026-09-01T00:00:00.000Z",
     };
     vi.resetModules();
@@ -72,6 +83,9 @@ describe("workspace write guards", () => {
       id: "ws-1",
       organizationId: "org-1",
       name: "Workspace One",
+      primaryColor: "#123456",
+      themePalette: "forest",
+      footerText: "Prepared by Workspace One.",
     });
   });
 
@@ -101,5 +115,24 @@ describe("workspace write guards", () => {
     const { deleteWorkspace } = await import("@/lib/workspaces-db");
 
     await expect(deleteWorkspace("ws-1", "org-1")).resolves.toBe(false);
+  });
+
+  it("persists workspace branding changes within the expected organization", async () => {
+    const { updateWorkspaceBranding } = await import("@/lib/workspaces-db");
+
+    await expect(
+      updateWorkspaceBranding(
+        "ws-1",
+        { logoUrl: null, primaryColor: "#654321", themePalette: "amber", footerText: "Custom footer" },
+        "org-1"
+      )
+    ).resolves.toBe(true);
+    expect(state.filters).toContainEqual(["organization_id", "org-1"]);
+    expect(state.updatePayload).toMatchObject({
+      logo_url: null,
+      primary_color: "#654321",
+      theme_palette: "amber",
+      footer_text: "Custom footer",
+    });
   });
 });

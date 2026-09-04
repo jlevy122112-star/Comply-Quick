@@ -24,7 +24,7 @@ import { createSystemAuditLog } from "@/lib/audit";
 const log = logger.child({ module: "scanner" });
 
 const SCAN_COLUMNS =
-  "id, url, status, score, detected_tools, findings, accessibility, summary, error, organization_id, client_id, shared_token, shared_at, emailed_at, created_at";
+  "id, project_id, url, status, score, detected_tools, findings, accessibility, summary, error, organization_id, client_id, shared_token, shared_at, emailed_at, created_at";
 
 /**
  * Scan-cache window. A completed scan of the same (normalized) URL within this
@@ -41,6 +41,7 @@ export const FREE_SCAN_QUOTA = scanLimit("free");
 
 export interface ScanRecord {
   id: string;
+  projectId: string | null;
   url: string;
   status: "completed" | "failed";
   score: number | null;
@@ -90,6 +91,7 @@ export async function getScanQuota(): Promise<ScanQuota> {
 function mapRow(row: Record<string, unknown>): ScanRecord {
   return {
     id: row.id as string,
+    projectId: (row.project_id as string | null) ?? null,
     url: row.url as string,
     status: row.status as ScanRecord["status"],
     score: (row.score as number | null) ?? null,
@@ -304,6 +306,7 @@ export async function createScan(
     // Return the outcome even if persistence failed so the user still sees it.
     return {
       id: "",
+      projectId: null,
       url: outcome.url,
       status: "completed",
       score: outcome.score,
