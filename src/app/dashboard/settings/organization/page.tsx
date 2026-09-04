@@ -101,7 +101,7 @@ export default async function OrganizationSettingsPage({
 
   const tabs: TabItem[] = [
     { key: "profile", label: "Profile" },
-    { key: "installation", label: "Installation" },
+    { key: "installation", label: "Install Snippet" },
     { key: "members", label: "Members", count: memberCount },
     { key: "workspaces", label: "Workspaces", count: workspaceCount },
     { key: "hierarchy", label: "Hierarchy" },

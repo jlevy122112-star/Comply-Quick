@@ -26,6 +26,17 @@ interface WorkspaceRow {
   created_at: string;
 }
 
+function rowToWorkspace(row: WorkspaceRow, projectCount = 0): Workspace {
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    name: row.name,
+    slug: row.slug,
+    projectCount,
+    createdAt: row.created_at,
+  };
+}
+
 export async function listWorkspaces(orgId: string): Promise<Workspace[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -46,14 +57,7 @@ export async function listWorkspaces(orgId: string): Promise<Workspace[]> {
     }
   }
 
-  return rows.map((r) => ({
-    id: r.id,
-    organizationId: r.organization_id,
-    name: r.name,
-    slug: r.slug,
-    projectCount: counts.get(r.id) ?? 0,
-    createdAt: r.created_at,
-  }));
+  return rows.map((r) => rowToWorkspace(r, counts.get(r.id) ?? 0));
 }
 
 /** Cheap head-count of workspaces for tab badges (no project tallying). */
@@ -64,6 +68,17 @@ export async function countWorkspaces(orgId: string): Promise<number> {
     .select("id", { count: "exact", head: true })
     .eq("organization_id", orgId);
   return count ?? 0;
+}
+
+export async function getWorkspaceById(id: string): Promise<Workspace | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("workspaces")
+    .select("id, organization_id, name, slug, created_at")
+    .eq("id", id)
+    .maybeSingle();
+  if (error || !data) return null;
+  return rowToWorkspace(data as WorkspaceRow);
 }
 
 export async function createWorkspace(

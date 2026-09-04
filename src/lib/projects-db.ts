@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export interface DbProject {
   id: string;
+  workspaceId: string | null;
   name: string;
   framework: Framework;
   trackingPixels: TrackingPixel[];
@@ -34,6 +35,7 @@ export interface NewProjectInput {
 
 interface ProjectRow {
   id: string;
+  workspace_id: string | null;
   name: string;
   framework: string;
   tracking_pixels: string[];
@@ -49,6 +51,7 @@ interface ProjectRow {
 function rowToProject(row: ProjectRow): DbProject {
   return {
     id: row.id,
+    workspaceId: row.workspace_id ?? null,
     name: row.name,
     framework: row.framework as Framework,
     trackingPixels: (row.tracking_pixels ?? []) as TrackingPixel[],

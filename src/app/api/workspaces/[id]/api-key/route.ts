@@ -3,22 +3,12 @@ import { createClient } from "@/lib/supabase/server";
 import { getMyOrgRole } from "@/lib/organizations-db";
 import { can } from "@/lib/rbac";
 import { generateKey, hashKey, keyPrefixOf } from "@/lib/api/keys";
+import { mapWorkspaceApiKey, revokeWorkspaceApiKey } from "@/lib/workspace-api-keys";
 import { createRateLimiter, enforceRateLimit, errorResponse, getClientKey } from "@/services";
 
 const limiter = createRateLimiter({ limit: 20, windowMs: 60_000 });
 
 const KEY_COLUMNS = "id,name,key_prefix,last_used_at,revoked_at,created_at";
-
-function mapKey(row: Record<string, unknown>) {
-  return {
-    id: String(row.id),
-    name: String(row.name),
-    keyPrefix: String(row.key_prefix),
-    lastUsedAt: row.last_used_at ? String(row.last_used_at) : null,
-    revokedAt: row.revoked_at ? String(row.revoked_at) : null,
-    createdAt: String(row.created_at),
-  };
-}
 
 async function authorizeWorkspace(workspaceId: string) {
   const supabase = await createClient();
@@ -54,7 +44,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     .eq("workspace_id", id)
     .order("created_at", { ascending: false });
   if (error) return NextResponse.json({ error: "list_failed" }, { status: 500 });
-  return NextResponse.json({ keys: (data ?? []).map((row) => mapKey(row as Record<string, unknown>)), role });
+  return NextResponse.json({ keys: (data ?? []).map((row) => mapWorkspaceApiKey(row as Record<string, unknown>)), role });
 }
 
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -107,5 +97,26 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     if (revokeError) return NextResponse.json({ error: "rotate_failed" }, { status: 500 });
   }
 
-  return NextResponse.json({ key, record: mapKey(data as Record<string, unknown>) });
+  return NextResponse.json({ key, record: mapWorkspaceApiKey(data as Record<string, unknown>) }, { status: 201 });
+}
+
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  try {
+    enforceRateLimit(await limiter.check(getClientKey(request.headers)));
+  } catch (err) {
+    return errorResponse(err);
+  }
+
+  const { id } = await context.params;
+  const keyId = request.nextUrl.searchParams.get("keyId");
+  if (!keyId) return NextResponse.json({ error: "missing_key_id" }, { status: 400 });
+
+  const { user, role } = await authorizeWorkspace(id);
+  if (!user) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
+  if (!role) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  if (!can(role, "org:update")) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+
+  const ok = await revokeWorkspaceApiKey(id, keyId);
+  if (!ok) return NextResponse.json({ error: "revoke_failed" }, { status: 500 });
+  return NextResponse.json({ ok: true });
 }

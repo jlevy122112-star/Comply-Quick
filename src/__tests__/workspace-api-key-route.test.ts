@@ -71,6 +71,9 @@ function req(body: unknown) {
 function getReq() {
   return new NextRequest("http://localhost/api/workspaces/ws_1/api-key", { method: "GET" });
 }
+function deleteReq(keyId = "key_1") {
+  return new NextRequest(`http://localhost/api/workspaces/ws_1/api-key?keyId=${keyId}`, { method: "DELETE" });
+}
 
 async function loadRoute() {
   vi.resetModules();
@@ -90,7 +93,7 @@ describe("POST /api/workspaces/:id/api-key", () => {
   it("creates a workspace-scoped key", async () => {
     const { POST } = await loadRoute();
     const res = await POST(req({ name: "Primary" }), { params: Promise.resolve({ id: "ws_1" }) });
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(201);
     const data = await res.json();
     expect(typeof data.key).toBe("string");
     expect(insertSpy).toHaveBeenCalledWith(
@@ -101,7 +104,7 @@ describe("POST /api/workspaces/:id/api-key", () => {
   it("revokes active keys before rotate create", async () => {
     const { POST } = await loadRoute();
     const res = await POST(req({ rotate: true }), { params: Promise.resolve({ id: "ws_1" }) });
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(201);
     expect(updateSpy).toHaveBeenCalledTimes(1);
     expect(insertSpy).toHaveBeenCalledTimes(1);
   });
@@ -122,10 +125,26 @@ describe("POST /api/workspaces/:id/api-key", () => {
     expect(Array.isArray(data.keys)).toBe(true);
   });
 
+  it("revokes a workspace key for admins", async () => {
+    const { DELETE } = await loadRoute();
+    const res = await DELETE(deleteReq(), { params: Promise.resolve({ id: "ws_1" }) });
+    expect(res.status).toBe(200);
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ revoked_at: expect.any(String) }));
+  });
+
   it("returns 401 for anonymous requests", async () => {
     mockGetUser.mockResolvedValue({ data: { user: null } });
     const { GET } = await loadRoute();
     const res = await GET(getReq(), { params: Promise.resolve({ id: "ws_1" }) });
     expect(res.status).toBe(401);
+  });
+
+  it("returns 403 when revoking as a non-admin workspace member", async () => {
+    mockGetMyOrgRole.mockResolvedValue("member");
+    const { DELETE } = await loadRoute();
+    const res = await DELETE(deleteReq(), { params: Promise.resolve({ id: "ws_1" }) });
+    expect(res.status).toBe(403);
+    expect(updateSpy).not.toHaveBeenCalled();
   });
 });

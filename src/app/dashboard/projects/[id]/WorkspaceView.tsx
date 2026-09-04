@@ -13,6 +13,7 @@ import { CoveragePanel } from "./panels/CoveragePanel";
 import { PoliciesPanel } from "./panels/PoliciesPanel";
 import { ApprovalsPanel } from "./panels/ApprovalsPanel";
 import { ActivityPanel } from "./panels/ActivityPanel";
+import { InstallationPanel } from "@/app/dashboard/settings/organization/InstallationPanel";
 
 export const WORKSPACE_TABS = [
   { key: "overview", label: "Overview", icon: "🏠" },
@@ -24,6 +25,7 @@ export const WORKSPACE_TABS = [
   { key: "approvals", label: "Approvals", icon: "✅" },
   { key: "activity", label: "Activity", icon: "🕑" },
   { key: "team", label: "Team", icon: "👥" },
+  { key: "settings", label: "Settings", icon: "⚙️" },
 ] as const;
 
 export type WorkspaceTabKey = (typeof WORKSPACE_TABS)[number]["key"];
@@ -32,10 +34,23 @@ export function WorkspaceView({
   data,
   tier,
   activeTab,
+  installation,
 }: {
   data: WorkspaceData;
   tier: Tier;
   activeTab: WorkspaceTabKey;
+  installation: {
+    workspace: { id: string; organizationId: string; name: string; slug: string; projectCount: number; createdAt: string };
+    keys: {
+      id: string;
+      name: string;
+      keyPrefix: string;
+      lastUsedAt: string | null;
+      revokedAt: string | null;
+      createdAt: string;
+    }[];
+    canManage: boolean;
+  } | null;
 }) {
   const { project, findings, coverage, activity, proposals, pendingCount, scans, tasks, members, domains } = data;
   const basePath = `/dashboard/projects/${project.id}`;
@@ -89,6 +104,20 @@ export function WorkspaceView({
             <div className="space-y-6">
               <TeamPanel projectId={project.id} members={members} />
               <DomainsPanel projectId={project.id} domains={domains} />
+            </div>
+          )}
+          {activeTab === "settings" && installation && (
+            <InstallationPanel
+              workspaces={[installation.workspace]}
+              initialWorkspaceId={installation.workspace.id}
+              initialKeys={installation.keys}
+              canManage={installation.canManage}
+              hideWorkspaceSelector
+            />
+          )}
+          {activeTab === "settings" && !installation && (
+            <div className="rounded-2xl border border-gray-800 bg-gray-900/40 p-6 text-sm text-gray-300">
+              This project is not yet attached to a workspace that can issue install snippets.
             </div>
           )}
         </div>
