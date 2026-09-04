@@ -60,7 +60,7 @@ export default function ChurnSurveyForm() {
         <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4">
           <p className="text-sm font-semibold text-emerald-300">Before you cancel: compare lower-cost options</p>
           <p className="mt-1 text-xs text-gray-300">
-            Many teams switch plans instead of canceling. Review the Solo and annual options before ending access.
+            Many teams switch plans instead of canceling. Review the Freelancer and annual options before ending access.
           </p>
           <Link
             href="/dashboard/settings/billing"

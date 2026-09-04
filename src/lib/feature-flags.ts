@@ -1,13 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getOrganization } from "@/lib/organizations-db";
-import type { Organization } from "@/lib/organizations";
-import type { Tier } from "@/lib/pricing";
-
-/** Maps the organizations.plan column to the billing/entitlement tier model. */
-function orgPlanToTier(plan: Organization["plan"]): Tier {
-  if (plan === "team") return "solo";
-  return plan;
-}
+import { organizationPlanToTier, type Tier } from "@/lib/pricing";
 
 export type FeatureFlag =
   | "agencyPortal"
@@ -105,7 +98,7 @@ async function getFeatureOverride(orgId: string, flag: FeatureFlag): Promise<boo
 export async function getFeatureFlag(orgId: string, flag: FeatureFlag): Promise<boolean> {
   const [org, override] = await Promise.all([getOrganization(orgId), getFeatureOverride(orgId, flag)]);
   if (!org) return false;
-  return isFeatureEnabled(flag, orgPlanToTier(org.plan), override);
+  return isFeatureEnabled(flag, organizationPlanToTier(org.plan), override);
 }
 
 export interface FeatureFlagStatus {
@@ -128,7 +121,7 @@ export async function listFeatureFlags(orgId: string): Promise<FeatureFlagStatus
     (data ?? []).map((row) => [row.flag as FeatureFlag, (row as { enabled: boolean }).enabled])
   );
 
-  const tier = orgPlanToTier(org.plan);
+  const tier = organizationPlanToTier(org.plan);
   return FEATURE_FLAG_KEYS.map((flag) => {
     const override = overrides.get(flag) ?? null;
     return {

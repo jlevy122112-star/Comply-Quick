@@ -3,7 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const state = vi.hoisted(() => ({ isPremium: true }));
 
 vi.mock("@/lib/entitlements", () => ({
-  getOrgEntitlement: vi.fn(async () => ({ isPremium: state.isPremium })),
+  getOrgEntitlement: vi.fn(async () => ({
+    tier: state.isPremium ? "agency" : "free",
+    status: state.isPremium ? "active" : "inactive",
+    isPremium: state.isPremium,
+  })),
+  hasPaidAccess: (entitlement: { tier: string; status: string }) =>
+    entitlement.status === "active" && entitlement.tier !== "free",
 }));
 
 describe("organization-aware feature gates", () => {

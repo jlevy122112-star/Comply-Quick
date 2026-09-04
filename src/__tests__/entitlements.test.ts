@@ -40,7 +40,25 @@ const serverClient = {
 };
 
 const adminClient = {
-  from: (table: string) => subscriptionBuilder(table === "subscriptions" ? state.organizationOwnerId : ""),
+  from: (table: string) => {
+    if (table === "organizations") {
+      return {
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({ data: { owner_id: state.organizationOwnerId, plan: "team" }, error: null }),
+          }),
+        }),
+      };
+    }
+    if (table === "organization_subscriptions") {
+      return {
+        select: () => ({
+          eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }),
+        }),
+      };
+    }
+    return subscriptionBuilder(table === "subscriptions" ? state.organizationOwnerId : "");
+  },
 };
 
 vi.mock("@/lib/supabase/server", () => ({

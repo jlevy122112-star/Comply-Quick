@@ -6,7 +6,7 @@
 // never drift between the checkout, the webhook, the paywall, and the UI.
 //
 // Pricing decisions (owner-approved 2026-07-06 — value-based repricing):
-//   • Solo: $29/mo, 20 scans — freelancers / solo devs. Includes Regulation
+//   • Freelancer: $29/mo, 20 scans — freelancers / solo devs. Includes Regulation
 //     monitoring + Autopilot (gated on isPremium, i.e. any active paid tier).
 //   • Agency: $99/mo, 5 seats, UNLIMITED scans — the primary ICP. Adds team
 //     seats + white-label on top of the monitoring + Autopilot every paid tier
@@ -30,6 +30,7 @@
 
 export type PaidTier = "solo" | "agency" | "enterprise";
 export type Tier = "free" | PaidTier;
+export type OrganizationPlan = "free" | "team" | "enterprise";
 
 export type Billing = "monthly" | "annual";
 
@@ -70,7 +71,7 @@ export const TIER_CONFIG: Record<Tier, TierConfig> = {
   },
   solo: {
     id: "solo",
-    label: "Solo",
+    label: "Freelancer",
     monthly: 29,
     annual: 290,
     seats: 1,
@@ -143,6 +144,30 @@ export function isTier(value: string): value is Tier {
 
 export function getTierConfig(tier: Tier): TierConfig {
   return TIER_CONFIG[tier];
+}
+
+/**
+ * Canonical plan mapping used across tenant settings, entitlements, and feature
+ * defaults while organizations.plan remains the legacy enum.
+ *
+ * organizations.plan:
+ *  - free       -> subscriptions.tier free
+ *  - team       -> subscriptions.tier solo (Freelancer baseline for team orgs)
+ *  - enterprise -> subscriptions.tier enterprise
+ *
+ * subscriptions.tier:
+ *  - solo/agency both project to organizations.plan team
+ */
+export function organizationPlanToTier(plan: OrganizationPlan): Tier {
+  if (plan === "free") return "free";
+  if (plan === "enterprise") return "enterprise";
+  return "solo";
+}
+
+export function tierToOrganizationPlan(tier: Tier): OrganizationPlan {
+  if (tier === "free") return "free";
+  if (tier === "enterprise") return "enterprise";
+  return "team";
 }
 
 /** Included seats for a tier (`Infinity` for Enterprise). */

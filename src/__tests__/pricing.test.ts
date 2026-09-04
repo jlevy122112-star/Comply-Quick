@@ -10,6 +10,8 @@ import {
   scanLimit,
   isUnlimited,
   normalizeTierKey,
+  organizationPlanToTier,
+  tierToOrganizationPlan,
 } from "@/lib/pricing";
 
 describe("TIER_CONFIG", () => {
@@ -17,8 +19,8 @@ describe("TIER_CONFIG", () => {
     expect(Object.keys(TIER_CONFIG).sort()).toEqual(["agency", "enterprise", "free", "solo"]);
   });
 
-  it("prices the Solo plan at $29/mo, $290/yr", () => {
-    expect(TIER_CONFIG.solo.label).toBe("Solo");
+  it("prices the Freelancer plan at $29/mo, $290/yr", () => {
+    expect(TIER_CONFIG.solo.label).toBe("Freelancer");
     expect(TIER_CONFIG.solo.monthly).toBe(29);
     expect(TIER_CONFIG.solo.annual).toBe(290);
     expect(TIER_CONFIG.solo.scanLimit).toBe(20);
@@ -89,5 +91,15 @@ describe("tier guards & helpers", () => {
     expect(scanLimit("solo")).toBe(20);
     expect(scanLimit("agency")).toBe(Infinity);
     expect(seatLimit("enterprise")).toBe(Infinity);
+  });
+
+  it("maps organization plans and billing tiers canonically", () => {
+    expect(organizationPlanToTier("free")).toBe("free");
+    expect(organizationPlanToTier("team")).toBe("solo");
+    expect(organizationPlanToTier("enterprise")).toBe("enterprise");
+    expect(tierToOrganizationPlan("free")).toBe("free");
+    expect(tierToOrganizationPlan("solo")).toBe("team");
+    expect(tierToOrganizationPlan("agency")).toBe("team");
+    expect(tierToOrganizationPlan("enterprise")).toBe("enterprise");
   });
 });

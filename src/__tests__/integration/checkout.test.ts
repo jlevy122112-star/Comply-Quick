@@ -68,7 +68,12 @@ describe("Stripe webhook: checkout.session.completed", () => {
           id: "cs_test_1",
           customer: "cus_123",
           subscription: "sub_123",
-          metadata: { plan: "agency", supabase_user_id: "user_1" },
+          metadata: {
+            plan: "agency",
+            supabase_user_id: "user_1",
+            organization_id: "org_1",
+            owner_user_id: "owner_1",
+          },
         },
       },
     });
@@ -77,9 +82,9 @@ describe("Stripe webhook: checkout.session.completed", () => {
     const res = await POST(makeRequest());
     expect(res.status).toBe(200);
 
-    expect(upsertSpy).toHaveBeenCalledTimes(1);
-    const [table, row, opts] = upsertSpy.mock.calls[0];
-    expect(table).toBe("subscriptions");
+    const subscriptionUpsert = upsertSpy.mock.calls.find((call) => call[0] === "subscriptions");
+    expect(subscriptionUpsert).toBeTruthy();
+    const [, row, opts] = subscriptionUpsert!;
     expect(row).toMatchObject({
       user_id: "user_1",
       tier: "agency",
@@ -88,6 +93,15 @@ describe("Stripe webhook: checkout.session.completed", () => {
       stripe_subscription_id: "sub_123",
     });
     expect(opts).toEqual({ onConflict: "user_id" });
+    const orgUpsert = upsertSpy.mock.calls.find((call) => call[0] === "organization_subscriptions");
+    expect(orgUpsert?.[1]).toMatchObject({
+      organization_id: "org_1",
+      owner_user_id: "owner_1",
+      tier: "agency",
+      status: "active",
+      stripe_customer_id: "cus_123",
+      stripe_subscription_id: "sub_123",
+    });
   });
 
   it("maps the retired 'single' plan key to 'solo'", async () => {
@@ -98,7 +112,7 @@ describe("Stripe webhook: checkout.session.completed", () => {
           id: "cs_test_2",
           customer: "cus_456",
           subscription: "sub_456",
-          metadata: { plan: "single", supabase_user_id: "user_2" },
+          metadata: { plan: "single", supabase_user_id: "user_2", organization_id: "org_2", owner_user_id: "owner_2" },
         },
       },
     });
@@ -106,8 +120,8 @@ describe("Stripe webhook: checkout.session.completed", () => {
 
     await POST(makeRequest());
 
-    expect(upsertSpy).toHaveBeenCalledTimes(1);
-    expect(upsertSpy.mock.calls[0][1]).toMatchObject({ tier: "solo", status: "active" });
+    const subscriptionUpsert = upsertSpy.mock.calls.find((call) => call[0] === "subscriptions");
+    expect(subscriptionUpsert?.[1]).toMatchObject({ tier: "solo", status: "active" });
   });
 
   it("does not create a subscription for a marketplace checkout", async () => {

@@ -542,7 +542,7 @@ export default function BillingOpsView({ tenants, detail, selectedId, stripeConf
                       Select a tier
                     </option>
                     <option value="free">Free</option>
-                    <option value="solo">Solo</option>
+                    <option value="solo">Freelancer</option>
                     <option value="agency">Agency</option>
                     <option value="enterprise">Enterprise</option>
                   </select>

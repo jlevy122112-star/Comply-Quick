@@ -10,7 +10,11 @@ import PlansBillingView, { type BillingPageData } from "./PlansBillingView";
 
 export const dynamic = "force-dynamic";
 
-export default async function PlansBillingPage() {
+export default async function PlansBillingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ checkout?: "success" | "cancelled" }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -27,6 +31,7 @@ export default async function PlansBillingPage() {
     listMyOrganizationsCached(),
     getActiveOrganizationId(),
   ]);
+  const params = await searchParams;
   const usage: BillingPageData["usage"] = {
     scans: scans ? { used: scans.used, limit: config.scanLimit, period: scans.period } : null,
     seats:
@@ -54,7 +59,13 @@ export default async function PlansBillingPage() {
         tier={entitlement.tier}
         status={entitlement.status}
         currentPeriodEnd={entitlement.currentPeriodEnd}
+        cancelAt={entitlement.cancelAt}
+        canceledAt={entitlement.canceledAt}
         usage={usage}
+        activeOrganizationName={
+          organizations.find((organization) => organization.id === activeOrganizationId)?.name ?? "Active workspace"
+        }
+        checkoutState={params.checkout ?? null}
       />
     </AppShell>
   );

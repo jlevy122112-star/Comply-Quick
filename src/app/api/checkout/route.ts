@@ -5,6 +5,8 @@ import * as Sentry from "@sentry/nextjs";
 import { getStripe, analytics, logger } from "@/services";
 import { TIER_CONFIG, PAID_TIERS, isPaidTier, normalizeTierKey, type Billing, type PaidTier } from "@/lib/pricing";
 import { attachReferral } from "@/lib/partners/service";
+import { getActiveOrganizationId, getMyOrgRole } from "@/lib/organizations-db";
+import { can } from "@/lib/rbac";
 
 interface CheckoutRequestBody {
   plan: PaidTier;
@@ -34,6 +36,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "Not authenticated", message: "Sign in before starting checkout." },
       { status: 401 }
+    );
+  }
+  const organizationId = await getActiveOrganizationId();
+  if (!organizationId) {
+    return NextResponse.json({ error: "Organization context is required." }, { status: 400 });
+  }
+  const role = await getMyOrgRole(organizationId);
+  if (!role || !can(role, "org:billing")) {
+    return NextResponse.json(
+      { error: "You do not have permission to manage billing for this organization." },
+      { status: 403 }
     );
   }
 
@@ -85,41 +98,78 @@ export async function POST(request: NextRequest) {
   try {
     // Reuse an existing Stripe customer if we have one recorded for this user.
     const admin = createAdminClient();
-    const { data: sub } = await admin
-      .from("subscriptions")
-      .select("stripe_customer_id")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    const [{ data: organization }, { data: orgSub }, { data: userSub }] = await Promise.all([
+      admin.from("organizations").select("owner_id").eq("id", organizationId).maybeSingle(),
+      admin
+        .from("organization_subscriptions")
+        .select("owner_user_id, stripe_customer_id")
+        .eq("organization_id", organizationId)
+        .maybeSingle(),
+      admin.from("subscriptions").select("stripe_customer_id").eq("user_id", user.id).maybeSingle(),
+    ]);
+    const ownerUserId = (organization as { owner_id?: string } | null)?.owner_id ?? user.id;
 
-    let customerId = sub?.stripe_customer_id ?? undefined;
+    let customerId = orgSub?.stripe_customer_id ?? userSub?.stripe_customer_id ?? undefined;
     if (!customerId) {
       const customer = await stripe.customers.create({
         email: user.email ?? undefined,
-        metadata: { supabase_user_id: user.id },
+        metadata: { supabase_user_id: user.id, organization_id: organizationId },
       });
       customerId = customer.id;
-      await admin
-        .from("subscriptions")
-        .upsert({ user_id: user.id, stripe_customer_id: customerId }, { onConflict: "user_id" });
+      await Promise.all([
+        admin.from("organization_subscriptions").upsert(
+          {
+            organization_id: organizationId,
+            owner_user_id: ownerUserId,
+            tier: "free",
+            status: "inactive",
+            stripe_customer_id: customerId,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "organization_id" }
+        ),
+        admin
+          .from("subscriptions")
+          .upsert({ user_id: user.id, stripe_customer_id: customerId }, { onConflict: "user_id" }),
+      ]);
+    } else {
+      await admin.from("organization_subscriptions").upsert(
+        {
+          organization_id: organizationId,
+          owner_user_id: orgSub?.owner_user_id ?? ownerUserId,
+          stripe_customer_id: customerId,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "organization_id" }
+      );
     }
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${origin}/dashboard/home?checkout=success`,
-      cancel_url: `${origin}/dashboard?checkout=cancelled`,
-      metadata: { plan, supabase_user_id: user.id },
-      subscription_data: { metadata: { plan, supabase_user_id: user.id } },
+      success_url: `${origin}/dashboard/settings/billing?checkout=success`,
+      cancel_url: `${origin}/dashboard/settings/billing?checkout=cancelled`,
+      metadata: { plan, supabase_user_id: user.id, organization_id: organizationId, owner_user_id: ownerUserId },
+      subscription_data: {
+        metadata: { plan, supabase_user_id: user.id, organization_id: organizationId, owner_user_id: ownerUserId },
+      },
     });
 
-    analytics.track({ event: "checkout_started", userId: user.id, properties: { plan, billing } });
+    analytics.track({
+      event: "checkout_started",
+      userId: user.id,
+      properties: { plan, billing, organizationId },
+    });
 
     return NextResponse.json({ url: session.url });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
     logger.child({ module: "checkout" }).error("Checkout session failed", { userId: user.id, plan, message });
-    Sentry.captureException(err, { tags: { module: "checkout" }, extra: { userId: user.id, plan, billing } });
+    Sentry.captureException(err, {
+      tags: { module: "checkout" },
+      extra: { userId: user.id, plan, billing, organizationId },
+    });
     return NextResponse.json({ error: "Checkout session failed", message }, { status: 500 });
   }
 }
