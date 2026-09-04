@@ -18,6 +18,7 @@ import { MODULE_OPTIONS, type ComplianceModule } from "@/components/EnterpriseMo
 import type { ComplianceScore } from "@/components/ClauseEngine";
 import type { Severity } from "@/components/ui/SeverityPill";
 import type { ActivityItem } from "@/components/ui/ActivityFeed";
+import { getWorkspaceById, type Workspace } from "@/lib/workspaces-db";
 
 export interface WorkspaceFinding {
   id: string;
@@ -49,6 +50,7 @@ export interface WorkspaceData {
   domains: ProjectDomain[];
   /** Displayed-score adjustment from open (unapproved) regulatory changes. */
   regulatoryImpact: RegulatoryScoreAdjustment;
+  workspace: Workspace | null;
 }
 
 /** Score band → finding severity. Below 60 is critical, 60–79 warning, else info. */
@@ -145,13 +147,14 @@ export async function getWorkspaceData(projectId: string): Promise<WorkspaceData
   const project = await getProjectById(projectId);
   if (!project) return null;
 
-  const [proposals, scans, tasks, members, domains, pressures] = await Promise.all([
+  const [proposals, scans, tasks, members, domains, pressures, workspace] = await Promise.all([
     listProposals("all", projectId),
     listProjectScans(projectId),
     listProjectTasks(projectId),
     listProjectMembers(projectId),
     listProjectDomains(projectId),
     pendingPressuresForProject(projectId),
+    project.workspaceId ? getWorkspaceById(project.workspaceId) : Promise.resolve(null),
   ]);
   const pendingCount = proposals.filter((p) => p.status === "proposed").length;
   const regulatoryImpact = applyRegulatoryImpact(project.complianceScore.overall, pressures);
@@ -168,5 +171,6 @@ export async function getWorkspaceData(projectId: string): Promise<WorkspaceData
     members,
     domains,
     regulatoryImpact,
+    workspace,
   };
 }

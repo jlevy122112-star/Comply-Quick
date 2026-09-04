@@ -92,7 +92,7 @@ export function WorkspaceView({
           <span className="text-gray-300">Workspace</span>
         </nav>
 
-        <WorkspaceHeader project={project} pendingCount={pendingCount} basePath={basePath} />
+        <WorkspaceHeader project={project} workspace={data.workspace} pendingCount={pendingCount} basePath={basePath} />
 
         <div className="mt-8">
           <TabNav items={tabs} active={activeTab} basePath={basePath} />
@@ -100,7 +100,15 @@ export function WorkspaceView({
 
         <div className="mt-6">
           {activeTab === "overview" && <OverviewPanel data={data} basePath={basePath} />}
-          {activeTab === "scans" && <ScansPanel scans={scans} />}
+          {activeTab === "scans" && (
+            <ScansPanel
+              scans={scans}
+              projectId={project.id}
+              projectName={project.name}
+              workspaceId={project.workspaceId}
+              workspaceName={data.workspace?.name ?? null}
+            />
+          )}
           {activeTab === "findings" && <FindingsPanel findings={findings} />}
           {activeTab === "tasks" && <TasksPanel projectId={project.id} tasks={tasks} />}
           {activeTab === "coverage" && <CoveragePanel coverage={coverage} tier={tier} />}
