@@ -833,6 +833,48 @@
 | `ok` | `bool` |  |
 | `at` | `timestamptz` |  |
 
+## Table `native_integrations`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` | Primary |
+| `organization_id` | `uuid` |  |
+| `workspace_id` | `uuid` | Nullable |
+| `client_seat_id` | `uuid` | Nullable |
+| `platform` | `text` |  |
+| `status` | `text` |  |
+| `mode` | `text` |  |
+| `external_account_id` | `text` |  |
+| `install_metadata` | `jsonb` |  |
+| `connected_at` | `timestamptz` |  |
+| `disconnected_at` | `timestamptz` | Nullable |
+| `revoked_reason` | `text` | Nullable |
+| `last_verified_at` | `timestamptz` | Nullable |
+| `last_sync_at` | `timestamptz` | Nullable |
+| `last_error` | `jsonb` | Nullable |
+| `created_by` | `uuid` | Nullable |
+| `updated_by` | `uuid` | Nullable |
+| `created_at` | `timestamptz` |  |
+| `updated_at` | `timestamptz` |  |
+
+## Table `connector.platform_webhook_events`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` | Primary |
+| `agency_org_id` | `uuid` |  |
+| `source` | `text` |  |
+| `event_type` | `text` |  |
+| `payload` | `jsonb` |  |
+| `processed` | `bool` |  |
+| `event_key` | `text` | Nullable, Unique (when not null) |
+| `native_integration_id` | `uuid` | Nullable |
+| `created_at` | `timestamptz` |  |
+
 ## Table `data_subject_requests`
 
 ### Columns
@@ -1339,6 +1381,21 @@
 | `connector_connections_select` | SELECT | public | PERMISSIVE | `is_org_member(agency_org_id)` | — |
 | `connector_connections_insert` | INSERT | public | PERMISSIVE | — | `is_org_admin(agency_org_id)` |
 
+### `native_integrations`
+
+| Policy | Command | Roles | Action | USING | WITH CHECK |
+|--------|---------|-------|--------|-------|------------|
+| `native_integrations_select_org_member` | SELECT | public | PERMISSIVE | `is_org_member(organization_id)` | — |
+| `native_integrations_insert_org_admin` | INSERT | public | PERMISSIVE | — | `is_org_admin(organization_id) AND scope integrity checks` |
+| `native_integrations_update_org_admin` | UPDATE | public | PERMISSIVE | `is_org_admin(organization_id)` | `is_org_admin(organization_id) AND scope integrity checks` |
+
+### `connector.platform_webhook_events`
+
+| Policy | Command | Roles | Action | USING | WITH CHECK |
+|--------|---------|-------|--------|-------|------------|
+| `platform_webhook_events_select` | SELECT | public | PERMISSIVE | `is_org_member(agency_org_id)` | — |
+| `platform_webhook_events_insert` | INSERT | public | PERMISSIVE | — | `is_org_admin(agency_org_id)` |
+
 ### `workspace_members`
 
 | Policy | Command | Roles | Action | USING | WITH CHECK |
@@ -1407,4 +1464,3 @@
 | `consent_deployments_select_owner` | SELECT | public | PERMISSIVE | `(EXISTS ( SELECT 1    FROM projects p   WHERE ((p.id = consent_deployments.project_id) AND (p.user_id = auth.uid()))))` | — |
 | `consent_deployments_insert_owner` | INSERT | public | PERMISSIVE | — | `(EXISTS ( SELECT 1    FROM projects p   WHERE ((p.id = consent_deployments.project_id) AND (p.user_id = auth.uid()))))` |
 | `consent_deployments_update_owner` | UPDATE | public | PERMISSIVE | `(EXISTS ( SELECT 1    FROM projects p   WHERE ((p.id = consent_deployments.project_id) AND (p.user_id = auth.uid()))))` | `(EXISTS ( SELECT 1    FROM projects p   WHERE ((p.id = consent_deployments.project_id) AND (p.user_id = auth.uid()))))` |
-

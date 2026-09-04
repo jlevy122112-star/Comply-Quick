@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getActiveOrganizationId } from "@/lib/organizations-db";
+import { getActiveOrganizationId, getMyOrgRole } from "@/lib/organizations-db";
+import { listNativeIntegrations } from "@/lib/native-integrations-db";
+import { listWorkspaces } from "@/lib/workspaces-db";
 import PlatformIntegrationsTool from "./PlatformIntegrationsTool";
 import CmsConnectionsPanel from "./CmsConnectionsPanel";
 
@@ -15,6 +17,21 @@ export default async function PlatformIntegrationsPage() {
   if (!user) redirect("/login?redirect=/dashboard/tools/platforms");
 
   const organizationId = await getActiveOrganizationId();
+  const role = organizationId ? await getMyOrgRole(organizationId) : null;
+  const canManage = role === "owner" || role === "admin";
+  const [nativeIntegrations, workspaces, agencyClients] = organizationId
+    ? await Promise.all([
+        listNativeIntegrations({ organizationId }),
+        listWorkspaces(organizationId),
+        supabase
+          .from("agency_clients")
+          .select("id, name")
+          .eq("organization_id", organizationId)
+          .eq("status", "active")
+          .order("name", { ascending: true })
+          .then(({ data }) => (data ?? []) as Array<{ id: string; name: string }>),
+      ])
+    : [[], [], [] as Array<{ id: string; name: string }>];
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
@@ -31,7 +48,14 @@ export default async function PlatformIntegrationsPage() {
           </p>
         </div>
         <PlatformIntegrationsTool />
-        {organizationId ? <CmsConnectionsPanel organizationId={organizationId} /> : null}
+        {organizationId ? (
+          <CmsConnectionsPanel
+            connections={nativeIntegrations}
+            workspaces={workspaces}
+            clients={agencyClients}
+            canManage={canManage}
+          />
+        ) : null}
       </div>
     </div>
   );
