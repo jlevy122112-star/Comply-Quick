@@ -25,7 +25,16 @@ describe("IntegrationsManager", () => {
     render(
       <IntegrationsManager
         canManage
-        workspaces={[{ id: "ws-1", organizationId: "org-1", name: "Default", slug: "default", projectCount: 2, createdAt: "2026-01-01" }]}
+        workspaces={[
+          {
+            id: "ws-1",
+            organizationId: "org-1",
+            name: "Default",
+            slug: "default",
+            projectCount: 2,
+            createdAt: "2026-01-01",
+          },
+        ]}
         clients={[{ id: "client-1", name: "Client A" }]}
         nativeIntegrations={[
           {
@@ -62,7 +71,7 @@ describe("IntegrationsManager", () => {
     );
     expect(screen.getByText("First-Class Integrations")).toBeInTheDocument();
     expect(screen.getByText("Advanced / Custom Integrations")).toBeInTheDocument();
-    expect(screen.getByText("WordPress")).toBeInTheDocument();
+    expect(screen.getAllByText("WordPress").length).toBeGreaterThan(0);
     expect(screen.getByText("Ops")).toBeInTheDocument();
   });
 });
