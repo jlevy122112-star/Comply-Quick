@@ -157,4 +157,20 @@ describe("POST /api/workspaces/:id/api-key", () => {
     const res = await GET(getReq(), { params: Promise.resolve({ id: "ws_1" }) });
     expect(res.status).toBe(403);
   });
+
+  it("rejects workspace key creation outside the active tenant context", async () => {
+    mockGetActiveOrganizationId.mockResolvedValue("org_2");
+    const { POST } = await loadRoute();
+    const res = await POST(req({ name: "Primary" }), { params: Promise.resolve({ id: "ws_1" }) });
+    expect(res.status).toBe(403);
+    expect(insertSpy).not.toHaveBeenCalled();
+  });
+
+  it("rejects workspace key revocation outside the active tenant context", async () => {
+    mockGetActiveOrganizationId.mockResolvedValue("org_2");
+    const { DELETE } = await loadRoute();
+    const res = await DELETE(deleteReq(), { params: Promise.resolve({ id: "ws_1" }) });
+    expect(res.status).toBe(403);
+    expect(updateSpy).not.toHaveBeenCalled();
+  });
 });

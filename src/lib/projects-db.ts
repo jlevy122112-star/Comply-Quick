@@ -64,6 +64,17 @@ export interface ProjectTenantScope {
   workspaceId: string | null;
 }
 
+function matchesActiveTenant(
+  row: { user_id?: string; organization_id?: string | null },
+  userId: string,
+  activeOrganizationId: string | null
+): boolean {
+  if (row.organization_id) {
+    return Boolean(activeOrganizationId) && row.organization_id === activeOrganizationId;
+  }
+  return row.user_id === userId;
+}
+
 function rowToProject(row: ProjectRow): DbProject {
   return {
     id: row.id,
@@ -79,6 +90,21 @@ function rowToProject(row: ProjectRow): DbProject {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+async function getProjectRowForActiveTenant(id: string): Promise<ProjectRow | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase.from("projects").select("*").eq("id", id).maybeSingle();
+  if (error || !data) return null;
+
+  const row = data as ProjectRow;
+  const activeOrganizationId = await getActiveOrganizationId();
+  return matchesActiveTenant(row, user.id, activeOrganizationId) ? row : null;
 }
 
 export async function listProjects(): Promise<DbProject[]> {
@@ -100,14 +126,8 @@ export async function listProjects(): Promise<DbProject[]> {
 }
 
 export async function getProjectById(id: string): Promise<DbProject | null> {
-  const scope = await getProjectTenantScope(id);
-  if (!scope) return null;
-
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("projects").select("*").eq("id", id).maybeSingle();
-
-  if (error || !data) return null;
-  return rowToProject(data as ProjectRow);
+  const row = await getProjectRowForActiveTenant(id);
+  return row ? rowToProject(row) : null;
 }
 
 export async function getProjectTenantScope(id: string): Promise<ProjectTenantScope | null> {
@@ -126,20 +146,11 @@ export async function getProjectTenantScope(id: string): Promise<ProjectTenantSc
 
   const row = data as ProjectTenantScopeRow;
   const activeOrganizationId = await getActiveOrganizationId();
-  if (row.organization_id) {
-    if (!activeOrganizationId || row.organization_id !== activeOrganizationId) return null;
-    return {
-      id: row.id,
-      userId: row.user_id,
-      organizationId: row.organization_id,
-      workspaceId: row.workspace_id,
-    };
-  }
-  if (row.user_id !== user.id) return null;
+  if (!matchesActiveTenant(row, user.id, activeOrganizationId)) return null;
   return {
     id: row.id,
     userId: row.user_id,
-    organizationId: null,
+    organizationId: row.organization_id ?? null,
     workspaceId: row.workspace_id,
   };
 }
@@ -222,8 +233,8 @@ export async function deleteProjectById(id: string): Promise<boolean> {
   query = scope.organizationId
     ? query.eq("organization_id", scope.organizationId)
     : query.eq("user_id", user.id).is("organization_id", null);
-  const { error } = await query;
-  return !error;
+  const { data, error } = await query.select("id").maybeSingle();
+  return !error && !!data;
 }
 
 export function getAggregateScore(projects: DbProject[]): ComplianceScore | null {

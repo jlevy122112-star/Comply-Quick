@@ -102,6 +102,7 @@ export async function addProjectMember(
   if (invitee.id === user.id) return { ok: false, error: "You already own this project." };
   const scope = await getProjectTenantScope(projectId);
   if (!scope) return { ok: false, error: "Project not found." };
+  if (scope.userId !== user.id) return { ok: false, error: "Only the project owner can add collaborators." };
 
   const { error } = await supabase.from("project_members").insert({ project_id: projectId, user_id: invitee.id, role });
   if (error) {
@@ -120,6 +121,13 @@ export async function removeProjectMember(projectId: string, memberId: string): 
   if (!user) return false;
   const scope = await getProjectTenantScope(projectId);
   if (!scope) return false;
-  const { error } = await supabase.from("project_members").delete().eq("id", memberId).eq("project_id", projectId);
-  return !error;
+  if (scope.userId !== user.id) return false;
+  const { data, error } = await supabase
+    .from("project_members")
+    .delete()
+    .eq("id", memberId)
+    .eq("project_id", projectId)
+    .select("id")
+    .maybeSingle();
+  return !error && !!data;
 }

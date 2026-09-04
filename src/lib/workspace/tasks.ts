@@ -5,7 +5,7 @@
 // returned here, and every read/write is RLS-scoped to the caller.
 
 import { createClient } from "@/lib/supabase/server";
-import { getActiveOrganizationId, organizationReadFilter } from "@/lib/organizations-db";
+import { organizationReadFilter } from "@/lib/organizations-db";
 import { getProjectTenantScope } from "@/lib/projects-db";
 import { UnauthorizedError, ValidationError, NotFoundError } from "@/services/errors";
 import {
@@ -78,12 +78,11 @@ export async function listProjectTasks(projectId: string): Promise<ProjectTask[]
   if (!user) return [];
   const scope = await getProjectTenantScope(projectId);
   if (!scope) return [];
-  const organizationId = await getActiveOrganizationId();
 
   const { data } = await supabase
     .from("compliance_tasks")
     .select(TASK_COLS)
-    .or(organizationReadFilter(user.id, organizationId))
+    .or(organizationReadFilter(user.id, scope.organizationId))
     .eq("project_id", projectId)
     .order("due_date", { ascending: true });
 
@@ -164,6 +163,7 @@ export async function deleteProjectTask(projectId: string, id: string): Promise<
   query = scope.organizationId
     ? query.eq("organization_id", scope.organizationId)
     : query.eq("user_id", user.id).is("organization_id", null);
-  const { error } = await query;
+  const { data, error } = await query.select("id").maybeSingle();
   if (error) throw new ValidationError("Could not delete the task.");
+  if (!data) throw new NotFoundError("Task not found.");
 }

@@ -117,14 +117,14 @@ export async function renameWorkspace(id: string, name: string, organizationId?:
     .update({ name: clean.slice(0, 120), updated_at: new Date().toISOString() })
     .eq("id", id);
   if (organizationId) query = query.eq("organization_id", organizationId);
-  const { error } = await query;
-  return !error;
+  const { data, error } = await query.select("id").maybeSingle();
+  return !error && !!data;
 }
 
 export async function deleteWorkspace(id: string, organizationId?: string): Promise<boolean> {
   const supabase = await createClient();
   let query = supabase.from("workspaces").delete().eq("id", id);
   if (organizationId) query = query.eq("organization_id", organizationId);
-  const { error } = await query;
-  return !error;
+  const { data, error } = await query.select("id").maybeSingle();
+  return !error && !!data;
 }

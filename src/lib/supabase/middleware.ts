@@ -42,7 +42,7 @@ async function resolveActiveOrganizationForRequest(
   userId: string
 ): Promise<string | null> {
   const storedId = request.cookies.get(ACTIVE_ORGANIZATION_COOKIE)?.value ?? null;
-  const [{ data: owned }, { data: memberships }] = await Promise.all([
+  const [{ data: owned, error: ownedError }, { data: memberships, error: membershipError }] = await Promise.all([
     supabase
       .from("organizations")
       .select("id, is_personal, created_at")
@@ -50,6 +50,7 @@ async function resolveActiveOrganizationForRequest(
       .order("created_at", { ascending: true }),
     supabase.from("organization_members").select("organization_id").eq("user_id", userId),
   ]);
+  if (ownedError || membershipError) return null;
 
   const ownedRows = (owned ?? []) as Array<{ id: string; is_personal?: boolean | null }>;
   const membershipRows = (memberships ?? []) as Array<{ organization_id: string }>;
@@ -124,7 +125,7 @@ export async function updateSession(request: NextRequest, csp?: { nonce: string;
 
   const isProtected = PROTECTED_PREFIXES.some((p) => path.startsWith(p));
 
-  if (user) {
+  if (user && isProtected) {
     activeOrganizationId = await resolveActiveOrganizationForRequest(supabase, request, user.id);
     supabaseResponse = NextResponse.next(nextInit());
   }
@@ -158,7 +159,6 @@ export async function updateSession(request: NextRequest, csp?: { nonce: string;
     }
   }
 
-  if (activeOrganizationId) supabaseResponse.headers.set(ACTIVE_ORGANIZATION_HEADER, activeOrganizationId);
   captureReferral(request, supabaseResponse);
   return supabaseResponse;
 }

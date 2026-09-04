@@ -70,6 +70,7 @@ export async function addProjectDomain(
   if (!user) return { ok: false, error: "Not signed in." };
   const scope = await getProjectTenantScope(projectId);
   if (!scope) return { ok: false, error: "Project not found." };
+  if (scope.userId !== user.id) return { ok: false, error: "Only the project owner can manage project domains." };
 
   const { data, error } = await supabase
     .from("project_domains")
@@ -86,6 +87,16 @@ export async function removeProjectDomain(projectId: string, id: string): Promis
   const scope = await getProjectTenantScope(projectId);
   if (!scope) return false;
   const supabase = await createClient();
-  const { error } = await supabase.from("project_domains").delete().eq("id", id).eq("project_id", projectId);
-  return !error;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user || scope.userId !== user.id) return false;
+  const { data, error } = await supabase
+    .from("project_domains")
+    .delete()
+    .eq("id", id)
+    .eq("project_id", projectId)
+    .select("id")
+    .maybeSingle();
+  return !error && !!data;
 }
