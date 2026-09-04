@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const consumeFreeScanToken = vi.fn();
 const getFreeScanClaimByToken = vi.fn();
 const releaseConsumedFreeScan = vi.fn();
+const recordPublicScanEvent = vi.fn();
 const fetchPageHtml = vi.fn();
 const analyzeHtml = vi.fn();
 
@@ -10,6 +11,7 @@ vi.mock("@/lib/free-scan", () => ({
   consumeFreeScanToken: (...args: unknown[]) => consumeFreeScanToken(...args),
   getFreeScanClaimByToken: (...args: unknown[]) => getFreeScanClaimByToken(...args),
   releaseConsumedFreeScan: (...args: unknown[]) => releaseConsumedFreeScan(...args),
+  recordPublicScanEvent: (...args: unknown[]) => recordPublicScanEvent(...args),
 }));
 
 vi.mock("@/lib/scanner/crawler", () => ({
@@ -30,6 +32,7 @@ describe("POST /api/public-scan", () => {
     consumeFreeScanToken.mockReset();
     getFreeScanClaimByToken.mockReset();
     releaseConsumedFreeScan.mockReset();
+    recordPublicScanEvent.mockReset();
     fetchPageHtml.mockReset();
     analyzeHtml.mockReset();
   });

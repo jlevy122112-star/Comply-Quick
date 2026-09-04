@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { fetchPageHtml } from "@/lib/scanner/crawler";
 import { analyzeHtml, type Severity } from "@/lib/scanner/analyzer";
-import { consumeFreeScanToken, getFreeScanClaimByToken, releaseConsumedFreeScan } from "@/lib/free-scan";
+import {
+  consumeFreeScanToken,
+  getFreeScanClaimByToken,
+  recordPublicScanEvent,
+  releaseConsumedFreeScan,
+} from "@/lib/free-scan";
 import { ValidationError } from "@/services/errors";
 import { createRateLimiter, getClientKey, enforceRateLimit, errorResponse, logger } from "@/services";
 
@@ -75,6 +80,18 @@ export async function POST(request: Request) {
       hasConsentBanner: analysis.hasConsentBanner,
       hasPrivacyPolicy: analysis.hasPrivacyPolicy,
     };
+    await recordPublicScanEvent?.({
+      claimId: claim.id,
+      url: result.url,
+      score: result.score,
+      result: {
+        tools: result.tools,
+        findings: result.findings,
+        counts: result.counts,
+        hasConsentBanner: result.hasConsentBanner,
+        hasPrivacyPolicy: result.hasPrivacyPolicy,
+      },
+    });
     return NextResponse.json(result, { headers: rateHeaders });
   } catch (err) {
     if (consumedAt) await releaseConsumedFreeScan(token, consumedAt);
