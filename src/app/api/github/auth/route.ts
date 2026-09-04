@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getActiveOrganizationId } from "@/lib/organizations-db";
-import { buildAuthorizeUrl } from "@/lib/github/oauth";
+import { getActiveOrganizationId, getMyOrgRole } from "@/lib/organizations-db";
+import { buildGitHubAppInstallUrl } from "@/lib/github/app-service";
 import { signState } from "@/lib/github/state";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -15,13 +15,28 @@ export async function GET() {
 
   const organizationId = await getActiveOrganizationId();
   if (!organizationId) redirect("/dashboard/tools/github?error=no_org");
+  const role = await getMyOrgRole(organizationId);
+  if (role !== "owner" && role !== "admin") redirect("/dashboard/tools/github?error=forbidden");
 
-  const clientId = process.env.GITHUB_CLIENT_ID;
-  const redirectUri = `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/api/github/callback`;
   const secret = process.env.CRON_SECRET;
-  if (!clientId || !secret) redirect("/dashboard/tools/github?error=not_configured");
+  if (!secret) redirect("/dashboard/tools/github?error=not_configured");
 
-  const state = signState(secret, organizationId);
-  const url = buildAuthorizeUrl({ clientId, clientSecret: "", redirectUri }, state);
-  redirect(url);
+  const url = new URL(request.url);
+  const flow = url.searchParams.get("flow") === "repo" ? "repo" : "org";
+  const repoFullName = url.searchParams.get("repo");
+  const repositoryId = Number.parseInt(url.searchParams.get("repositoryId") ?? "", 10);
+  const state = signState(secret, {
+    organizationId,
+    flow,
+    repoFullName,
+    repositoryId: Number.isInteger(repositoryId) ? repositoryId : null,
+  });
+
+  redirect(
+    buildGitHubAppInstallUrl({
+      flow,
+      state,
+      repositoryId: Number.isInteger(repositoryId) ? repositoryId : null,
+    })
+  );
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Badge } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import GitHubIntegrationTool from "./GitHubIntegrationTool";
 
@@ -14,16 +15,21 @@ export default async function GitHubIntegrationPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <Link href="/dashboard/tools" className="text-sm text-gray-500 hover:text-gray-300">
             ← Back to tools
           </Link>
+          <div className="flex flex-wrap gap-2">
+            <Badge tone="indigo">Phase 2 · Step 2</Badge>
+            <Badge tone="emerald">Enterprise monitoring</Badge>
+          </div>
         </div>
-        <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-white">GitHub Integration</h1>
-          <p className="mt-1 text-sm text-gray-400">
-            Connect GitHub repositories and scan source code for compliance signals.
+        <div className="mb-8 max-w-3xl">
+          <h1 className="text-3xl font-semibold text-white">GitHub App Compliance Monitoring</h1>
+          <p className="mt-2 text-sm text-gray-400">
+            Replace user-scoped OAuth with repo-safe GitHub App installs, webhook-driven monitoring, and async
+            compliance queue execution.
           </p>
         </div>
         <GitHubIntegrationTool />

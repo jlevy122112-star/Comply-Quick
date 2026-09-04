@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveOrganizationId } from "@/lib/organizations-db";
-import { getGitHubConnection, getReposForConnection } from "@/lib/github/service";
+import {
+  getGitHubConnection,
+  getReposForConnection,
+  listRecentGitHubPushEvents,
+  listRecentGitHubScans,
+} from "@/lib/github/service";
 import { errorResponse } from "@/services";
 
 export const dynamic = "force-dynamic";
@@ -18,10 +23,24 @@ export async function GET() {
     if (!organizationId) return NextResponse.json({ ok: false, error: "Select an organization" }, { status: 400 });
 
     const connection = await getGitHubConnection(organizationId);
-    if (!connection) return NextResponse.json({ ok: false, connected: false, repos: [] });
+    if (!connection) {
+      return NextResponse.json({ ok: true, connected: false, repos: [], recentScans: [], recentPushEvents: [] });
+    }
 
-    const repos = await getReposForConnection(connection);
-    return NextResponse.json({ ok: true, connected: true, repos });
+    const [repos, recentScans, recentPushEvents] = await Promise.all([
+      getReposForConnection(connection),
+      listRecentGitHubScans(connection.id),
+      listRecentGitHubPushEvents(connection.id),
+    ]);
+
+    return NextResponse.json({
+      ok: true,
+      connected: true,
+      repos,
+      connection,
+      recentScans,
+      recentPushEvents,
+    });
   } catch (err) {
     return errorResponse(err instanceof Error ? err : new Error(String(err)));
   }
