@@ -12,6 +12,7 @@ function makeProject(overall: number, partial?: Partial<ComplianceScore>): DbPro
   };
   return {
     id: `p_${overall}`,
+    workspaceId: null,
     name: "Test",
     framework: "nextjs",
     trackingPixels: [],

@@ -49,6 +49,11 @@ export function WorkspaceHeader({
             Run a scan
           </Button>
         </Link>
+        <Link href={`${basePath}?tab=settings`}>
+          <Button variant="secondary" size="sm">
+            Install snippet
+          </Button>
+        </Link>
         {pendingCount > 0 && (
           <Link href={`${basePath}?tab=approvals`}>
             <Button size="sm">
