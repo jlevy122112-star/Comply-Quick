@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { fetchPageHtml } from "@/lib/scanner/crawler";
 import { analyzeHtml, type Severity } from "@/lib/scanner/analyzer";
+import { consumeFreeScanToken, getFreeScanClaimByToken, releaseConsumedFreeScan } from "@/lib/free-scan";
 import { ValidationError } from "@/services/errors";
 import { createRateLimiter, getClientKey, enforceRateLimit, errorResponse, logger } from "@/services";
 
@@ -38,9 +39,23 @@ export async function POST(request: Request) {
 
   const body = (payload ?? {}) as Record<string, unknown>;
   const rawUrl = typeof body.url === "string" ? body.url : "";
+  const token = typeof body.token === "string" ? body.token.trim() : "";
   if (!rawUrl.trim()) {
     return NextResponse.json({ error: "Enter a website URL to scan." }, { status: 400, headers: rateHeaders });
   }
+  if (!token) {
+    return NextResponse.json({ error: "claim_required" }, { status: 401, headers: rateHeaders });
+  }
+
+  const claim = await consumeFreeScanToken(token);
+  if (!claim) {
+    const existing = await getFreeScanClaimByToken(token);
+    return NextResponse.json(
+      { error: existing?.usedAt ? "token_used" : "invalid_token" },
+      { status: existing?.usedAt ? 409 : 401, headers: rateHeaders }
+    );
+  }
+  const consumedAt = claim.usedAt;
 
   try {
     const page = await fetchPageHtml(rawUrl);
@@ -62,6 +77,7 @@ export async function POST(request: Request) {
     };
     return NextResponse.json(result, { headers: rateHeaders });
   } catch (err) {
+    if (consumedAt) await releaseConsumedFreeScan(token, consumedAt);
     if (err instanceof ValidationError) {
       return NextResponse.json({ error: err.message }, { status: 400, headers: rateHeaders });
     }

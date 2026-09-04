@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getOrgEntitlement } from "@/lib/entitlements";
 import { getScanUsage, getSeatUsage } from "@/lib/billing/usage";
 import { listClients } from "@/lib/agency/service";
+import { getActiveOrganizationId, listMyOrganizationsCached } from "@/lib/organizations-db";
 import { getTierConfig, type Tier } from "@/lib/pricing";
 import { AppShell } from "@/components/dashboard/AppShell";
 import PlansBillingView, { type BillingPageData } from "./PlansBillingView";
@@ -19,10 +20,12 @@ export default async function PlansBillingPage() {
 
   const entitlement = await getOrgEntitlement();
   const config = getTierConfig(entitlement.tier);
-  const [scans, seats, clients] = await Promise.all([
+  const [scans, seats, clients, organizations, activeOrganizationId] = await Promise.all([
     getScanUsage().catch(() => null),
     config.managedClients === null ? Promise.resolve(null) : getSeatUsage().catch(() => null),
     config.managedClients === null ? Promise.resolve(null) : listClients().catch(() => null),
+    listMyOrganizationsCached(),
+    getActiveOrganizationId(),
   ]);
   const usage: BillingPageData["usage"] = {
     scans: scans ? { used: scans.used, limit: config.scanLimit, period: scans.period } : null,
@@ -41,7 +44,12 @@ export default async function PlansBillingPage() {
   };
 
   return (
-    <AppShell tier={entitlement.tier} userEmail={user.email ?? null}>
+    <AppShell
+      tier={entitlement.tier}
+      userEmail={user.email ?? null}
+      organizations={organizations}
+      activeOrganizationId={activeOrganizationId}
+    >
       <PlansBillingView
         tier={entitlement.tier}
         status={entitlement.status}

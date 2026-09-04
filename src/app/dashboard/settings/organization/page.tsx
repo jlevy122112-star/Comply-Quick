@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { Badge, TabNav, type TabItem } from "@/components/ui";
 import { ROLE_LABELS, can } from "@/lib/rbac";
 import {
@@ -25,20 +26,25 @@ import { HierarchyPanel } from "./HierarchyPanel";
 import { isOrganizationHierarchyAdmin, listOrganizationSubtree } from "@/lib/org-hierarchy";
 import { FeatureFlagsPanel } from "./FeatureFlagsPanel";
 import { listFlagAudit, listOrgFlags } from "@/lib/flags";
+import { InstallationPanel } from "./InstallationPanel";
 
 export const dynamic = "force-dynamic";
 
 const BASE = "/dashboard/settings/organization";
-type Tab = "profile" | "members" | "workspaces" | "sso" | "scim" | "hierarchy" | "flags";
+type Tab = "profile" | "installation" | "members" | "workspaces" | "sso" | "scim" | "hierarchy" | "flags";
 
-export default async function OrganizationSettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+export default async function OrganizationSettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string; workspace?: string }>;
+}) {
   const org = await getOrCreateOrganization();
   if (!org) redirect("/login?redirect=/dashboard/settings/organization");
 
   const role = (await getMyOrgRole(org.id)) ?? "viewer";
-  const { tab: tabParam } = await searchParams;
+  const { tab: tabParam, workspace: workspaceParam } = await searchParams;
   const requestedTab: Tab = (
-    ["profile", "members", "workspaces", "sso", "scim", "hierarchy", "flags"] as const
+    ["profile", "installation", "members", "workspaces", "sso", "scim", "hierarchy", "flags"] as const
   ).includes(tabParam as Tab)
     ? (tabParam as Tab)
     : "profile";
@@ -56,7 +62,35 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
   // the active tab so, e.g., viewing Profile never pays the members email cost.
   const [memberCount, workspaceCount] = await Promise.all([countOrgMembers(org.id), countWorkspaces(org.id)]);
   const members = tab === "members" ? await listOrgMembers(org.id) : [];
-  const workspaces = tab === "workspaces" ? await listWorkspaces(org.id) : [];
+  const workspaces = tab === "workspaces" || tab === "installation" ? await listWorkspaces(org.id) : [];
+  const installationWorkspaceId =
+    tab === "installation"
+      ? (workspaces.find((workspace) => workspace.id === workspaceParam)?.id ?? workspaces[0]?.id ?? null)
+      : null;
+  let installationKeys: {
+    id: string;
+    name: string;
+    keyPrefix: string;
+    lastUsedAt: string | null;
+    revokedAt: string | null;
+    createdAt: string;
+  }[] = [];
+  if (tab === "installation" && installationWorkspaceId) {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("client_api_keys")
+      .select("id,name,key_prefix,last_used_at,revoked_at,created_at")
+      .eq("workspace_id", installationWorkspaceId)
+      .order("created_at", { ascending: false });
+    installationKeys = ((data as Record<string, unknown>[] | null) ?? []).map((row) => ({
+      id: String(row.id),
+      name: String(row.name),
+      keyPrefix: String(row.key_prefix),
+      lastUsedAt: row.last_used_at ? String(row.last_used_at) : null,
+      revokedAt: row.revoked_at ? String(row.revoked_at) : null,
+      createdAt: String(row.created_at),
+    }));
+  }
   const sso = tab === "sso" ? await listSsoConnections(org.id) : [];
   const scimTokens = tab === "scim" ? await listScimTokens(org.id) : [];
   const scimUsers = tab === "scim" ? (await listScimUsers(org.id, { limit: 200 })).users : [];
@@ -67,6 +101,7 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
 
   const tabs: TabItem[] = [
     { key: "profile", label: "Profile" },
+    { key: "installation", label: "Installation" },
     { key: "members", label: "Members", count: memberCount },
     { key: "workspaces", label: "Workspaces", count: workspaceCount },
     { key: "hierarchy", label: "Hierarchy" },
@@ -112,6 +147,15 @@ export default async function OrganizationSettingsPage({ searchParams }: { searc
             <OrgProfilePanel org={org} canManage={can(role, "org:update")} />
             <WhiteLabelPanel key={`${org.id}-${org.updatedAt}`} org={org} canManage={can(role, "org:update")} />
           </div>
+        )}
+        {tab === "installation" && (
+          <InstallationPanel
+            key={installationWorkspaceId ?? "installation-none"}
+            workspaces={workspaces}
+            initialWorkspaceId={installationWorkspaceId}
+            initialKeys={installationKeys}
+            canManage={can(role, "org:update")}
+          />
         )}
         {tab === "members" && <MembersPanel orgId={org.id} role={role} members={members} />}
         {tab === "workspaces" && <WorkspacesPanel orgId={org.id} role={role} workspaces={workspaces} />}

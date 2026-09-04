@@ -1,0 +1,111 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { getMyOrgRole } from "@/lib/organizations-db";
+import { can } from "@/lib/rbac";
+import { generateKey, hashKey, keyPrefixOf } from "@/lib/api/keys";
+import { createRateLimiter, enforceRateLimit, errorResponse, getClientKey } from "@/services";
+
+const limiter = createRateLimiter({ limit: 20, windowMs: 60_000 });
+
+const KEY_COLUMNS = "id,name,key_prefix,last_used_at,revoked_at,created_at";
+
+function mapKey(row: Record<string, unknown>) {
+  return {
+    id: String(row.id),
+    name: String(row.name),
+    keyPrefix: String(row.key_prefix),
+    lastUsedAt: row.last_used_at ? String(row.last_used_at) : null,
+    revokedAt: row.revoked_at ? String(row.revoked_at) : null,
+    createdAt: String(row.created_at),
+  };
+}
+
+async function authorizeWorkspace(workspaceId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { supabase, user: null, role: null };
+  const { data: workspace } = await supabase
+    .from("workspaces")
+    .select("id, organization_id")
+    .eq("id", workspaceId)
+    .maybeSingle();
+  const organizationId = (workspace as { id: string; organization_id: string } | null)?.organization_id ?? null;
+  const role = organizationId ? await getMyOrgRole(organizationId) : null;
+  return { supabase, user, role, organizationId };
+}
+
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  try {
+    enforceRateLimit(await limiter.check(getClientKey(request.headers)));
+  } catch (err) {
+    return errorResponse(err);
+  }
+
+  const { id } = await context.params;
+  const { supabase, user, role } = await authorizeWorkspace(id);
+  if (!user) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
+  if (!role) return NextResponse.json({ error: "not_found" }, { status: 404 });
+
+  const { data, error } = await supabase
+    .from("client_api_keys")
+    .select(KEY_COLUMNS)
+    .eq("workspace_id", id)
+    .order("created_at", { ascending: false });
+  if (error) return NextResponse.json({ error: "list_failed" }, { status: 500 });
+  return NextResponse.json({ keys: (data ?? []).map((row) => mapKey(row as Record<string, unknown>)), role });
+}
+
+export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  try {
+    enforceRateLimit(await limiter.check(getClientKey(request.headers)));
+  } catch (err) {
+    return errorResponse(err);
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    body = {};
+  }
+  const payload = (body ?? {}) as Record<string, unknown>;
+
+  const { id } = await context.params;
+  const { supabase, user, role, organizationId } = await authorizeWorkspace(id);
+  if (!user) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
+  if (!role || !organizationId) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  if (!can(role, "org:update")) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+
+  const rotate = payload.rotate === true;
+  const name = typeof payload.name === "string" && payload.name.trim() ? payload.name.trim().slice(0, 80) : "Primary";
+  const key = generateKey();
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("client_api_keys")
+    .insert({
+      organization_id: organizationId,
+      workspace_id: id,
+      created_by: user.id,
+      name,
+      key_prefix: keyPrefixOf(key),
+      key_hash: hashKey(key),
+      updated_at: now,
+    })
+    .select(KEY_COLUMNS)
+    .single();
+  if (error || !data) return NextResponse.json({ error: "create_failed" }, { status: 500 });
+
+  if (rotate) {
+    const { error: revokeError } = await supabase
+      .from("client_api_keys")
+      .update({ revoked_at: now, updated_at: now })
+      .eq("workspace_id", id)
+      .neq("id", String((data as Record<string, unknown>).id))
+      .is("revoked_at", null);
+    if (revokeError) return NextResponse.json({ error: "rotate_failed" }, { status: 500 });
+  }
+
+  return NextResponse.json({ key, record: mapKey(data as Record<string, unknown>) });
+}

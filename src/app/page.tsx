@@ -14,7 +14,8 @@ const CANONICAL_URL = `${SITE_ORIGIN}/`;
 const OG_IMAGE_URL = `${SITE_ORIGIN}/opengraph-image.png`;
 
 // UTM-tagged funnel entry so landing-sourced signups are attributable.
-const START_HREF = "/dashboard?utm_source=landing&utm_medium=cta&utm_campaign=free_scan";
+const START_HREF = "/dashboard?utm_source=landing&utm_medium=cta&utm_campaign=get_started";
+const FREE_SCAN_HREF = "/free-scan?utm_source=landing&utm_medium=cta&utm_campaign=free_scan";
 const SCAN_HREF = "#get-started";
 const PRICING_HREF = "#pricing";
 const CONTACT_HREF = "mailto:support@comply-quick.com?subject=Enterprise%20inquiry";
@@ -173,7 +174,7 @@ export default function LandingPage() {
               Log In
             </Link>
             <TrackedFreeScanLink
-              href={START_HREF}
+              href={FREE_SCAN_HREF}
               source="landing"
               campaign="primary_navigation"
               className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-300"
@@ -212,7 +213,7 @@ export default function LandingPage() {
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
                 <a
-                  href={SCAN_HREF}
+                  href={FREE_SCAN_HREF}
                   className="px-7 py-3.5 rounded-xl bg-indigo-600 text-white font-semibold text-center hover:bg-indigo-500 transition-colors"
                 >
                   Run a Free Compliance Scan

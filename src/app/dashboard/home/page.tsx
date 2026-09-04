@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getEntitlement } from "@/lib/entitlements";
+import { getActiveOrganizationId, listMyOrganizationsCached } from "@/lib/organizations-db";
 import { listProjects, getAggregateScore } from "@/lib/projects-db";
 import { listCompletedTools } from "@/lib/tools/usage";
 import { getScanUsage } from "@/lib/billing/usage";
@@ -19,11 +20,13 @@ export default async function CommandCenterPage() {
     redirect("/login?redirect=/dashboard/home");
   }
 
-  const [entitlement, projects, completedTools, scanUsage] = await Promise.all([
+  const [entitlement, projects, completedTools, scanUsage, organizations, activeOrganizationId] = await Promise.all([
     getEntitlement(),
     listProjects(),
     listCompletedTools(),
     getScanUsage().catch(() => null),
+    listMyOrganizationsCached(),
+    getActiveOrganizationId(),
   ]);
   const aggregateScore = getAggregateScore(projects);
 
@@ -36,6 +39,8 @@ export default async function CommandCenterPage() {
       scanUsage={scanUsage}
       userEmail={user.email ?? null}
       isLegalAdmin={isEmailPolicyAllowed("legalReview", user.email ?? null, process.env)}
+      organizations={organizations}
+      activeOrganizationId={activeOrganizationId}
     />
   );
 }

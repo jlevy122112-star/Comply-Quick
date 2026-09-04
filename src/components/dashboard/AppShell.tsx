@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import type { Tier } from "@/lib/entitlements";
+import type { Organization } from "@/lib/organizations";
 import { cn } from "@/components/ui/cn";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
@@ -13,11 +14,15 @@ export function AppShell({
   children,
   tier,
   userEmail,
+  organizations,
+  activeOrganizationId,
   isLegalAdmin,
 }: {
   children: ReactNode;
   tier: Tier;
   userEmail: string | null;
+  organizations: Organization[];
+  activeOrganizationId: string | null;
   isLegalAdmin?: boolean;
 }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -49,7 +54,13 @@ export function AppShell({
         isLegalAdmin={isLegalAdmin}
       />
       <div className={cn("min-h-screen transition-[padding] duration-200", collapsed ? "lg:pl-[76px]" : "lg:pl-64")}>
-        <TopBar tier={tier} userEmail={userEmail} onMenuClick={() => setMobileOpen(true)} />
+        <TopBar
+          tier={tier}
+          userEmail={userEmail}
+          organizations={organizations}
+          activeOrganizationId={activeOrganizationId}
+          onMenuClick={() => setMobileOpen(true)}
+        />
         <div className="min-h-[calc(100vh-4rem)]">{children}</div>
       </div>
     </div>
