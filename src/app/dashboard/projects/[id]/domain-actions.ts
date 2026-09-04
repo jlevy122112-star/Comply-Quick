@@ -10,6 +10,6 @@ export async function addProjectDomainAction(projectId: string, domain: string) 
 }
 
 export async function removeProjectDomainAction(projectId: string, id: string) {
-  await removeProjectDomain(id);
+  await removeProjectDomain(projectId, id);
   revalidatePath(`/dashboard/projects/${projectId}`);
 }

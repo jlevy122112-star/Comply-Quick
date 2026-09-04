@@ -10,6 +10,6 @@ export async function addProjectMemberAction(projectId: string, email: string, r
 }
 
 export async function removeProjectMemberAction(projectId: string, memberId: string) {
-  await removeProjectMember(memberId);
+  await removeProjectMember(projectId, memberId);
   revalidatePath(`/dashboard/projects/${projectId}`);
 }

@@ -20,12 +20,12 @@ export async function createProjectTaskAction(input: NewProjectTaskInput) {
 }
 
 export async function setProjectTaskStatusAction(projectId: string, id: string, status: CalendarStatus) {
-  const task = await setProjectTaskStatus(id, status);
+  const task = await setProjectTaskStatus(projectId, id, status);
   revalidate(projectId);
   return task;
 }
 
 export async function deleteProjectTaskAction(projectId: string, id: string) {
-  await deleteProjectTask(id);
+  await deleteProjectTask(projectId, id);
   revalidate(projectId);
 }

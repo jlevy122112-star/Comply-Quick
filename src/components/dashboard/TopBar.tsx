@@ -123,7 +123,7 @@ export function TopBar({
           />
           {activeOrganization && (
             <div className="rounded-xl border border-border-default bg-surface-elevated px-3 py-2">
-              <p className="text-[10px] uppercase tracking-[0.16em] text-text-muted">Active client</p>
+              <p className="text-[10px] uppercase tracking-[0.16em] text-text-muted">Active organization</p>
               <p className="max-w-44 truncate text-xs font-semibold text-text-primary">
                 {activeOrganization.name}
                 <span className="ml-1 text-text-muted">({activeOrganization.slug})</span>

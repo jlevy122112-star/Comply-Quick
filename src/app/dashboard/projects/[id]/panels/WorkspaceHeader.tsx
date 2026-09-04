@@ -40,6 +40,12 @@ export function WorkspaceHeader({
             {project.targetRegions.length !== 1 ? "s" : ""} &middot; {project.complianceModules.length} module
             {project.complianceModules.length !== 1 ? "s" : ""}
           </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <Badge tone={workspace ? "indigo" : "amber"}>
+              {workspace ? `Active workspace: ${workspace.name}` : "Active workspace: Unassigned"}
+            </Badge>
+            {workspace?.slug && <Badge>Workspace slug: {workspace.slug}</Badge>}
+          </div>
           <p className="mt-0.5 text-xs text-gray-500">
             Created {new Date(project.createdAt).toLocaleDateString()} &middot; Updated{" "}
             {new Date(project.updatedAt).toLocaleDateString()}

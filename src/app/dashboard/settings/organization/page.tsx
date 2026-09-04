@@ -80,6 +80,7 @@ export default async function OrganizationSettingsPage({
     const { data } = await supabase
       .from("client_api_keys")
       .select("id,name,key_prefix,last_used_at,revoked_at,created_at")
+      .eq("organization_id", org.id)
       .eq("workspace_id", installationWorkspaceId)
       .order("created_at", { ascending: false });
     installationKeys = ((data as Record<string, unknown>[] | null) ?? []).map((row) => ({

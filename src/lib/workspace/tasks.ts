@@ -5,7 +5,8 @@
 // returned here, and every read/write is RLS-scoped to the caller.
 
 import { createClient } from "@/lib/supabase/server";
-import { getActiveOrganizationId, organizationReadFilter } from "@/lib/organizations-db";
+import { organizationReadFilter } from "@/lib/organizations-db";
+import { getProjectTenantScope } from "@/lib/projects-db";
 import { UnauthorizedError, ValidationError, NotFoundError } from "@/services/errors";
 import {
   toDayKey,
@@ -75,12 +76,13 @@ export async function listProjectTasks(projectId: string): Promise<ProjectTask[]
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return [];
-  const organizationId = await getActiveOrganizationId();
+  const scope = await getProjectTenantScope(projectId);
+  if (!scope) return [];
 
   const { data } = await supabase
     .from("compliance_tasks")
     .select(TASK_COLS)
-    .or(organizationReadFilter(user.id, organizationId))
+    .or(organizationReadFilter(user.id, scope.organizationId))
     .eq("project_id", projectId)
     .order("due_date", { ascending: true });
 
@@ -90,22 +92,14 @@ export async function listProjectTasks(projectId: string): Promise<ProjectTask[]
 /** Creates a manual task scoped to a project the caller owns. */
 export async function createProjectTask(input: NewProjectTaskInput): Promise<ProjectTask> {
   const { supabase, user } = await requireUser();
-  const organizationId = await getActiveOrganizationId();
+  const scope = await getProjectTenantScope(input.projectId);
+  if (!scope) throw new NotFoundError("Project not found.");
 
   const title = input.title?.trim();
   if (!title) throw new ValidationError("A task title is required.");
   if (title.length > 200) throw new ValidationError("Title must be 200 characters or fewer.");
   if (!input.dueDate || !DAY_RE.test(input.dueDate))
     throw new ValidationError("A valid due date (YYYY-MM-DD) is required.");
-
-  // Ensure the project belongs to the caller before attaching a task to it.
-  const { data: project } = await supabase
-    .from("projects")
-    .select("id")
-    .eq("id", input.projectId)
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!project) throw new NotFoundError("Project not found.");
 
   const category = input.category && CATEGORIES.includes(input.category) ? input.category : "task";
   const severity = input.severity && SEVERITIES.includes(input.severity) ? input.severity : "info";
@@ -114,7 +108,7 @@ export async function createProjectTask(input: NewProjectTaskInput): Promise<Pro
     .from("compliance_tasks")
     .insert({
       user_id: user.id,
-      organization_id: organizationId,
+      organization_id: scope.organizationId,
       project_id: input.projectId,
       title,
       description: input.description?.trim() ?? "",
@@ -131,11 +125,17 @@ export async function createProjectTask(input: NewProjectTaskInput): Promise<Pro
 }
 
 /** Marks a project task done/pending/dismissed. */
-export async function setProjectTaskStatus(id: string, status: CalendarStatus): Promise<ProjectTask> {
+export async function setProjectTaskStatus(
+  projectId: string,
+  id: string,
+  status: CalendarStatus
+): Promise<ProjectTask> {
   const { supabase, user } = await requireUser();
   if (!STATUSES.includes(status)) throw new ValidationError("Invalid task status.");
+  const scope = await getProjectTenantScope(projectId);
+  if (!scope) throw new NotFoundError("Project not found.");
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("compliance_tasks")
     .update({
       status,
@@ -143,9 +143,11 @@ export async function setProjectTaskStatus(id: string, status: CalendarStatus): 
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
-    .eq("user_id", user.id)
-    .select(TASK_COLS)
-    .maybeSingle();
+    .eq("project_id", projectId);
+  query = scope.organizationId
+    ? query.eq("organization_id", scope.organizationId)
+    : query.eq("user_id", user.id).is("organization_id", null);
+  const { data, error } = await query.select(TASK_COLS).maybeSingle();
 
   if (error) throw new ValidationError("Could not update the task.");
   if (!data) throw new NotFoundError("Task not found.");
@@ -153,8 +155,15 @@ export async function setProjectTaskStatus(id: string, status: CalendarStatus): 
 }
 
 /** Deletes a project task the caller owns. */
-export async function deleteProjectTask(id: string): Promise<void> {
+export async function deleteProjectTask(projectId: string, id: string): Promise<void> {
   const { supabase, user } = await requireUser();
-  const { error } = await supabase.from("compliance_tasks").delete().eq("id", id).eq("user_id", user.id);
+  const scope = await getProjectTenantScope(projectId);
+  if (!scope) throw new NotFoundError("Project not found.");
+  let query = supabase.from("compliance_tasks").delete().eq("id", id).eq("project_id", projectId);
+  query = scope.organizationId
+    ? query.eq("organization_id", scope.organizationId)
+    : query.eq("user_id", user.id).is("organization_id", null);
+  const { data, error } = await query.select("id").maybeSingle();
   if (error) throw new ValidationError("Could not delete the task.");
+  if (!data) throw new NotFoundError("Task not found.");
 }

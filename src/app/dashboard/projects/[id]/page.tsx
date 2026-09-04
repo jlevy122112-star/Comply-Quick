@@ -58,6 +58,7 @@ export default async function ProjectWorkspacePage({
       const { data: keyRows } = await supabase
         .from("client_api_keys")
         .select("id,name,key_prefix,last_used_at,revoked_at,created_at")
+        .eq("organization_id", workspace.organizationId)
         .eq("workspace_id", workspace.id)
         .order("created_at", { ascending: false });
       installation = {

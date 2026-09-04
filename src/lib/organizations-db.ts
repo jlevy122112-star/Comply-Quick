@@ -9,11 +9,12 @@
 // policy layer as defense in depth.
 
 import { cache } from "react";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isRole, type Role } from "@/lib/rbac";
 import { THEME_PALETTES, type ThemePalette, type Organization } from "@/lib/organizations";
+import { ACTIVE_ORGANIZATION_COOKIE, ACTIVE_ORGANIZATION_HEADER } from "@/lib/tenant-context";
 
 export { THEME_PALETTES, type ThemePalette, type Organization };
 
@@ -52,8 +53,6 @@ interface MemberRow {
   role: string;
   created_at: string;
 }
-
-export const ACTIVE_ORGANIZATION_COOKIE = "cq-active-organization";
 
 function isThemePalette(value: string): value is ThemePalette {
   return (THEME_PALETTES as readonly string[]).includes(value);
@@ -161,6 +160,10 @@ export const listMyOrganizationsCached = cache(async (): Promise<Organization[]>
  */
 export const resolveActiveOrganizationId = cache(async (): Promise<string | null> => {
   try {
+    const headerStore = await headers();
+    const requestScopedId = headerStore.get(ACTIVE_ORGANIZATION_HEADER);
+    if (requestScopedId) return requestScopedId;
+
     const cookieStore = await cookies();
     const storedId = cookieStore.get(ACTIVE_ORGANIZATION_COOKIE)?.value;
     const organizations = await listMyOrganizationsCached();
