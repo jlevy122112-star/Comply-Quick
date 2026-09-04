@@ -6,8 +6,10 @@ import { useRouter } from "next/navigation";
 import { Bell, ChevronDown, Menu, Plus, Search, UserCircle } from "lucide-react";
 import { signOutAction } from "@/app/dashboard/actions";
 import type { Tier } from "@/lib/entitlements";
+import type { Organization } from "@/lib/organizations";
 import { getTierConfig } from "@/lib/pricing";
 import { Logo } from "@/components/brand/Logo";
+import { OrganizationSwitcher } from "@/components/organizations/OrganizationSwitcher";
 import { cn } from "@/components/ui/cn";
 import { Button } from "@/components/ui/Button";
 import { DASHBOARD_NAV_GROUPS } from "./navigation";
@@ -16,10 +18,14 @@ import { ThemeToggle } from "./ThemeToggle";
 export function TopBar({
   tier,
   userEmail,
+  organizations,
+  activeOrganizationId,
   onMenuClick,
 }: {
   tier: Tier;
   userEmail: string | null;
+  organizations: Organization[];
+  activeOrganizationId: string | null;
   onMenuClick: () => void;
 }) {
   const router = useRouter();
@@ -31,6 +37,8 @@ export function TopBar({
   const suggestions = query.trim()
     ? navItems.filter((item) => item.label.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 5)
     : [];
+  const activeOrganization =
+    organizations.find((organization) => organization.id === activeOrganizationId) ?? organizations[0] ?? null;
 
   const handleSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -107,6 +115,22 @@ export function TopBar({
             </div>
           )}
         </form>
+        <div className="hidden xl:flex items-center gap-2">
+          <OrganizationSwitcher
+            organizations={organizations}
+            activeOrganizationId={activeOrganizationId}
+            tone="light"
+          />
+          {activeOrganization && (
+            <div className="rounded-xl border border-border-default bg-surface-elevated px-3 py-2">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-text-muted">Active client</p>
+              <p className="max-w-44 truncate text-xs font-semibold text-text-primary">
+                {activeOrganization.name}
+                <span className="ml-1 text-text-muted">({activeOrganization.slug})</span>
+              </p>
+            </div>
+          )}
+        </div>
 
         <div className="ml-auto flex items-center gap-1">
           <span
