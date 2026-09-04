@@ -64,10 +64,11 @@ export async function resolveWorkspaceApiKey(key: string): Promise<ResolvedWorks
   if (!row || row.revoked_at) return null;
   if (!digestsEqual(row.key_hash, digest)) return null;
 
-  await admin
+  const { error } = await admin
     .from("client_api_keys")
     .update({ last_used_at: new Date().toISOString(), updated_at: new Date().toISOString() })
     .eq("id", row.id);
+  if (error) throw new Error("Could not update workspace key usage.");
 
   return {
     keyId: row.id,

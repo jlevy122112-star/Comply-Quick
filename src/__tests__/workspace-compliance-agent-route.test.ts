@@ -68,6 +68,11 @@ describe("POST /api/compliance-agent", () => {
         workspace_id: "ws_1",
         client_api_key_id: "key_1",
         url: "https://client.example.com/pricing",
+        metadata: expect.objectContaining({
+          host: "client.example.com",
+          origin: "https://client.example.com",
+          path: "/pricing",
+        }),
       })
     );
     expect(insertSpy.mock.calls[0]?.[0]).not.toHaveProperty("workspaceId", "forged_ws");
