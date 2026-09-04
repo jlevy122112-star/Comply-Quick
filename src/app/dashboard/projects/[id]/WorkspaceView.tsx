@@ -40,7 +40,14 @@ export function WorkspaceView({
   tier: Tier;
   activeTab: WorkspaceTabKey;
   installation: {
-    workspace: { id: string; organizationId: string; name: string; slug: string; projectCount: number; createdAt: string };
+    workspace: {
+      id: string;
+      organizationId: string;
+      name: string;
+      slug: string;
+      projectCount: number;
+      createdAt: string;
+    };
     keys: {
       id: string;
       name: string;

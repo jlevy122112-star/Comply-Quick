@@ -145,9 +145,7 @@ export function InstallationPanel({
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Could not revoke API key.");
-      setKeys((prev) =>
-        prev.map((key) => (key.id === keyId ? { ...key, revokedAt: new Date().toISOString() } : key))
-      );
+      setKeys((prev) => prev.map((key) => (key.id === keyId ? { ...key, revokedAt: new Date().toISOString() } : key)));
     } catch {
       setError("Could not revoke API key.");
     } finally {
@@ -201,7 +199,9 @@ export function InstallationPanel({
               ) : (
                 <div className="rounded-xl border border-gray-800 bg-gray-950/60 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.18em] text-gray-500">Workspace</p>
-                  <p className="mt-1 text-sm font-semibold text-white">{activeWorkspace?.name ?? "Workspace not set"}</p>
+                  <p className="mt-1 text-sm font-semibold text-white">
+                    {activeWorkspace?.name ?? "Workspace not set"}
+                  </p>
                 </div>
               )}
 
@@ -214,7 +214,13 @@ export function InstallationPanel({
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <Button type="button" variant="secondary" size="sm" onClick={() => void refreshKeys()} loading={loading}>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => void refreshKeys()}
+                      loading={loading}
+                    >
                       Refresh
                     </Button>
                     {canManage && (
@@ -222,7 +228,13 @@ export function InstallationPanel({
                         <Button type="button" size="sm" onClick={() => void createKey(false)} loading={loading}>
                           Generate key
                         </Button>
-                        <Button type="button" variant="secondary" size="sm" onClick={() => void createKey(true)} loading={loading}>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => void createKey(true)}
+                          loading={loading}
+                        >
                           Rotate key
                         </Button>
                       </>
@@ -235,7 +247,9 @@ export function InstallationPanel({
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <p className="text-sm font-semibold text-emerald-200">Copy this workspace API key now.</p>
-                        <p className="mt-1 text-xs text-emerald-100/80">For security, Comply-Quick will never reveal it again.</p>
+                        <p className="mt-1 text-xs text-emerald-100/80">
+                          For security, Comply-Quick will never reveal it again.
+                        </p>
                       </div>
                       <div className="flex gap-2">
                         <CopyButton value={activeKey} label="Copy key" copiedLabel="Key copied!" />
@@ -368,7 +382,9 @@ export function InstallationPanel({
           <div className="grid gap-3 md:grid-cols-3">
             <div className="rounded-xl border border-gray-800 bg-gray-950/70 p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-gray-500">Boundary enforcement</p>
-              <p className="mt-2 text-sm text-gray-200">Every key is tied to one workspace and one organization only.</p>
+              <p className="mt-2 text-sm text-gray-200">
+                Every key is tied to one workspace and one organization only.
+              </p>
             </div>
             <div className="rounded-xl border border-gray-800 bg-gray-950/70 p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-gray-500">Telemetry path</p>
@@ -378,7 +394,9 @@ export function InstallationPanel({
             </div>
             <div className="rounded-xl border border-gray-800 bg-gray-950/70 p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-gray-500">Operational safety</p>
-              <p className="mt-2 text-sm text-gray-200">Rotate or revoke keys instantly without leaking plaintext after setup.</p>
+              <p className="mt-2 text-sm text-gray-200">
+                Rotate or revoke keys instantly without leaking plaintext after setup.
+              </p>
             </div>
           </div>
 

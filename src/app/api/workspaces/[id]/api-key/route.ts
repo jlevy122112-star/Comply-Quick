@@ -44,7 +44,10 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     .eq("workspace_id", id)
     .order("created_at", { ascending: false });
   if (error) return NextResponse.json({ error: "list_failed" }, { status: 500 });
-  return NextResponse.json({ keys: (data ?? []).map((row) => mapWorkspaceApiKey(row as Record<string, unknown>)), role });
+  return NextResponse.json({
+    keys: (data ?? []).map((row) => mapWorkspaceApiKey(row as Record<string, unknown>)),
+    role,
+  });
 }
 
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {

@@ -27,26 +27,32 @@ export default async function ProjectWorkspacePage({
 
   const [data, entitlement] = await Promise.all([getWorkspaceData(id), getEntitlement()]);
   if (!data) notFound();
+  const workspaceData = data;
 
   const activeTab: WorkspaceTabKey = WORKSPACE_TABS.some((t) => t.key === tab) ? (tab as WorkspaceTabKey) : "overview";
 
-  let installation:
-    | {
-        workspace: { id: string; organizationId: string; name: string; slug: string; projectCount: number; createdAt: string };
-        keys: {
-          id: string;
-          name: string;
-          keyPrefix: string;
-          lastUsedAt: string | null;
-          revokedAt: string | null;
-          createdAt: string;
-        }[];
-        canManage: boolean;
-      }
-    | null = null;
+  let installation: {
+    workspace: {
+      id: string;
+      organizationId: string;
+      name: string;
+      slug: string;
+      projectCount: number;
+      createdAt: string;
+    };
+    keys: {
+      id: string;
+      name: string;
+      keyPrefix: string;
+      lastUsedAt: string | null;
+      revokedAt: string | null;
+      createdAt: string;
+    }[];
+    canManage: boolean;
+  } | null = null;
 
-  if (activeTab === "settings" && data.project.workspaceId) {
-    const workspace = await getWorkspaceById(data.project.workspaceId);
+  if (activeTab === "settings" && workspaceData.project.workspaceId) {
+    const workspace = await getWorkspaceById(workspaceData.project.workspaceId);
     if (workspace) {
       const role = await getMyOrgRole(workspace.organizationId);
       const { data: keyRows } = await supabase
@@ -69,5 +75,7 @@ export default async function ProjectWorkspacePage({
     }
   }
 
-  return <WorkspaceView data={data} tier={entitlement.tier} activeTab={activeTab} installation={installation} />;
+  return (
+    <WorkspaceView data={workspaceData} tier={entitlement.tier} activeTab={activeTab} installation={installation} />
+  );
 }
