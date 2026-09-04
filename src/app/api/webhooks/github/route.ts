@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getGitHubWebhookSecret } from "@/lib/github/app-service";
 import { enqueueGitHubScan, getGitHubConnectionById } from "@/lib/github/service";
-import { parseGitHubPushPayload, verifyGitHubWebhookSignature, type GitHubPushWebhookPayload } from "@/lib/github/webhooks";
+import {
+  parseGitHubPushPayload,
+  verifyGitHubWebhookSignature,
+  type GitHubPushWebhookPayload,
+} from "@/lib/github/webhooks";
 import { errorResponse } from "@/services";
 
 export const dynamic = "force-dynamic";

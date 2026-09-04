@@ -25,7 +25,9 @@ vi.mock("@/lib/supabase/admin", () => ({
               eq: () => ({
                 eq: () => ({
                   eq: () => ({
-                    maybeSingle,
+                    eq: () => ({
+                      maybeSingle,
+                    }),
                   }),
                 }),
               }),
@@ -88,8 +90,12 @@ describe("POST /api/webhooks/github", () => {
       })
     );
     expect(response.status).toBe(202);
-    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ repo_full_name: "acme/site", delivery_id: "delivery-1" }));
-    expect(enqueueGitHubScan).toHaveBeenCalledWith(expect.objectContaining({ connectionId: "conn-1", repoFullName: "acme/site" }));
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ repo_full_name: "acme/site", delivery_id: "delivery-1" })
+    );
+    expect(enqueueGitHubScan).toHaveBeenCalledWith(
+      expect.objectContaining({ connectionId: "conn-1", repoFullName: "acme/site" })
+    );
     expect(update).toHaveBeenCalledWith(expect.objectContaining({ last_webhook_at: expect.any(String) }));
   });
 });

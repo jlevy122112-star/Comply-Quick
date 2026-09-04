@@ -101,6 +101,7 @@ export default function GitHubIntegrationTool() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchStatus();
   }, [fetchStatus]);
 
@@ -166,17 +167,25 @@ export default function GitHubIntegrationTool() {
               <div className="rounded-2xl border border-gray-800 bg-gray-950/70 p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-gray-500">Installation</p>
                 <p className="mt-2 text-2xl font-semibold text-white">{connected ? "Active" : "Pending"}</p>
-                <p className="mt-1 text-sm text-gray-400">{connected ? `Install #${connection?.installationId}` : "No GitHub App installation connected yet."}</p>
+                <p className="mt-1 text-sm text-gray-400">
+                  {connected ? `Install #${connection?.installationId}` : "No GitHub App installation connected yet."}
+                </p>
               </div>
               <div className="rounded-2xl border border-gray-800 bg-gray-950/70 p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-gray-500">Accessible repos</p>
                 <p className="mt-2 text-2xl font-semibold text-white">{repos.length}</p>
-                <p className="mt-1 text-sm text-gray-400">{connection?.repositorySelection === "all" ? "Organization-wide coverage" : "Selected repositories only"}</p>
+                <p className="mt-1 text-sm text-gray-400">
+                  {connection?.repositorySelection === "all"
+                    ? "Organization-wide coverage"
+                    : "Selected repositories only"}
+                </p>
               </div>
               <div className="rounded-2xl border border-gray-800 bg-gray-950/70 p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-gray-500">Queue health</p>
                 <p className="mt-2 text-2xl font-semibold text-white">{metrics.queued + metrics.running}</p>
-                <p className="mt-1 text-sm text-gray-400">{metrics.running} running · {metrics.failed} failed</p>
+                <p className="mt-1 text-sm text-gray-400">
+                  {metrics.running} running · {metrics.failed} failed
+                </p>
               </div>
               <div className="rounded-2xl border border-gray-800 bg-gray-950/70 p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-gray-500">Latest webhook</p>
@@ -195,7 +204,8 @@ export default function GitHubIntegrationTool() {
                 <div>
                   <p className="text-sm font-semibold text-white">Organization install flow</p>
                   <p className="mt-1 text-sm text-gray-400">
-                    Launch a broad installation and choose all repositories to establish enterprise-wide monitoring coverage.
+                    Launch a broad installation and choose all repositories to establish enterprise-wide monitoring
+                    coverage.
                   </p>
                 </div>
                 <Badge tone="indigo">All repos</Badge>
@@ -218,17 +228,29 @@ export default function GitHubIntegrationTool() {
                 <div>
                   <p className="text-sm font-semibold text-white">Repository install flow</p>
                   <p className="mt-1 text-sm text-gray-400">
-                    Pre-stage a targeted install for a sensitive repository. Add an optional repository id to deep-link GitHub's selected-repository flow.
+                    Pre-stage a targeted install for a sensitive repository. Add an optional repository id to deep-link
+                    the GitHub selected-repository flow.
                   </p>
                 </div>
                 <Badge tone="sky">Selected repos</Badge>
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <Input label="Repository (optional)" placeholder="owner/repo" value={repoFlowName} onChange={(event) => setRepoFlowName(event.target.value)} />
-                <Input label="Repository id (optional)" placeholder="123456789" value={repoFlowId} onChange={(event) => setRepoFlowId(event.target.value)} />
+                <Input
+                  label="Repository (optional)"
+                  placeholder="owner/repo"
+                  value={repoFlowName}
+                  onChange={(event) => setRepoFlowName(event.target.value)}
+                />
+                <Input
+                  label="Repository id (optional)"
+                  placeholder="123456789"
+                  value={repoFlowId}
+                  onChange={(event) => setRepoFlowId(event.target.value)}
+                />
               </div>
               <p className="mt-3 text-xs text-gray-500">
-                If you skip the repository id, GitHub still lets the installer choose specific repositories during setup.
+                If you skip the repository id, GitHub still lets the installer choose specific repositories during
+                setup.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button variant="secondary" onClick={() => (window.location.href = repoInstallHref)}>
@@ -255,7 +277,9 @@ export default function GitHubIntegrationTool() {
               </div>
               <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-gray-500">Repository scope</p>
-                <p className="mt-2 text-sm font-semibold text-white">{connection?.repositorySelection === "all" ? "All repositories" : "Selected repositories"}</p>
+                <p className="mt-2 text-sm font-semibold text-white">
+                  {connection?.repositorySelection === "all" ? "All repositories" : "Selected repositories"}
+                </p>
               </div>
               <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-gray-500">Connected</p>
@@ -269,7 +293,10 @@ export default function GitHubIntegrationTool() {
           </Card>
 
           <Card>
-            <CardHeader title="Queue a compliance scan" description="Kick off an on-demand repository scan while push webhooks handle continuous monitoring." />
+            <CardHeader
+              title="Queue a compliance scan"
+              description="Kick off an on-demand repository scan while push webhooks handle continuous monitoring."
+            />
             <CardBody>
               <form onSubmit={queueManualScan} className="flex flex-col gap-4 lg:flex-row lg:items-end">
                 <div className="flex-1">
@@ -295,7 +322,10 @@ export default function GitHubIntegrationTool() {
 
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
             <Card>
-              <CardHeader title="github_scan_queue" description="Live view of async compliance scans created manually or from push webhooks." />
+              <CardHeader
+                title="github_scan_queue"
+                description="Live view of async compliance scans created manually or from push webhooks."
+              />
               <CardBody>
                 {recentScans.length === 0 ? (
                   <EmptyState
@@ -336,7 +366,10 @@ export default function GitHubIntegrationTool() {
             </Card>
 
             <Card>
-              <CardHeader title="Recent push webhooks" description="Delivery audit for GitHub push events accepted by Comply-Quick." />
+              <CardHeader
+                title="Recent push webhooks"
+                description="Delivery audit for GitHub push events accepted by Comply-Quick."
+              />
               <CardBody>
                 {recentPushEvents.length === 0 ? (
                   <EmptyState

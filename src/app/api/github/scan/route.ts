@@ -39,7 +39,11 @@ export async function POST(request: Request) {
       enqueueSource: "manual",
       createdBy: user.id,
     });
-    return NextResponse.json({ ok: true, queued, message: queued.duplicate ? "Scan already queued for this revision." : "Scan queued." });
+    return NextResponse.json({
+      ok: true,
+      queued,
+      message: queued.duplicate ? "Scan already queued for this revision." : "Scan queued.",
+    });
   } catch (err) {
     return errorResponse(err instanceof Error ? err : new Error(String(err)));
   }

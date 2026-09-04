@@ -7,7 +7,8 @@ export const dynamic = "force-dynamic";
 function isAuthorized(request: Request): boolean {
   const expected = process.env.CRON_SECRET;
   if (!expected) return false;
-  const header = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? request.headers.get("x-worker-secret");
+  const header =
+    request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? request.headers.get("x-worker-secret");
   return header === expected;
 }
 

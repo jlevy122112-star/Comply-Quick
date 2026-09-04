@@ -22,7 +22,11 @@ function toBuffer(payload: string | Buffer): Buffer {
   return Buffer.isBuffer(payload) ? payload : Buffer.from(payload);
 }
 
-export function verifyGitHubWebhookSignature(payload: string | Buffer, signatureHeader: string | null, secret: string): boolean {
+export function verifyGitHubWebhookSignature(
+  payload: string | Buffer,
+  signatureHeader: string | null,
+  secret: string
+): boolean {
   if (!signatureHeader?.startsWith("sha256=")) return false;
   const provided = signatureHeader.slice("sha256=".length);
   const expected = createHmac("sha256", secret).update(toBuffer(payload)).digest("hex");

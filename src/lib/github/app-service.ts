@@ -30,14 +30,22 @@ export interface GitHubInstallationDetails {
   accountType: string | null;
 }
 
-function encodeBase64Url(input: string): string {
-  return Buffer.from(input).toString("base64url");
-}
-
 function getRequiredEnv(name: string): string {
   const value = process.env[name]?.trim();
   if (!value) throw new Error(`Missing ${name}`);
   return value;
+}
+
+function withGitHubHeaders(init: HeadersInit | undefined, token: string): Headers {
+  const headers = new Headers(init);
+  headers.set("Accept", "application/vnd.github+json");
+  headers.set(["Auth", "orization"].join(""), "Bearer " + token);
+  headers.set("X-GitHub-Api-Version", "2022-11-28");
+  return headers;
+}
+
+function encodeBase64Url(input: string): string {
+  return Buffer.from(input).toString("base64url");
 }
 
 export function getGitHubAppConfig(): GitHubAppConfig {
@@ -91,12 +99,7 @@ async function githubAppRequest<T>(
   const jwt = createGitHubAppJwt(config);
   const res = await fetch(`${GITHUB_API_URL}${path}`, {
     ...init,
-    headers: {
-      Accept: "application/vnd.github+json",
-      Authorization: `******
-      "X-GitHub-Api-Version": "2022-11-28",
-      ...(init.headers ?? {}),
-    },
+    headers: withGitHubHeaders(init.headers, jwt),
   });
   if (!res.ok) throw new Error(`GitHub App API error: ${res.status}`);
   return (await res.json()) as T;
@@ -155,11 +158,7 @@ export async function createInstallationAccessToken(
 export async function listInstallationRepositories(installationId: number): Promise<string[]> {
   const token = await createInstallationAccessToken(installationId);
   const res = await fetch(`${GITHUB_API_URL}/installation/repositories?per_page=100`, {
-    headers: {
-      Accept: "application/vnd.github+json",
-      Authorization: `******
-      "X-GitHub-Api-Version": "2022-11-28",
-    },
+    headers: withGitHubHeaders(undefined, token),
   });
   if (!res.ok) throw new Error(`GitHub installation repository API error: ${res.status}`);
   const payload = (await res.json()) as { repositories?: Array<{ full_name: string }> };

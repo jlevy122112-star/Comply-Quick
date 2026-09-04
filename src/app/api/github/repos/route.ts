@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveOrganizationId } from "@/lib/organizations-db";
-import { getGitHubConnection, getReposForConnection, listRecentGitHubPushEvents, listRecentGitHubScans } from "@/lib/github/service";
+import {
+  getGitHubConnection,
+  getReposForConnection,
+  listRecentGitHubPushEvents,
+  listRecentGitHubScans,
+} from "@/lib/github/service";
 import { errorResponse } from "@/services";
 
 export const dynamic = "force-dynamic";

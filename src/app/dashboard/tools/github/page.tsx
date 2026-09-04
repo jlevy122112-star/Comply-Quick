@@ -28,7 +28,8 @@ export default async function GitHubIntegrationPage() {
         <div className="mb-8 max-w-3xl">
           <h1 className="text-3xl font-semibold text-white">GitHub App Compliance Monitoring</h1>
           <p className="mt-2 text-sm text-gray-400">
-            Replace user-scoped OAuth with repo-safe GitHub App installs, webhook-driven monitoring, and async compliance queue execution.
+            Replace user-scoped OAuth with repo-safe GitHub App installs, webhook-driven monitoring, and async
+            compliance queue execution.
           </p>
         </div>
         <GitHubIntegrationTool />

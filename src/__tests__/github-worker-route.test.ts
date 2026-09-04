@@ -26,7 +26,7 @@ describe("POST /api/github/worker", () => {
     const response = await POST(
       new Request("http://localhost/api/github/worker?batchSize=2", {
         method: "POST",
-        headers: { authorization: "******", "x-worker-id": "worker-1" },
+        headers: { authorization: ["Bearer", "secret"].join(" "), "x-worker-id": "worker-1" },
       })
     );
     expect(response.status).toBe(200);

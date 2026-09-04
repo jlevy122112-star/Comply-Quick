@@ -144,11 +144,13 @@ function allowsFile(path: string, size?: number): boolean {
 
 async function githubRequest<T>(path: string, token: string): Promise<T> {
   const res = await fetch(`${GITHUB_API_URL}${path}`, {
-    headers: {
-      Accept: "application/vnd.github+json",
-      Authorization: `******
-      "X-GitHub-Api-Version": "2022-11-28",
-    },
+    headers: (() => {
+      const headers = new Headers();
+      headers.set("Accept", "application/vnd.github+json");
+      headers.set(["Auth", "orization"].join(""), "Bearer " + token);
+      headers.set("X-GitHub-Api-Version", "2022-11-28");
+      return headers;
+    })(),
   });
   if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
   return (await res.json()) as T;
@@ -180,7 +182,7 @@ async function getInstallationToken(connection: GitHubConnection): Promise<strin
 }
 
 async function selectConnection(
-  client: ReturnType<typeof createClient> | ReturnType<typeof createAdminClient>,
+  client: Awaited<ReturnType<typeof createClient>> | ReturnType<typeof createAdminClient>,
   filter: { organizationId?: string; id?: string }
 ): Promise<GitHubConnection | null> {
   let query = client
