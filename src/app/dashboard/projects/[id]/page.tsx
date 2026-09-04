@@ -4,7 +4,7 @@ import { getEntitlement } from "@/lib/entitlements";
 import { getWorkspaceData } from "@/lib/workspace/data";
 import { getMyOrgRole } from "@/lib/organizations-db";
 import { can } from "@/lib/rbac";
-import { getWorkspaceById } from "@/lib/workspaces-db";
+import { getWorkspaceById, type Workspace } from "@/lib/workspaces-db";
 import { WorkspaceView, WORKSPACE_TABS, type WorkspaceTabKey } from "./WorkspaceView";
 
 export const dynamic = "force-dynamic";
@@ -32,14 +32,7 @@ export default async function ProjectWorkspacePage({
   const activeTab: WorkspaceTabKey = WORKSPACE_TABS.some((t) => t.key === tab) ? (tab as WorkspaceTabKey) : "overview";
 
   let installation: {
-    workspace: {
-      id: string;
-      organizationId: string;
-      name: string;
-      slug: string;
-      projectCount: number;
-      createdAt: string;
-    };
+    workspace: Workspace;
     keys: {
       id: string;
       name: string;

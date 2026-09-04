@@ -11,7 +11,7 @@ function makeScan(overrides: Partial<ScanRecord> = {}): ScanRecord {
     url: "https://client.example.com",
     status: "completed",
     score: 84,
-    detectedTools: [{ id: "ga4", name: "Google Analytics" }],
+    detectedTools: [{ id: "ga4", name: "Google Analytics", category: "analytics" }],
     findings: [
       {
         id: "trackers_without_consent",
@@ -97,6 +97,6 @@ describe("scan exports", () => {
     expect(text).toContain("Prepared for Acme stakeholders.");
     expect(pdf.contentType).toBe("application/pdf");
     expect(pdf.fileName).toMatch(/acme-workspace-acme-site-client-example-com\.pdf$/);
-    expect(pdf.content).toBeInstanceOf(Uint8Array);
+    expect(ArrayBuffer.isView(pdf.content)).toBe(true);
   });
 });

@@ -22,24 +22,20 @@ async function resolveScanBranding(scan: {
   projectId: string | null;
 }): Promise<DeliverableBranding & { clientName: string | null }> {
   const admin = createAdminClient();
-  let organization:
-    | {
-        name: string;
-        logoUrl: string | null;
-        primaryColor: string;
-        themePalette: DeliverableBranding["palette"];
-        supportEmail: string | null;
-      }
-    | null = null;
-  let workspace:
-    | {
-        name: string;
-        logoUrl: string | null;
-        primaryColor: string;
-        themePalette: DeliverableBranding["palette"];
-        footerText: string | null;
-      }
-    | null = null;
+  let organization: {
+    name: string;
+    logoUrl: string | null;
+    primaryColor: string;
+    themePalette: DeliverableBranding["palette"];
+    supportEmail: string | null;
+  } | null = null;
+  let workspace: {
+    name: string;
+    logoUrl: string | null;
+    primaryColor: string;
+    themePalette: DeliverableBranding["palette"];
+    footerText: string | null;
+  } | null = null;
 
   if (scan.organizationId) {
     const { data: org } = await admin
@@ -66,7 +62,11 @@ async function resolveScanBranding(scan: {
   }
 
   if (scan.projectId) {
-    const { data: project } = await admin.from("projects").select("workspace_id").eq("id", scan.projectId).maybeSingle();
+    const { data: project } = await admin
+      .from("projects")
+      .select("workspace_id")
+      .eq("id", scan.projectId)
+      .maybeSingle();
     const workspaceId = (project as { workspace_id?: string | null } | null)?.workspace_id ?? null;
     if (workspaceId) {
       const { data: row } = await admin
@@ -116,48 +116,50 @@ export default async function SharedScanPage({ params }: ShareScanPageProps) {
   const { token } = await params;
   const scan = await getScanBySharedToken(token);
   if (!scan || scan.status !== "completed") notFound();
+  const completedScan = scan;
 
   const branding = await resolveScanBranding({
-    organizationId: scan.organizationId,
-    clientId: scan.clientId,
-    projectId: scan.projectId,
+    organizationId: completedScan.organizationId,
+    clientId: completedScan.clientId,
+    projectId: completedScan.projectId,
   });
 
   return (
     <BrandedDeliverableLayout
       brand={branding}
       eyebrow="Compliance report"
-      title={scan.url}
+      title={completedScan.url}
       subtitle={branding.clientName ? `Client deliverable for ${branding.clientName}` : "Branded client deliverable"}
       footerNote={REPORT_DISCLAIMER}
       actions={<PrintReportButton />}
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          {scan.summary && <p className="mt-1 text-sm text-gray-400">{scan.summary}</p>}
-        </div>
-        {scan.score !== null && (
+        <div>{completedScan.summary && <p className="mt-1 text-sm text-gray-400">{completedScan.summary}</p>}</div>
+        {completedScan.score !== null && (
           <div className="shrink-0 text-center">
-            <span className={`text-4xl font-bold ${scoreColorClass(scan.score)}`}>{scan.score}</span>
+            <span className={`text-4xl font-bold ${scoreColorClass(completedScan.score)}`}>{completedScan.score}</span>
             <p className="text-xs text-gray-500">Compliance Score</p>
           </div>
         )}
       </div>
 
-      {scan.detectedTools.length > 0 && (
+      {completedScan.detectedTools.length > 0 && (
         <div className="mt-6 flex flex-wrap gap-2">
-          {scan.detectedTools.map((t) => (
-            <span key={t.id} className="rounded-full border border-gray-700 bg-gray-800/50 px-3 py-1 text-xs text-gray-300">
+          {completedScan.detectedTools.map((t) => (
+            <span
+              key={t.id}
+              className="rounded-full border border-gray-700 bg-gray-800/50 px-3 py-1 text-xs text-gray-300"
+            >
               {t.name}
             </span>
           ))}
         </div>
       )}
 
-      {scan.findings.length > 0 && (
+      {completedScan.findings.length > 0 && (
         <div className="mt-6 space-y-3">
           <h3 className="text-sm font-semibold text-white">Findings</h3>
-          {scan.findings.map((f) => {
+          {completedScan.findings.map((f) => {
             const isCritical = f.severity === "critical";
             const isWarning = f.severity === "warning";
             const border = isCritical ? "border-red-500/30" : isWarning ? "border-yellow-500/30" : "border-sky-500/30";

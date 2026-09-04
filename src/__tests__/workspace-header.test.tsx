@@ -31,6 +31,10 @@ describe("WorkspaceHeader", () => {
           organizationId: "org-1",
           name: "Acme Workspace",
           slug: "acme-workspace",
+          logoUrl: null,
+          primaryColor: "#4f46e5",
+          themePalette: "indigo",
+          footerText: "Prepared by Acme Workspace.",
           projectCount: 3,
           createdAt: "2026-09-01T00:00:00.000Z",
         }}

@@ -101,7 +101,7 @@ function createSimplePdf(lines: string[]): Uint8Array {
       "/F1 11 Tf",
       `48 ${startY} Td`,
       `${lineHeight} TL`,
-      ...pageLines.map((line, lineIndex) => `${lineIndex === 0 ? "" : "T* " }(${escapePdfText(line)}) Tj`.trim()),
+      ...pageLines.map((line, lineIndex) => `${lineIndex === 0 ? "" : "T* "}(${escapePdfText(line)}) Tj`.trim()),
       "ET",
     ].join("\n");
     objects[contentId - 1] = `<< /Length ${text.length} >>\nstream\n${text}\nendstream`;
@@ -147,7 +147,11 @@ function buildSections(scan: ScanRecord) {
 export function prepareScanExport(request: ScanExportRequest): PreparedScanExport {
   const { canonical, sections } = buildSections(request.scan);
   const title = `${request.branding.name} Compliance Report`;
-  const fileStem = [safeFileToken(request.branding.name), safeFileToken(request.projectName), safeFileToken(request.timelineItem.target)]
+  const fileStem = [
+    safeFileToken(request.branding.name),
+    safeFileToken(request.projectName),
+    safeFileToken(request.timelineItem.target),
+  ]
     .filter(Boolean)
     .join("-")
     .slice(0, 120);
@@ -165,7 +169,10 @@ export function prepareScanExport(request: ScanExportRequest): PreparedScanExpor
       { label: "Workspace", value: request.branding.name },
       { label: "Project", value: request.projectName },
       { label: "Target", value: request.timelineItem.target },
-      { label: "Score", value: request.timelineItem.score === null ? "Unavailable" : `${request.timelineItem.score}/100` },
+      {
+        label: "Score",
+        value: request.timelineItem.score === null ? "Unavailable" : `${request.timelineItem.score}/100`,
+      },
       { label: "Critical", value: String(canonical.severityCounts.critical) },
       { label: "Warning", value: String(canonical.severityCounts.warning) },
       { label: "Info", value: String(canonical.severityCounts.info) },

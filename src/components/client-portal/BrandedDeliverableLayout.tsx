@@ -67,7 +67,9 @@ export function BrandedDeliverableLayout({
               </p>
             )}
           </div>
-          {footerNote && <div className="mt-3 border-t border-gray-800 pt-3 text-[11px] text-gray-500">{footerNote}</div>}
+          {footerNote && (
+            <div className="mt-3 border-t border-gray-800 pt-3 text-[11px] text-gray-500">{footerNote}</div>
+          )}
         </footer>
       </main>
     </div>

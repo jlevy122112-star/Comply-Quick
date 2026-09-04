@@ -306,6 +306,7 @@ export async function createScan(
     // Return the outcome even if persistence failed so the user still sees it.
     return {
       id: "",
+      projectId: null,
       url: outcome.url,
       status: "completed",
       score: outcome.score,

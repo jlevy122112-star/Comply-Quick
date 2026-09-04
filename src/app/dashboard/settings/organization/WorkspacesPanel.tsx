@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Badge, Button, Card, CardBody, EmptyState, Input, Select, Textarea } from "@/components/ui";
 import { can, type Role } from "@/lib/rbac";
@@ -110,7 +110,13 @@ function WorkspaceBrandingCard({
               )}
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button type="button" size="sm" variant="secondary" disabled={!canManage} onClick={() => inputRef.current?.click()}>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={!canManage}
+                onClick={() => inputRef.current?.click()}
+              >
                 Upload logo
               </Button>
               {logoUrl && (
@@ -132,7 +138,12 @@ function WorkspaceBrandingCard({
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Select label="Theme Palette" value={palette} disabled={!canManage} onChange={(e) => setPalette(e.target.value as ThemePalette)}>
+            <Select
+              label="Theme Palette"
+              value={palette}
+              disabled={!canManage}
+              onChange={(e) => setPalette(e.target.value as ThemePalette)}
+            >
               {THEME_PALETTES.map((entry) => (
                 <option key={entry} value={entry}>
                   {entry.charAt(0).toUpperCase() + entry.slice(1)}
@@ -158,10 +169,18 @@ function WorkspaceBrandingCard({
             placeholder={`Prepared by ${workspace.name} with Comply-Quick.`}
           />
 
-          {(error || success) && <p className={`text-xs ${error ? "text-rose-400" : "text-emerald-400"}`}>{error ?? success}</p>}
+          {(error || success) && (
+            <p className={`text-xs ${error ? "text-rose-400" : "text-emerald-400"}`}>{error ?? success}</p>
+          )}
 
           <div className="flex justify-end border-t border-gray-800 pt-4">
-            <Button type="button" size="sm" disabled={!canManage || busy} loading={busy} onClick={() => void saveBranding()}>
+            <Button
+              type="button"
+              size="sm"
+              disabled={!canManage || busy}
+              loading={busy}
+              onClick={() => void saveBranding()}
+            >
               Save branding
             </Button>
           </div>
@@ -188,7 +207,9 @@ function WorkspaceBrandingCard({
                   <p className="text-xs text-gray-400">Client-ready compliance report</p>
                 </div>
               </div>
-              <span className={`rounded-full px-2 py-1 text-[11px] font-medium ${paletteClasses.badgeBg} ${paletteClasses.badgeText}`}>
+              <span
+                className={`rounded-full px-2 py-1 text-[11px] font-medium ${paletteClasses.badgeBg} ${paletteClasses.badgeText}`}
+              >
                 {palette}
               </span>
             </div>
@@ -198,7 +219,8 @@ function WorkspaceBrandingCard({
                 Executive summary
               </p>
               <p className="mt-2 text-xs leading-6 text-gray-400">
-                Surface the score, critical findings, and regulation-by-regulation next steps in a polished client deliverable.
+                Surface the score, critical findings, and regulation-by-regulation next steps in a polished client
+                deliverable.
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <span className="rounded-full border border-rose-500/30 bg-rose-500/10 px-2.5 py-1 text-[11px] text-rose-200">
@@ -210,7 +232,9 @@ function WorkspaceBrandingCard({
               </div>
             </div>
 
-            <p className="mt-4 text-xs text-gray-500">{footerText.trim() || `Prepared by ${workspace.name} with Comply-Quick.`}</p>
+            <p className="mt-4 text-xs text-gray-500">
+              {footerText.trim() || `Prepared by ${workspace.name} with Comply-Quick.`}
+            </p>
           </div>
         </div>
       </div>
@@ -228,7 +252,7 @@ export function WorkspacesPanel({ orgId, role, workspaces }: { orgId: string; ro
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function create(e: React.FormEvent) {
+  async function create(e: FormEvent) {
     e.preventDefault();
     setBusy("new");
     setError(null);
@@ -312,7 +336,11 @@ export function WorkspacesPanel({ orgId, role, workspaces }: { orgId: string; ro
                 </div>
               </div>
 
-              {canUpdate && <div className="mt-4"><WorkspaceBrandingCard orgId={orgId} workspace={w} canManage={canUpdate} /></div>}
+              {canUpdate && (
+                <div className="mt-4">
+                  <WorkspaceBrandingCard orgId={orgId} workspace={w} canManage={canUpdate} />
+                </div>
+              )}
             </div>
           ))}
         </div>

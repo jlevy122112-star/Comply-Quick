@@ -63,8 +63,12 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     timelineItem,
     branding,
   });
+  const body =
+    typeof file.content === "string"
+      ? file.content
+      : new Blob([new Uint8Array(file.content)], { type: file.contentType });
 
-  return new NextResponse(file.content, {
+  return new NextResponse(body, {
     status: 200,
     headers: {
       "content-type": file.contentType,

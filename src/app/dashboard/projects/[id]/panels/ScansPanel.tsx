@@ -81,7 +81,8 @@ export function ScansPanel({
       const downloadUrl = window.URL.createObjectURL(blob);
       const disposition = response.headers.get("content-disposition") ?? "";
       const filenameMatch = disposition.match(/filename="([^"]+)"/);
-      const filename = filenameMatch?.[1] ?? `${projectName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-report.${format}`;
+      const filename =
+        filenameMatch?.[1] ?? `${projectName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-report.${format}`;
       const link = document.createElement("a");
       link.href = downloadUrl;
       link.download = filename;
