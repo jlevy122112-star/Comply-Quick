@@ -112,7 +112,7 @@ export async function addProjectMember(
   return { ok: true };
 }
 
-/** Removes a collaborator from a project (owner-only, enforced by RLS). */
+/** Removes a collaborator from a project with explicit owner/project checks plus RLS enforcement. */
 export async function removeProjectMember(projectId: string, memberId: string): Promise<boolean> {
   const supabase = await createClient();
   const {

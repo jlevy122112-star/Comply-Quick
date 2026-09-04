@@ -83,6 +83,14 @@ export async function updateSession(request: NextRequest, csp?: { nonce: string;
     return { request: { headers } };
   };
 
+  const rebuildResponse = () => {
+    const nextResponse = NextResponse.next(nextInit());
+    for (const cookie of supabaseResponse.cookies.getAll()) {
+      nextResponse.cookies.set(cookie);
+    }
+    supabaseResponse = nextResponse;
+  };
+
   let supabaseResponse = NextResponse.next(nextInit());
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -113,7 +121,7 @@ export async function updateSession(request: NextRequest, csp?: { nonce: string;
       },
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        supabaseResponse = NextResponse.next(nextInit());
+        rebuildResponse();
         cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options));
       },
     },
@@ -127,7 +135,7 @@ export async function updateSession(request: NextRequest, csp?: { nonce: string;
 
   if (user && isProtected) {
     activeOrganizationId = await resolveActiveOrganizationForRequest(supabase, request, user.id);
-    supabaseResponse = NextResponse.next(nextInit());
+    rebuildResponse();
   }
 
   if (isProtected && !user) {
