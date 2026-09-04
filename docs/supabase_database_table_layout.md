@@ -972,8 +972,31 @@
 | `token` | `uuid` |  Unique |
 | `claimed_at` | `timestamptz` |  |
 | `used_at` | `timestamptz` |  Nullable |
+| `expires_at` | `timestamptz` |  Token expiry; claim remains unique by email |
+
+## Table `public_scan_events`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `uuid` | Primary |
+| `claim_id` | `uuid` | References `free_scan_claims` |
+| `workspace_id` | `uuid` | Nullable; set by trusted workspace workflows |
+| `organization_id` | `uuid` | Nullable |
+| `url` | `text` |  |
+| `score` | `integer` | 0-100 |
+| `result` | `jsonb` |  |
+| `metadata` | `jsonb` |  |
+| `created_at` | `timestamptz` |  |
 
 ## RLS Policies
+
+| Policy | Command | Roles | Action |
+|--------|---------|-------|--------|
+| `free_scan_claims_deny_anon` | ALL | anon | Deny |
+| `free_scan_claims_deny_authenticated` | ALL | authenticated | Deny |
+| `public_scan_events_select_workspace_member` | SELECT | public | Workspace members only |
 
 ### `subscriptions`
 

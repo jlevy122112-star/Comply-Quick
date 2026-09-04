@@ -8,7 +8,10 @@ export function BlogCta({ campaign }: { campaign: string }) {
   const utm = `utm_source=blog&utm_medium=content&utm_campaign=${encodeURIComponent(campaign)}`;
 
   return (
-    <aside className="mt-12 overflow-hidden rounded-2xl border border-indigo-400/25 bg-gradient-to-br from-indigo-500/15 via-slate-950 to-slate-950 shadow-[0_24px_80px_-36px_rgba(99,102,241,0.65)]" aria-labelledby="scan-cta-heading">
+    <aside
+      className="mt-12 overflow-hidden rounded-2xl border border-indigo-400/25 bg-gradient-to-br from-indigo-500/15 via-slate-950 to-slate-950 shadow-[0_24px_80px_-36px_rgba(99,102,241,0.65)]"
+      aria-labelledby="scan-cta-heading"
+    >
       <div className="border-b border-white/10 px-6 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-indigo-200">
         Complimentary compliance intelligence
       </div>
@@ -36,7 +39,8 @@ export function BlogCta({ campaign }: { campaign: string }) {
           </Link>
         </div>
         <p className="mt-5 text-xs leading-5 text-slate-400">
-          Built for agencies and software teams. Generated content is informational; obtain legal review where appropriate.
+          Built for agencies and software teams. Generated content is informational; obtain legal review where
+          appropriate.
         </p>
       </div>
     </aside>
