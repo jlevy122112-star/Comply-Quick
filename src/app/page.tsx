@@ -612,7 +612,7 @@ export default function LandingPage() {
         <section className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 border-t border-gray-800/50">
           <div className="max-w-4xl mx-auto rounded-3xl border border-gray-800 bg-gray-900/60 p-8 sm:p-12">
             <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight">
-              For Freelancers &amp; Solo Devs &mdash; Deliver Professional Compliance on Every Build.
+              For Freelancer Teams &amp; Solo Builders &mdash; Deliver Professional Compliance on Every Build.
             </h2>
             <ul className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
               {["Full Package per Project", "Contract Shield Included", "Cancel Anytime"].map((point) => (

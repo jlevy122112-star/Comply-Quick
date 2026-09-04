@@ -21,7 +21,11 @@ interface PlansBillingViewProps {
   tier: Tier;
   status: "active" | "inactive" | "past_due" | "canceled";
   currentPeriodEnd: string | null;
+  cancelAt: string | null;
+  canceledAt: string | null;
   usage: BillingPageData["usage"];
+  activeOrganizationName: string;
+  checkoutState: "success" | "cancelled" | null;
 }
 
 const STATUS_COPY: Record<
@@ -88,7 +92,16 @@ function UnavailableMeter({ label }: { label: string }) {
   );
 }
 
-export default function PlansBillingView({ tier, status, currentPeriodEnd, usage }: PlansBillingViewProps) {
+export default function PlansBillingView({
+  tier,
+  status,
+  currentPeriodEnd,
+  cancelAt,
+  canceledAt,
+  usage,
+  activeOrganizationName,
+  checkoutState,
+}: PlansBillingViewProps) {
   const [billing, setBilling] = useState<Billing>("monthly");
   const [busyPlan, setBusyPlan] = useState<Tier | "portal" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -132,7 +145,7 @@ export default function PlansBillingView({ tier, status, currentPeriodEnd, usage
     <main className="mx-auto max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
       <PageTitle
         title="Plans & Billing"
-        description="One clear view of your workspace plan, usage, and subscription controls."
+        description={`One clear view of ${activeOrganizationName}'s plan, usage, and subscription controls.`}
         icon={<CreditCard className="h-6 w-6 text-accent-primary" aria-hidden="true" />}
         actions={
           status === "active" || status === "past_due" || status === "canceled" ? (
@@ -150,6 +163,26 @@ export default function PlansBillingView({ tier, status, currentPeriodEnd, usage
           role="alert"
         >
           {error}
+        </div>
+      )}
+      {checkoutState === "success" && (
+        <div className="rounded-xl border border-status-success/30 bg-status-success/10 px-4 py-3 text-sm text-status-success">
+          Checkout complete. Your workspace billing status will refresh automatically.
+        </div>
+      )}
+      {checkoutState === "cancelled" && (
+        <div className="rounded-xl border border-border-default bg-surface-card px-4 py-3 text-sm text-text-secondary">
+          Checkout canceled. Your workspace remains on its current plan.
+        </div>
+      )}
+      {status === "past_due" && (
+        <div className="rounded-xl border border-status-warning/40 bg-status-warning/10 px-4 py-3 text-sm text-status-warning">
+          Payment issue detected. Open Stripe Billing Portal to update payment details and avoid interruption.
+        </div>
+      )}
+      {status === "canceled" && (
+        <div className="rounded-xl border border-status-danger/30 bg-status-danger/10 px-4 py-3 text-sm text-status-danger">
+          This subscription is canceled. Access remains until the current period ends.
         </div>
       )}
 
@@ -274,6 +307,44 @@ export default function PlansBillingView({ tier, status, currentPeriodEnd, usage
             </CardBody>
           </Card>
         </div>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader title="Downgrade Impact Preview" />
+          <CardBody className="space-y-3 text-sm text-text-secondary">
+            <p>Before downgrade, review resource impact to avoid blocked workflows.</p>
+            <ul className="space-y-2 text-xs text-text-muted">
+              <li>• Team seats over the target plan limit will require member removal.</li>
+              <li>• Managed client workspaces over plan limits must be archived.</li>
+              <li>• Enterprise-only features lock immediately after downgrade.</li>
+            </ul>
+            <p className="text-xs text-text-muted">
+              Final proration, invoice timing, and cancellation windows are confirmed inside Stripe Billing Portal.
+            </p>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardHeader title="Billing Action History" />
+          <CardBody className="space-y-2 text-sm text-text-secondary">
+            <div className="flex items-center justify-between text-xs">
+              <span>Current status</span>
+              <span className="font-medium text-text-primary">{STATUS_COPY[status].label}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span>Renews</span>
+              <span className="font-medium text-text-primary">{formatDate(currentPeriodEnd) ?? "N/A"}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span>Cancel scheduled</span>
+              <span className="font-medium text-text-primary">{formatDate(cancelAt) ?? "No"}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span>Canceled at</span>
+              <span className="font-medium text-text-primary">{formatDate(canceledAt) ?? "N/A"}</span>
+            </div>
+          </CardBody>
+        </Card>
       </section>
 
       <section>

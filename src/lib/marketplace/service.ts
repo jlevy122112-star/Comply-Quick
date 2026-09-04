@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isPlatformAdmin } from "@/lib/auth/platform-admin";
 export { isPlatformAdmin } from "@/lib/auth/platform-admin";
-import { getOrgEntitlement } from "@/lib/entitlements";
+import { getOrgEntitlement, hasPaidAccess } from "@/lib/entitlements";
 import { logger } from "@/services";
 import { UnauthorizedError, ForbiddenError, NotFoundError, ValidationError } from "@/services/errors";
 import {
@@ -100,7 +100,7 @@ function mapPurchase(row: Record<string, unknown>): Purchase {
 /** Selling is gated to paid tiers; browsing/buying is open to any signed-in user. */
 export async function canSell(): Promise<boolean> {
   const entitlement = await getOrgEntitlement();
-  return entitlement.isPremium;
+  return hasPaidAccess(entitlement);
 }
 
 /** The caller's creator profile, or null if they haven't onboarded as a seller. */

@@ -7,7 +7,7 @@
 
 import { NextRequest } from "next/server";
 import { resolveApiKey } from "@/lib/api/keys";
-import { getEntitlementForUser } from "@/lib/entitlements";
+import { getEntitlementForUser, hasPaidAccess } from "@/lib/entitlements";
 import { paidPlansLabel } from "@/lib/tier-copy";
 import { createRateLimiter, enforceRateLimit } from "@/services";
 import { ForbiddenError, UnauthorizedError } from "@/services/errors";
@@ -48,7 +48,7 @@ export async function authenticateApiRequest(request: NextRequest): Promise<ApiC
   const rateHeaders = enforceRateLimit(await limiter.check(resolved.keyId));
 
   const entitlement = await getEntitlementForUser(resolved.userId);
-  if (!entitlement.isPremium) {
+  if (!hasPaidAccess(entitlement)) {
     throw new ForbiddenError(`The API is available on paid plans (${paidPlansLabel()}).`);
   }
 

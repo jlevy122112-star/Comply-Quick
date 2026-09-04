@@ -28,7 +28,7 @@ function scanCopy(limit: number): string {
 const PLANS: Plan[] = [
   {
     key: "solo",
-    blurb: "For freelancers & solo devs. Cancel anytime.",
+    blurb: "For freelancers and independent teams. Cancel anytime.",
     features: [
       scanCopy(TIER_CONFIG.solo.scanLimit),
       "Regulation Autopilot + federal/state monitoring — included",
@@ -43,7 +43,7 @@ const PLANS: Plan[] = [
     key: "agency",
     blurb: "For agencies — resell compliance as recurring revenue.",
     features: [
-      "Everything in Solo, plus:",
+      "Everything in Freelancer, plus:",
       scanCopy(TIER_CONFIG.agency.scanLimit),
       "Unlimited client sites in one dashboard",
       "Agency Liability Shield\u2122 — shift GDPR/ADA liability to the merchant",

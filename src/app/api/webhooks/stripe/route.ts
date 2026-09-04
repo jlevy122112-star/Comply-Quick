@@ -3,7 +3,7 @@ import type Stripe from "stripe";
 import * as Sentry from "@sentry/nextjs";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe, logger, analytics } from "@/services";
-import { isPaidTier, normalizeTierKey, type PaidTier, type Tier } from "@/lib/pricing";
+import { isPaidTier, normalizeTierKey, PAID_TIERS, TIER_CONFIG, type PaidTier, type Tier } from "@/lib/pricing";
 import { recordReferralCommission } from "@/lib/partners/service";
 import { createSystemAuditLog } from "@/lib/audit/service";
 
@@ -18,6 +18,24 @@ function toPlan(value: string | undefined): Plan | null {
   if (!value) return null;
   const normalized = normalizeTierKey(value);
   return isPaidTier(normalized) ? normalized : null;
+}
+
+function planFromPriceId(priceId: string | null | undefined): Plan | null {
+  if (!priceId) return null;
+  for (const tier of PAID_TIERS) {
+    const env = TIER_CONFIG[tier].priceEnv;
+    if (!env) continue;
+    if (process.env[env.monthly] === priceId || process.env[env.annual] === priceId) return tier;
+  }
+  return null;
+}
+
+function planFromSubscription(subscription: Stripe.Subscription): Plan | null {
+  const fromMetadata = toPlan(subscription.metadata?.plan);
+  if (fromMetadata) return fromMetadata;
+  const line = subscription.items.data[0];
+  const priceId = typeof line?.price === "string" ? line.price : line?.price?.id;
+  return planFromPriceId(priceId ?? null);
 }
 
 /**
@@ -107,12 +125,16 @@ async function accrueReferralCommission(invoice: Stripe.Invoice) {
 async function setEntitlement(params: {
   stripeCustomerId: string;
   supabaseUserId?: string;
+  organizationId?: string;
+  ownerUserId?: string;
   // Optional: a cancellation always resolves to the free tier, so callers on the
   // cancellation path omit it rather than passing a meaningless placeholder.
   tier?: Plan;
   status: "active" | "canceled" | "past_due";
   stripeSubscriptionId?: string | null;
   currentPeriodEnd?: number | null;
+  cancelAt?: number | null;
+  canceledAt?: string | null;
 }) {
   const admin = createAdminClient();
 
@@ -146,6 +168,8 @@ async function setEntitlement(params: {
       stripe_customer_id: params.stripeCustomerId,
       stripe_subscription_id: params.stripeSubscriptionId ?? null,
       current_period_end: params.currentPeriodEnd ? new Date(params.currentPeriodEnd * 1000).toISOString() : null,
+      cancel_at: params.cancelAt ? new Date(params.cancelAt * 1000).toISOString() : null,
+      canceled_at: params.canceledAt ?? (params.status === "canceled" ? new Date().toISOString() : null),
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id" }
@@ -156,6 +180,30 @@ async function setEntitlement(params: {
   // handler, which returns 500 so Stripe retries and Sentry records it.
   if (error) {
     throw new Error(`setEntitlement: failed to persist entitlement for user ${userId}: ${error.message}`);
+  }
+
+  const organizationId = params.organizationId ?? (await findOrganizationByStripeCustomer(params.stripeCustomerId));
+  if (!organizationId) return;
+  const ownerUserId = params.ownerUserId ?? (await getOrganizationOwnerId(organizationId)) ?? userId;
+  const { error: orgError } = await admin.from("organization_subscriptions").upsert(
+    {
+      organization_id: organizationId,
+      owner_user_id: ownerUserId,
+      tier: effectiveTier,
+      status: params.status === "canceled" ? "canceled" : params.status,
+      stripe_customer_id: params.stripeCustomerId,
+      stripe_subscription_id: params.stripeSubscriptionId ?? null,
+      current_period_end: params.currentPeriodEnd ? new Date(params.currentPeriodEnd * 1000).toISOString() : null,
+      cancel_at: params.cancelAt ? new Date(params.cancelAt * 1000).toISOString() : null,
+      canceled_at: params.canceledAt ?? (params.status === "canceled" ? new Date().toISOString() : null),
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "organization_id" }
+  );
+  if (orgError) {
+    throw new Error(
+      `setEntitlement: failed to persist organization entitlement for ${organizationId}: ${orgError.message}`
+    );
   }
 }
 
@@ -180,6 +228,29 @@ async function userIdForCustomer(customerId: string): Promise<string | undefined
     .eq("stripe_customer_id", customerId)
     .maybeSingle();
   return data?.user_id ?? undefined;
+}
+
+async function findOrganizationByStripeCustomer(customerId: string): Promise<string | undefined> {
+  const admin = createAdminClient();
+  const [{ data: direct }, { data: account }] = await Promise.all([
+    admin
+      .from("organization_subscriptions")
+      .select("organization_id")
+      .eq("stripe_customer_id", customerId)
+      .maybeSingle(),
+    admin.from("billing_accounts").select("organization_id").eq("stripe_customer_id", customerId).maybeSingle(),
+  ]);
+  return (
+    (direct as { organization_id?: string } | null)?.organization_id ??
+    (account as { organization_id?: string } | null)?.organization_id ??
+    undefined
+  );
+}
+
+async function getOrganizationOwnerId(organizationId: string): Promise<string | undefined> {
+  const admin = createAdminClient();
+  const { data } = await admin.from("organizations").select("owner_id").eq("id", organizationId).maybeSingle();
+  return (data as { owner_id?: string } | null)?.owner_id ?? undefined;
 }
 
 async function syncOrganizationInvoice(invoice: Stripe.Invoice, eventType: string): Promise<boolean> {
@@ -270,6 +341,8 @@ export async function POST(request: NextRequest) {
 
         const plan = toPlan(session.metadata?.plan);
         const supabaseUserId = session.metadata?.supabase_user_id;
+        const organizationId = session.metadata?.organization_id;
+        const ownerUserId = session.metadata?.owner_user_id;
         const customerId = typeof session.customer === "string" ? session.customer : session.customer?.id;
 
         if (customerId && plan) {
@@ -277,11 +350,17 @@ export async function POST(request: NextRequest) {
           await setEntitlement({
             stripeCustomerId: customerId,
             supabaseUserId,
+            organizationId,
+            ownerUserId,
             tier: plan,
             status: "active",
             stripeSubscriptionId: subscriptionId,
           });
-          analytics.track({ event: "checkout_completed", userId: supabaseUserId, properties: { plan } });
+          analytics.track({
+            event: "checkout_completed",
+            userId: supabaseUserId,
+            properties: { plan, organizationId },
+          });
         }
         break;
       }
@@ -289,18 +368,24 @@ export async function POST(request: NextRequest) {
       case "customer.subscription.updated":
       case "customer.subscription.created": {
         const subscription = event.data.object;
-        const plan = toPlan(subscription.metadata?.plan);
+        const plan = planFromSubscription(subscription);
         const supabaseUserId = subscription.metadata?.supabase_user_id;
+        const organizationId = subscription.metadata?.organization_id;
+        const ownerUserId = subscription.metadata?.owner_user_id;
         const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
         const active = subscription.status === "active" || subscription.status === "trialing";
         if (plan) {
           await setEntitlement({
             stripeCustomerId: customerId,
             supabaseUserId,
+            organizationId,
+            ownerUserId,
             tier: plan,
             status: active ? "active" : subscription.status === "past_due" ? "past_due" : "canceled",
             stripeSubscriptionId: subscription.id,
             currentPeriodEnd: subscription.items.data[0]?.current_period_end ?? null,
+            cancelAt: subscription.cancel_at ?? null,
+            canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null,
           });
         }
         break;
@@ -310,12 +395,18 @@ export async function POST(request: NextRequest) {
         const subscription = event.data.object;
         const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
         const supabaseUserId = subscription.metadata?.supabase_user_id;
+        const organizationId = subscription.metadata?.organization_id;
+        const ownerUserId = subscription.metadata?.owner_user_id;
         await setEntitlement({
           stripeCustomerId: customerId,
           supabaseUserId,
+          organizationId,
+          ownerUserId,
           // No tier needed: a cancellation always resolves to the free tier.
           status: "canceled",
           stripeSubscriptionId: subscription.id,
+          cancelAt: subscription.cancel_at ?? null,
+          canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null,
         });
         analytics.track({ event: "subscription_canceled", userId: supabaseUserId });
         break;
@@ -344,6 +435,13 @@ export async function POST(request: NextRequest) {
               properties: { invoice: invoice.id ?? undefined },
             });
           }
+          const organizationId = await findOrganizationByStripeCustomer(customer);
+          if (organizationId) {
+            await admin
+              .from("organization_subscriptions")
+              .update({ status: "active", updated_at: new Date().toISOString() })
+              .eq("organization_id", organizationId);
+          }
         }
         break;
       }
@@ -363,6 +461,13 @@ export async function POST(request: NextRequest) {
             userId: await userIdForCustomer(customer),
             properties: { invoice: invoice.id ?? undefined, attempt: invoice.attempt_count ?? 0 },
           });
+          const organizationId = await findOrganizationByStripeCustomer(customer);
+          if (organizationId) {
+            await admin
+              .from("organization_subscriptions")
+              .update({ status: "past_due", updated_at: new Date().toISOString() })
+              .eq("organization_id", organizationId);
+          }
         }
         const amount = formatAmount(invoice.amount_due, invoice.currency);
         log.warn("Invoice payment failed", {

@@ -92,7 +92,7 @@ describe("E2E Compliance Wizard Workflow (Free Preview)", () => {
 
     // Paywall Gate is visible
     expect(screen.getByText("Your package is ready.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Unlock with Solo/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Unlock with Freelancer/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Unlimited Agency Pass/i })).toBeInTheDocument();
 
     // Premium elements should NOT be fully unlocked (or not copyable / they are blurred behind paywall)

@@ -6,6 +6,9 @@ import { NextRequest } from "next/server";
 // so the route can be exercised in isolation without a request scope or network.
 
 const mockGetUser = vi.fn();
+const mockGetActiveOrganizationId = vi.fn();
+const mockGetMyOrgRole = vi.fn();
+const mockCan = vi.fn();
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({
@@ -22,6 +25,15 @@ vi.mock("@/lib/supabase/admin", () => ({
       upsert: async () => ({ data: null }),
     }),
   }),
+}));
+
+vi.mock("@/lib/organizations-db", () => ({
+  getActiveOrganizationId: mockGetActiveOrganizationId,
+  getMyOrgRole: mockGetMyOrgRole,
+}));
+
+vi.mock("@/lib/rbac", () => ({
+  can: mockCan,
 }));
 
 function makeRequest(body: unknown): NextRequest {
@@ -41,6 +53,12 @@ describe("POST /api/checkout", () => {
   beforeEach(() => {
     mockGetUser.mockReset();
     mockGetUser.mockResolvedValue({ data: { user: { id: "user_1", email: "a@b.com" } } });
+    mockGetActiveOrganizationId.mockReset();
+    mockGetActiveOrganizationId.mockResolvedValue("org_1");
+    mockGetMyOrgRole.mockReset();
+    mockGetMyOrgRole.mockResolvedValue("owner");
+    mockCan.mockReset();
+    mockCan.mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -80,6 +98,18 @@ describe("POST /api/checkout", () => {
     expect(res.status).toBe(400);
     const data = await res.json();
     expect(data.error).toContain("Invalid plan");
+  });
+
+  it("returns 403 when user cannot manage org billing", async () => {
+    vi.stubEnv("STRIPE_SECRET_KEY", "sk_test_dummy");
+    mockCan.mockReturnValue(false);
+    const { POST } = await loadRoute();
+
+    const res = await POST(makeRequest({ plan: "solo" }));
+
+    expect(res.status).toBe(403);
+    const data = await res.json();
+    expect(data.error).toContain("permission");
   });
 
   it("returns 400 for an invalid JSON body when authenticated", async () => {

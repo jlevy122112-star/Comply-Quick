@@ -1,7 +1,15 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isTier, normalizeTierKey, TIER_CONFIG, type PaidTier, type Tier } from "@/lib/pricing";
+import {
+  isTier,
+  normalizeTierKey,
+  organizationPlanToTier,
+  TIER_CONFIG,
+  type OrganizationPlan,
+  type PaidTier,
+  type Tier,
+} from "@/lib/pricing";
 import { getActiveOrganizationId } from "@/lib/organizations-db";
 
 export type { PaidTier, Tier };
@@ -12,6 +20,8 @@ export interface Entitlement {
   isPremium: boolean;
   isEnterprise: boolean;
   currentPeriodEnd: string | null;
+  cancelAt: string | null;
+  canceledAt: string | null;
   limits: {
     seats: number;
     scanLimit: number;
@@ -25,6 +35,8 @@ const DEFAULT_ENTITLEMENT: Entitlement = {
   isPremium: false,
   isEnterprise: false,
   currentPeriodEnd: null,
+  cancelAt: null,
+  canceledAt: null,
   limits: { seats: 1, scanLimit: 1, managedClients: null },
 };
 
@@ -44,7 +56,7 @@ export async function getEntitlement(): Promise<Entitlement> {
 
   const { data, error } = await supabase
     .from("subscriptions")
-    .select("tier, status, current_period_end")
+    .select("tier, status, current_period_end, cancel_at, canceled_at")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -56,6 +68,8 @@ interface SubscriptionRow {
   tier: string | null;
   status: string | null;
   current_period_end: string | null;
+  cancel_at?: string | null;
+  canceled_at?: string | null;
 }
 
 /** Translates a raw subscriptions row into a typed entitlement. */
@@ -73,6 +87,8 @@ function mapEntitlement(data: SubscriptionRow): Entitlement {
     isPremium,
     isEnterprise,
     currentPeriodEnd: data.current_period_end ?? null,
+    cancelAt: data.cancel_at ?? null,
+    canceledAt: data.canceled_at ?? null,
     limits: limitsForTier(tier),
   };
 }
@@ -86,7 +102,7 @@ export const getEntitlementForUser = cache(async (userId: string): Promise<Entit
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("subscriptions")
-    .select("tier, status, current_period_end")
+    .select("tier, status, current_period_end, cancel_at, canceled_at")
     .eq("user_id", userId)
     .maybeSingle();
   if (error || !data) return DEFAULT_ENTITLEMENT;
@@ -101,17 +117,24 @@ export const getOrgEntitlement = cache(async (organizationId?: string): Promise<
   const resolvedOrganizationId = organizationId ?? (await getActiveOrganizationId());
   if (!resolvedOrganizationId) return getEntitlement();
 
-  const supabase = await createClient();
-  const { data: organization } = await supabase
+  const admin = createAdminClient();
+  const { data: organization } = await admin
     .from("organizations")
-    .select("owner_id")
+    .select("owner_id, plan")
     .eq("id", resolvedOrganizationId)
     .maybeSingle();
   const ownerId = (organization as { owner_id?: string } | null)?.owner_id;
+  const organizationPlan = (organization as { plan?: OrganizationPlan } | null)?.plan;
   if (!ownerId) return getEntitlement();
-  const entitlement = await getEntitlementForUser(ownerId);
+  const { data: orgSubscription } = await admin
+    .from("organization_subscriptions")
+    .select("tier, status, current_period_end, cancel_at, canceled_at")
+    .eq("organization_id", resolvedOrganizationId)
+    .maybeSingle();
+  const entitlement = orgSubscription
+    ? mapEntitlement(orgSubscription)
+    : applyOrganizationPlanBaseline(await getEntitlementForUser(ownerId), organizationPlan);
   try {
-    const admin = createAdminClient();
     const now = new Date().toISOString();
     const { data: override } = await admin
       .from("manual_entitlement_overrides")
@@ -137,6 +160,19 @@ interface ManualOverrideRow {
   managed_clients: number | null;
 }
 
+function applyOrganizationPlanBaseline(entitlement: Entitlement, plan?: OrganizationPlan): Entitlement {
+  if (!plan) return entitlement;
+  const mappedTier = organizationPlanToTier(plan);
+  if (entitlement.tier !== "free") return entitlement;
+  return {
+    ...entitlement,
+    tier: mappedTier,
+    isPremium: mappedTier !== "free" && entitlement.status === "active",
+    isEnterprise: mappedTier === "enterprise" && entitlement.status === "active",
+    limits: limitsForTier(mappedTier),
+  };
+}
+
 function limitsForTier(tier: Tier): Entitlement["limits"] {
   const config = TIER_CONFIG[tier];
   return {
@@ -157,10 +193,22 @@ function applyManualOverride(entitlement: Entitlement, override: ManualOverrideR
     status: "active",
     isPremium: tier !== "free",
     isEnterprise: tier === "enterprise",
+    cancelAt: entitlement.cancelAt,
+    canceledAt: entitlement.canceledAt,
     limits: {
       seats: override.seats ?? base.seats,
       scanLimit: override.scan_limit ?? base.scanLimit,
       managedClients: override.managed_clients ?? base.managedClients,
     },
   };
+}
+
+const TIER_RANK: Record<Tier, number> = { free: 0, solo: 1, agency: 2, enterprise: 3 };
+
+export function tierAtLeast(current: Tier, required: Tier): boolean {
+  return TIER_RANK[current] >= TIER_RANK[required];
+}
+
+export function hasPaidAccess(entitlement: Pick<Entitlement, "tier" | "status">): boolean {
+  return entitlement.status === "active" && entitlement.tier !== "free";
 }
