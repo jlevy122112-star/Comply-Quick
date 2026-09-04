@@ -15,10 +15,12 @@ function humanize(value: string): string {
 /** Workspace header — score ring, project meta, and primary actions. */
 export function WorkspaceHeader({
   project,
+  workspace,
   pendingCount,
   basePath,
 }: {
   project: WorkspaceData["project"];
+  workspace: WorkspaceData["workspace"];
   pendingCount: number;
   basePath: string;
 }) {
@@ -33,6 +35,7 @@ export function WorkspaceHeader({
             <Badge tone={status.tone}>{status.label}</Badge>
           </div>
           <p className="mt-1 text-sm text-gray-400">
+            {workspace ? `Workspace: ${workspace.name} · ` : "Workspace: Unassigned · "}
             {humanize(project.framework)} &middot; {project.targetRegions.length} region
             {project.targetRegions.length !== 1 ? "s" : ""} &middot; {project.complianceModules.length} module
             {project.complianceModules.length !== 1 ? "s" : ""}
