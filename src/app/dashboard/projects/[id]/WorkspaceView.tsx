@@ -105,7 +105,6 @@ export function WorkspaceView({
               scans={scans}
               projectId={project.id}
               projectName={project.name}
-              workspaceId={project.workspaceId}
               workspaceName={data.workspace?.name ?? null}
             />
           )}

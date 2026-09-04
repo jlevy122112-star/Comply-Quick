@@ -8,12 +8,17 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getActiveOrganizationId, slugify } from "@/lib/organizations-db";
+import { THEME_PALETTES, type ThemePalette } from "@/lib/organizations";
 
 export interface Workspace {
   id: string;
   organizationId: string;
   name: string;
   slug: string;
+  logoUrl: string | null;
+  primaryColor: string;
+  themePalette: ThemePalette;
+  footerText: string | null;
   projectCount: number;
   createdAt: string;
 }
@@ -23,7 +28,22 @@ interface WorkspaceRow {
   organization_id: string;
   name: string;
   slug: string;
+  logo_url: string | null;
+  primary_color: string | null;
+  theme_palette: string | null;
+  footer_text: string | null;
   created_at: string;
+}
+
+export interface WorkspaceBrandingPatch {
+  logoUrl?: string | null;
+  primaryColor?: string;
+  themePalette?: ThemePalette;
+  footerText?: string | null;
+}
+
+function isThemePalette(value: string | null | undefined): value is ThemePalette {
+  return typeof value === "string" && (THEME_PALETTES as readonly string[]).includes(value);
 }
 
 function rowToWorkspace(row: WorkspaceRow, projectCount = 0): Workspace {
@@ -32,6 +52,10 @@ function rowToWorkspace(row: WorkspaceRow, projectCount = 0): Workspace {
     organizationId: row.organization_id,
     name: row.name,
     slug: row.slug,
+    logoUrl: row.logo_url ?? null,
+    primaryColor: row.primary_color ?? "#4f46e5",
+    themePalette: isThemePalette(row.theme_palette) ? row.theme_palette : "indigo",
+    footerText: row.footer_text ?? null,
     projectCount,
     createdAt: row.created_at,
   };
@@ -41,7 +65,7 @@ export async function listWorkspaces(orgId: string): Promise<Workspace[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("workspaces")
-    .select("id, organization_id, name, slug, created_at")
+    .select("id, organization_id, name, slug, logo_url, primary_color, theme_palette, footer_text, created_at")
     .eq("organization_id", orgId)
     .order("created_at", { ascending: true });
   if (error || !data) return [];
@@ -75,7 +99,7 @@ export async function getWorkspaceById(id: string, organizationId?: string | nul
   const activeOrganizationId = organizationId === undefined ? await getActiveOrganizationId() : organizationId;
   const { data, error } = await supabase
     .from("workspaces")
-    .select("id, organization_id, name, slug, created_at")
+    .select("id, organization_id, name, slug, logo_url, primary_color, theme_palette, footer_text, created_at")
     .eq("id", id)
     .maybeSingle();
   if (error || !data) return null;
@@ -124,6 +148,23 @@ export async function renameWorkspace(id: string, name: string, organizationId?:
 export async function deleteWorkspace(id: string, organizationId?: string): Promise<boolean> {
   const supabase = await createClient();
   let query = supabase.from("workspaces").delete().eq("id", id);
+  if (organizationId) query = query.eq("organization_id", organizationId);
+  const { data, error } = await query.select("id").maybeSingle();
+  return !error && !!data;
+}
+
+export async function updateWorkspaceBranding(
+  id: string,
+  patch: WorkspaceBrandingPatch,
+  organizationId?: string
+): Promise<boolean> {
+  const supabase = await createClient();
+  const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (patch.logoUrl !== undefined) update.logo_url = patch.logoUrl;
+  if (patch.primaryColor !== undefined) update.primary_color = patch.primaryColor;
+  if (patch.themePalette !== undefined) update.theme_palette = patch.themePalette;
+  if (patch.footerText !== undefined) update.footer_text = patch.footerText;
+  let query = supabase.from("workspaces").update(update).eq("id", id);
   if (organizationId) query = query.eq("organization_id", organizationId);
   const { data, error } = await query.select("id").maybeSingle();
   return !error && !!data;
