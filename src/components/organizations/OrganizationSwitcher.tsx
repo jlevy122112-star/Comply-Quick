@@ -79,7 +79,7 @@ export function OrganizationSwitcher({
               light ? "text-text-muted" : "text-gray-500"
             )}
           >
-            Workspace
+            Organization
           </span>
           <span
             id="organization-switcher-value"

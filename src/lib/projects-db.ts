@@ -35,6 +35,8 @@ export interface NewProjectInput {
 
 interface ProjectRow {
   id: string;
+  user_id?: string;
+  organization_id?: string | null;
   workspace_id: string | null;
   name: string;
   framework: string;
@@ -46,6 +48,20 @@ interface ProjectRow {
   package_markdown: string;
   created_at: string;
   updated_at: string;
+}
+
+interface ProjectTenantScopeRow {
+  id: string;
+  user_id: string;
+  organization_id: string | null;
+  workspace_id: string | null;
+}
+
+export interface ProjectTenantScope {
+  id: string;
+  userId: string;
+  organizationId: string | null;
+  workspaceId: string | null;
 }
 
 function rowToProject(row: ProjectRow): DbProject {
@@ -84,22 +100,48 @@ export async function listProjects(): Promise<DbProject[]> {
 }
 
 export async function getProjectById(id: string): Promise<DbProject | null> {
+  const scope = await getProjectTenantScope(id);
+  if (!scope) return null;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("projects").select("*").eq("id", id).maybeSingle();
+
+  if (error || !data) return null;
+  return rowToProject(data as ProjectRow);
+}
+
+export async function getProjectTenantScope(id: string): Promise<ProjectTenantScope | null> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
-  const organizationId = await getActiveOrganizationId();
 
   const { data, error } = await supabase
     .from("projects")
-    .select("*")
+    .select("id, user_id, organization_id, workspace_id")
     .eq("id", id)
-    .or(organizationReadFilter(user.id, organizationId))
     .maybeSingle();
-
   if (error || !data) return null;
-  return rowToProject(data as ProjectRow);
+
+  const row = data as ProjectTenantScopeRow;
+  const activeOrganizationId = await getActiveOrganizationId();
+  if (row.organization_id) {
+    if (!activeOrganizationId || row.organization_id !== activeOrganizationId) return null;
+    return {
+      id: row.id,
+      userId: row.user_id,
+      organizationId: row.organization_id,
+      workspaceId: row.workspace_id,
+    };
+  }
+  if (row.user_id !== user.id) return null;
+  return {
+    id: row.id,
+    userId: row.user_id,
+    organizationId: null,
+    workspaceId: row.workspace_id,
+  };
 }
 
 export async function createProject(input: NewProjectInput): Promise<DbProject | null> {
@@ -145,7 +187,10 @@ export async function updateProjectPackage(
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data, error } = await supabase
+  const scope = await getProjectTenantScope(id);
+  if (!scope) return null;
+
+  let query = supabase
     .from("projects")
     .update({
       package_markdown: packageMarkdown,
@@ -153,10 +198,11 @@ export async function updateProjectPackage(
       status: "current",
       updated_at: new Date().toISOString(),
     })
-    .eq("id", id)
-    .eq("user_id", user.id)
-    .select("*")
-    .single();
+    .eq("id", id);
+  query = scope.organizationId
+    ? query.eq("organization_id", scope.organizationId)
+    : query.eq("user_id", user.id).is("organization_id", null);
+  const { data, error } = await query.select("*").single();
 
   if (error || !data) return null;
   return rowToProject(data as ProjectRow);
@@ -169,7 +215,14 @@ export async function deleteProjectById(id: string): Promise<boolean> {
   } = await supabase.auth.getUser();
   if (!user) return false;
 
-  const { error } = await supabase.from("projects").delete().eq("id", id).eq("user_id", user.id);
+  const scope = await getProjectTenantScope(id);
+  if (!scope) return false;
+
+  let query = supabase.from("projects").delete().eq("id", id);
+  query = scope.organizationId
+    ? query.eq("organization_id", scope.organizationId)
+    : query.eq("user_id", user.id).is("organization_id", null);
+  const { error } = await query;
   return !error;
 }
 

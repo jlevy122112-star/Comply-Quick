@@ -7,7 +7,7 @@
 // layer. Project counts are resolved in one batched pass for the list view.
 
 import { createClient } from "@/lib/supabase/server";
-import { slugify } from "@/lib/organizations-db";
+import { getActiveOrganizationId, slugify } from "@/lib/organizations-db";
 
 export interface Workspace {
   id: string;
@@ -70,15 +70,18 @@ export async function countWorkspaces(orgId: string): Promise<number> {
   return count ?? 0;
 }
 
-export async function getWorkspaceById(id: string): Promise<Workspace | null> {
+export async function getWorkspaceById(id: string, organizationId?: string | null): Promise<Workspace | null> {
   const supabase = await createClient();
+  const activeOrganizationId = organizationId === undefined ? await getActiveOrganizationId() : organizationId;
   const { data, error } = await supabase
     .from("workspaces")
     .select("id, organization_id, name, slug, created_at")
     .eq("id", id)
     .maybeSingle();
   if (error || !data) return null;
-  return rowToWorkspace(data as WorkspaceRow);
+  const row = data as WorkspaceRow;
+  if (activeOrganizationId && row.organization_id !== activeOrganizationId) return null;
+  return rowToWorkspace(row);
 }
 
 export async function createWorkspace(
@@ -105,19 +108,23 @@ export async function createWorkspace(
   return { ok: true, id: (data as { id: string }).id };
 }
 
-export async function renameWorkspace(id: string, name: string): Promise<boolean> {
+export async function renameWorkspace(id: string, name: string, organizationId?: string): Promise<boolean> {
   const clean = name.trim();
   if (clean.length < 2) return false;
   const supabase = await createClient();
-  const { error } = await supabase
+  let query = supabase
     .from("workspaces")
     .update({ name: clean.slice(0, 120), updated_at: new Date().toISOString() })
     .eq("id", id);
+  if (organizationId) query = query.eq("organization_id", organizationId);
+  const { error } = await query;
   return !error;
 }
 
-export async function deleteWorkspace(id: string): Promise<boolean> {
+export async function deleteWorkspace(id: string, organizationId?: string): Promise<boolean> {
   const supabase = await createClient();
-  const { error } = await supabase.from("workspaces").delete().eq("id", id);
+  let query = supabase.from("workspaces").delete().eq("id", id);
+  if (organizationId) query = query.eq("organization_id", organizationId);
+  const { error } = await query;
   return !error;
 }

@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 
 const mockGetUser = vi.fn();
 const mockGetMyOrgRole = vi.fn();
+const mockGetActiveOrganizationId = vi.fn();
 const updateSpy = vi.fn();
 const insertSpy = vi.fn();
 
@@ -59,6 +60,7 @@ vi.mock("@/lib/supabase/server", () => ({
 
 vi.mock("@/lib/organizations-db", () => ({
   getMyOrgRole: (...args: unknown[]) => mockGetMyOrgRole(...args),
+  getActiveOrganizationId: (...args: unknown[]) => mockGetActiveOrganizationId(...args),
 }));
 
 function req(body: unknown) {
@@ -88,6 +90,7 @@ describe("POST /api/workspaces/:id/api-key", () => {
     insertSpy.mockReset();
     mockGetUser.mockResolvedValue({ data: { user: { id: "user_1" } } });
     mockGetMyOrgRole.mockResolvedValue("admin");
+    mockGetActiveOrganizationId.mockResolvedValue("org_1");
   });
 
   it("creates a workspace-scoped key", async () => {
@@ -146,5 +149,12 @@ describe("POST /api/workspaces/:id/api-key", () => {
     const res = await DELETE(deleteReq(), { params: Promise.resolve({ id: "ws_1" }) });
     expect(res.status).toBe(403);
     expect(updateSpy).not.toHaveBeenCalled();
+  });
+
+  it("rejects a workspace outside the active tenant context", async () => {
+    mockGetActiveOrganizationId.mockResolvedValue("org_2");
+    const { GET } = await loadRoute();
+    const res = await GET(getReq(), { params: Promise.resolve({ id: "ws_1" }) });
+    expect(res.status).toBe(403);
   });
 });

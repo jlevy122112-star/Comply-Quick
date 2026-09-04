@@ -8,6 +8,7 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getProjectTenantScope } from "@/lib/projects-db";
 
 export type ProjectMemberRole = "owner" | "editor" | "viewer";
 
@@ -43,6 +44,8 @@ export async function listProjectMembers(projectId: string): Promise<ProjectMemb
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return [];
+  const scope = await getProjectTenantScope(projectId);
+  if (!scope) return [];
 
   const { data } = await supabase
     .from("project_members")
@@ -97,6 +100,8 @@ export async function addProjectMember(
   const invitee = await findUserByEmail(admin, normalized);
   if (!invitee) return { ok: false, error: "No Comply-Quick account exists for that email yet." };
   if (invitee.id === user.id) return { ok: false, error: "You already own this project." };
+  const scope = await getProjectTenantScope(projectId);
+  if (!scope) return { ok: false, error: "Project not found." };
 
   const { error } = await supabase.from("project_members").insert({ project_id: projectId, user_id: invitee.id, role });
   if (error) {
@@ -107,12 +112,14 @@ export async function addProjectMember(
 }
 
 /** Removes a collaborator from a project (owner-only, enforced by RLS). */
-export async function removeProjectMember(memberId: string): Promise<boolean> {
+export async function removeProjectMember(projectId: string, memberId: string): Promise<boolean> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return false;
-  const { error } = await supabase.from("project_members").delete().eq("id", memberId);
+  const scope = await getProjectTenantScope(projectId);
+  if (!scope) return false;
+  const { error } = await supabase.from("project_members").delete().eq("id", memberId).eq("project_id", projectId);
   return !error;
 }

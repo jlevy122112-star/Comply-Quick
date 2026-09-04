@@ -12,15 +12,11 @@ const { serverRows, mockServerClient } = vi.hoisted(() => ({
     },
     from: (table: string) => {
       if (table === "projects") {
-        return {
-          select: () => ({
-            eq: () => ({
-              eq: () => ({
-                maybeSingle: async () => ({ data: { id: "project-a", organization_id: "org-a" }, error: null }),
-              }),
-            }),
-          }),
+        const builder = {
+          eq: () => builder,
+          maybeSingle: async () => ({ data: { id: "project-a", organization_id: "org-a" }, error: null }),
         };
+        return { select: () => builder };
       }
       return {
         insert: (row: Record<string, unknown>) => {

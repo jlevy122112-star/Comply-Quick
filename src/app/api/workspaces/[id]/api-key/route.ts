@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getMyOrgRole } from "@/lib/organizations-db";
+import { getActiveOrganizationId, getMyOrgRole } from "@/lib/organizations-db";
 import { can } from "@/lib/rbac";
 import { generateKey, hashKey, keyPrefixOf } from "@/lib/api/keys";
 import { mapWorkspaceApiKey, revokeWorkspaceApiKey } from "@/lib/workspace-api-keys";
@@ -15,15 +15,19 @@ async function authorizeWorkspace(workspaceId: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { supabase, user: null, role: null };
+  if (!user) return { supabase, user: null, role: null, access: "unauthenticated" as const };
   const { data: workspace } = await supabase
     .from("workspaces")
     .select("id, organization_id")
     .eq("id", workspaceId)
     .maybeSingle();
   const organizationId = (workspace as { id: string; organization_id: string } | null)?.organization_id ?? null;
+  const activeOrganizationId = await getActiveOrganizationId();
+  if (organizationId && activeOrganizationId && organizationId !== activeOrganizationId) {
+    return { supabase, user, role: null, organizationId, access: "forbidden" as const };
+  }
   const role = organizationId ? await getMyOrgRole(organizationId) : null;
-  return { supabase, user, role, organizationId };
+  return { supabase, user, role, organizationId, access: role ? ("ok" as const) : ("not_found" as const) };
 }
 
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -34,13 +38,15 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
   }
 
   const { id } = await context.params;
-  const { supabase, user, role } = await authorizeWorkspace(id);
+  const { supabase, user, role, organizationId, access } = await authorizeWorkspace(id);
   if (!user) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
-  if (!role) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  if (access === "forbidden") return NextResponse.json({ error: "wrong_workspace_context" }, { status: 403 });
+  if (!role || !organizationId) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   const { data, error } = await supabase
     .from("client_api_keys")
     .select(KEY_COLUMNS)
+    .eq("organization_id", organizationId)
     .eq("workspace_id", id)
     .order("created_at", { ascending: false });
   if (error) return NextResponse.json({ error: "list_failed" }, { status: 500 });
@@ -66,8 +72,9 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   const payload = (body ?? {}) as Record<string, unknown>;
 
   const { id } = await context.params;
-  const { supabase, user, role, organizationId } = await authorizeWorkspace(id);
+  const { supabase, user, role, organizationId, access } = await authorizeWorkspace(id);
   if (!user) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
+  if (access === "forbidden") return NextResponse.json({ error: "wrong_workspace_context" }, { status: 403 });
   if (!role || !organizationId) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (!can(role, "org:update")) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
@@ -94,6 +101,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     const { error: revokeError } = await supabase
       .from("client_api_keys")
       .update({ revoked_at: now, updated_at: now })
+      .eq("organization_id", organizationId)
       .eq("workspace_id", id)
       .neq("id", String((data as Record<string, unknown>).id))
       .is("revoked_at", null);
@@ -114,8 +122,9 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
   const keyId = request.nextUrl.searchParams.get("keyId");
   if (!keyId) return NextResponse.json({ error: "missing_key_id" }, { status: 400 });
 
-  const { user, role } = await authorizeWorkspace(id);
+  const { user, role, access } = await authorizeWorkspace(id);
   if (!user) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
+  if (access === "forbidden") return NextResponse.json({ error: "wrong_workspace_context" }, { status: 403 });
   if (!role) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (!can(role, "org:update")) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 

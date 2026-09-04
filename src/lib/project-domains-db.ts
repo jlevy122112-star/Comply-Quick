@@ -5,6 +5,7 @@
 // values are normalized (lowercased host, no scheme/path) before persisting.
 
 import { createClient } from "@/lib/supabase/server";
+import { getProjectTenantScope } from "@/lib/projects-db";
 
 export interface ProjectDomain {
   id: string;
@@ -42,6 +43,8 @@ export function normalizeDomain(input: string): string {
 }
 
 export async function listProjectDomains(projectId: string): Promise<ProjectDomain[]> {
+  const scope = await getProjectTenantScope(projectId);
+  if (!scope) return [];
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("project_domains")
@@ -65,6 +68,8 @@ export async function addProjectDomain(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in." };
+  const scope = await getProjectTenantScope(projectId);
+  if (!scope) return { ok: false, error: "Project not found." };
 
   const { data, error } = await supabase
     .from("project_domains")
@@ -77,8 +82,10 @@ export async function addProjectDomain(
   return { ok: true, domain: rowToDomain(data as ProjectDomainRow) };
 }
 
-export async function removeProjectDomain(id: string): Promise<boolean> {
+export async function removeProjectDomain(projectId: string, id: string): Promise<boolean> {
+  const scope = await getProjectTenantScope(projectId);
+  if (!scope) return false;
   const supabase = await createClient();
-  const { error } = await supabase.from("project_domains").delete().eq("id", id);
+  const { error } = await supabase.from("project_domains").delete().eq("id", id).eq("project_id", projectId);
   return !error;
 }

@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { decodeJwtAal, mfaGate } from "@/lib/auth/mfa";
+import { ACTIVE_ORGANIZATION_COOKIE, ACTIVE_ORGANIZATION_HEADER } from "@/lib/tenant-context";
 
 /**
  * Refreshes the Supabase auth session on every request and guards protected
@@ -35,16 +36,49 @@ function captureReferral(request: NextRequest, response: NextResponse) {
   });
 }
 
+async function resolveActiveOrganizationForRequest(
+  supabase: ReturnType<typeof createServerClient>,
+  request: NextRequest,
+  userId: string
+): Promise<string | null> {
+  const storedId = request.cookies.get(ACTIVE_ORGANIZATION_COOKIE)?.value ?? null;
+  const [{ data: owned }, { data: memberships }] = await Promise.all([
+    supabase
+      .from("organizations")
+      .select("id, is_personal, created_at")
+      .eq("owner_id", userId)
+      .order("created_at", { ascending: true }),
+    supabase.from("organization_members").select("organization_id").eq("user_id", userId),
+  ]);
+
+  const ownedRows = (owned ?? []) as Array<{ id: string; is_personal?: boolean | null }>;
+  const membershipRows = (memberships ?? []) as Array<{ organization_id: string }>;
+  const visibleIds = new Set<string>([
+    ...ownedRows.map((row) => String(row.id)),
+    ...membershipRows.map((row) => String(row.organization_id)),
+  ]);
+
+  if (storedId && visibleIds.has(storedId)) return storedId;
+  const personal = ownedRows.find((row) => row.is_personal === true);
+  if (personal) return String(personal.id);
+  return ownedRows[0]?.id ?? membershipRows[0]?.organization_id ?? null;
+}
+
 export async function updateSession(request: NextRequest, csp?: { nonce: string; policy: string }) {
+  let activeOrganizationId: string | null = null;
+
   // Builds the init for NextResponse.next, re-reading `request.headers` each time
   // so any cookies Supabase just refreshed (via request.cookies.set in setAll)
   // are forwarded to the render — while re-stamping the per-request CSP nonce the
   // proxy asked us to propagate so Next.js can nonce its own scripts.
   const nextInit = () => {
-    if (!csp) return { request };
     const headers = new Headers(request.headers);
-    headers.set("x-nonce", csp.nonce);
-    headers.set("content-security-policy", csp.policy);
+    if (csp) {
+      headers.set("x-nonce", csp.nonce);
+      headers.set("content-security-policy", csp.policy);
+    }
+    if (activeOrganizationId) headers.set(ACTIVE_ORGANIZATION_HEADER, activeOrganizationId);
+    else headers.delete(ACTIVE_ORGANIZATION_HEADER);
     return { request: { headers } };
   };
 
@@ -90,6 +124,11 @@ export async function updateSession(request: NextRequest, csp?: { nonce: string;
 
   const isProtected = PROTECTED_PREFIXES.some((p) => path.startsWith(p));
 
+  if (user) {
+    activeOrganizationId = await resolveActiveOrganizationForRequest(supabase, request, user.id);
+    supabaseResponse = NextResponse.next(nextInit());
+  }
+
   if (isProtected && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
@@ -119,6 +158,7 @@ export async function updateSession(request: NextRequest, csp?: { nonce: string;
     }
   }
 
+  if (activeOrganizationId) supabaseResponse.headers.set(ACTIVE_ORGANIZATION_HEADER, activeOrganizationId);
   captureReferral(request, supabaseResponse);
   return supabaseResponse;
 }

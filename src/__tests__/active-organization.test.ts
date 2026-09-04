@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({
   cookieValue: null as string | null,
+  headerValue: null as string | null,
   organizations: [] as Record<string, unknown>[],
   memberships: [] as Record<string, unknown>[],
   personal: null as Record<string, unknown> | null,
@@ -10,6 +11,9 @@ const state = vi.hoisted(() => ({
 vi.mock("next/headers", () => ({
   cookies: async () => ({
     get: () => (state.cookieValue ? { value: state.cookieValue } : undefined),
+  }),
+  headers: async () => ({
+    get: () => state.headerValue,
   }),
 }));
 
@@ -67,6 +71,7 @@ const shared = {
 describe("resolveActiveOrganizationId", () => {
   it("defaults to the caller's personal organization", async () => {
     state.cookieValue = null;
+    state.headerValue = null;
     state.organizations = [personal, shared];
     state.memberships = [];
     state.personal = personal;
@@ -76,6 +81,7 @@ describe("resolveActiveOrganizationId", () => {
 
   it("ignores a stored organization the caller is not a member of", async () => {
     state.cookieValue = "org-foreign";
+    state.headerValue = null;
     state.organizations = [personal, shared];
     state.memberships = [];
     state.personal = personal;
@@ -85,6 +91,17 @@ describe("resolveActiveOrganizationId", () => {
 
   it("returns a stored organization when it is a valid membership", async () => {
     state.cookieValue = "org-shared";
+    state.headerValue = null;
+    state.organizations = [personal, shared];
+    state.memberships = [{ organization_id: "org-shared" }];
+    state.personal = personal;
+
+    await expect(resolveActiveOrganizationId()).resolves.toBe("org-shared");
+  });
+
+  it("prefers the middleware-provided tenant header when present", async () => {
+    state.cookieValue = "org-personal";
+    state.headerValue = "org-shared";
     state.organizations = [personal, shared];
     state.memberships = [{ organization_id: "org-shared" }];
     state.personal = personal;

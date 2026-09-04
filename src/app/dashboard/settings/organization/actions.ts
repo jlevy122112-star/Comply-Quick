@@ -105,7 +105,7 @@ export async function createWorkspaceAction(orgId: string, name: string): Promis
 export async function renameWorkspaceAction(orgId: string, id: string, name: string): Promise<{ ok: true } | Denied> {
   const gate = await authorize(orgId, "workspace:update");
   if (!gate.ok) return gate;
-  const ok = await renameWorkspace(id, name);
+  const ok = await renameWorkspace(id, name, orgId);
   revalidatePath(PATH);
   return ok ? { ok: true } : { ok: false, error: "Could not rename the workspace." };
 }
@@ -113,7 +113,7 @@ export async function renameWorkspaceAction(orgId: string, id: string, name: str
 export async function deleteWorkspaceAction(orgId: string, id: string): Promise<{ ok: true } | Denied> {
   const gate = await authorize(orgId, "workspace:delete");
   if (!gate.ok) return gate;
-  const ok = await deleteWorkspace(id);
+  const ok = await deleteWorkspace(id, orgId);
   revalidatePath(PATH);
   return ok ? { ok: true } : { ok: false, error: "Could not delete the workspace." };
 }
