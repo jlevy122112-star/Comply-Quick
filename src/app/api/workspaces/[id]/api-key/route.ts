@@ -21,6 +21,7 @@ async function authorizeWorkspace(workspaceId: string) {
     .select("id, organization_id")
     .eq("id", workspaceId)
     .maybeSingle();
+  if (!workspace) return { supabase, user, role: null, organizationId: null, access: "not_found" as const };
   const organizationId = (workspace as { id: string; organization_id: string } | null)?.organization_id ?? null;
   const activeOrganizationId = await getActiveOrganizationId();
   if (organizationId && activeOrganizationId && organizationId !== activeOrganizationId) {
