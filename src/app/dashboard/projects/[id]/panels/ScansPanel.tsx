@@ -79,17 +79,20 @@ export function ScansPanel({
 
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
-      const disposition = response.headers.get("content-disposition") ?? "";
-      const filenameMatch = disposition.match(/filename="([^"]+)"/);
-      const filename =
-        filenameMatch?.[1] ?? `${projectName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-report.${format}`;
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(downloadUrl);
+      try {
+        const disposition = response.headers.get("content-disposition") ?? "";
+        const filenameMatch = disposition.match(/filename="([^"]+)"/);
+        const filename =
+          filenameMatch?.[1] ?? `${projectName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-report.${format}`;
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      } finally {
+        window.URL.revokeObjectURL(downloadUrl);
+      }
       setExportMessage(response.headers.get("x-cq-export-message") ?? `${format.toUpperCase()} report downloaded.`);
     } finally {
       setBusyExport(null);

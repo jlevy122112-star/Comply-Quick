@@ -208,7 +208,7 @@ export function renderScanExportText(prepared: PreparedScanExport): string {
     lines.push("");
   }
 
-  lines.push(prepared.branding.footerText, REPORT_DISCLAIMER);
+  lines.push(prepared.branding.footerText, "", REPORT_DISCLAIMER);
   return `${lines.join("\n").trim()}\n`;
 }
 

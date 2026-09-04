@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { REPORT_DISCLAIMER } from "@/lib/legal";
 import { buildScanExportFile, prepareScanExport, renderScanExportText } from "@/lib/workspace/scan-exports";
 import type { ScanRecord } from "@/lib/scanner/service";
 import { resolveWorkspaceDeliverableBranding } from "@/lib/workspace/branding";
@@ -95,6 +96,7 @@ describe("scan exports", () => {
     expect(text).toContain("Acme Workspace Compliance Report");
     expect(text).toContain("GDPR Findings");
     expect(text).toContain("Prepared for Acme stakeholders.");
+    expect(text).toContain(REPORT_DISCLAIMER);
     expect(pdf.contentType).toBe("application/pdf");
     expect(pdf.fileName).toMatch(/acme-workspace-acme-site-client-example-com\.pdf$/);
     expect(ArrayBuffer.isView(pdf.content)).toBe(true);

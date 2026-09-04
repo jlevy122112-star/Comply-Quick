@@ -9,6 +9,12 @@ import { resolveWorkspaceDeliverableBranding } from "@/lib/workspace/branding";
 
 export async function GET(request: Request, context: { params: Promise<{ id: string; scanId: string }> }) {
   const { id, scanId } = await context.params;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+
   const format = new URL(request.url).searchParams.get("format");
   if (format !== "pdf" && format !== "txt") {
     return NextResponse.json({ error: "Unsupported export format." }, { status: 400 });
@@ -21,8 +27,10 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   if (!data) return NextResponse.json({ error: "Project not found." }, { status: 404 });
   const scan = data.scans.find((item) => item.id === scanId);
   if (!scan) return NextResponse.json({ error: "Scan not found." }, { status: 404 });
+  if (scan.projectId && scan.projectId !== id) {
+    return NextResponse.json({ error: "Scan not found." }, { status: 404 });
+  }
 
-  const supabase = await createClient();
   const { data: org } =
     scope.organizationId === null
       ? { data: null }
