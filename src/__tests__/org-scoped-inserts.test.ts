@@ -85,6 +85,7 @@ describe("organization-scoped insert paths", () => {
       "src/lib/calendar/service.ts",
       "src/lib/workspace/tasks.ts",
       "src/lib/integrations-db.ts",
+      "src/lib/native-integrations-db.ts",
       "src/lib/audit-log.ts",
       "src/lib/regulations/alert-impacts.ts",
       "src/lib/intelligence/service.ts",
