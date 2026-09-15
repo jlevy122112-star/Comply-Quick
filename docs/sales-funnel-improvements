@@ -1,0 +1,44 @@
+Grounding this in what's already in the repo: the self-serve funnel exists end-to-end (token-gated free scan, paywall triggers, public score pages + badges, partner referrals, NPS/churn loop). So the highest-leverage "sells itself" additions are the ones that create compounding acquisition loops the current funnel is missing — not more dashboard surface area. Below are the genuinely-new mechanisms I can confirm are absent, plus the honest caveats.
+
+What's already built (don't rebuild)
+Free-scan acquisition with multiple entry points → claim endpoint. LeadCaptureForm.tsx:46-62
+Viral surfaces: public score pages + embeddable "Certified" badge with white-label branding. ScannerPanel.tsx:221-225 publish.ts:60-105
+Partner referral revenue-share (B2B), with first-touch cq_ref cookie attribution through checkout. middleware.ts:20-37 route.ts:86-95
+SEO surfaces: blog engine + /compare/[slug] competitor pages, both in the sitemap. comparisons.ts:56-77 sitemap.ts:8-42
+Lead capture with a single welcome email + "Founding 100" coupon. route.ts:104-115
+Genuinely new self-serve growth loops to add
+1. Customer-to-customer referral loop (distinct from the partner program). Today referrals are only for paid partners. There is no "invite a peer, both get a reward" loop for ordinary users — the mechanism proven to drive PLG virality. The cq_ref cookie plumbing already exists to attribute it. middleware.ts:20-37
+
+2. Lifecycle email drip, not a single welcome. The leads endpoint sends exactly one lead-magnet email then stops; there's no nurture sequence to pull non-activated leads back to run their scan or upgrade. route.ts:104-115 The notification dispatch infra (Resend) is already there to build on. dispatch.ts:72-100
+
+3. Free continuous monitoring as the hook (the "re-scan habit loop"). Free tier is 1 scan/month and the public claim is one-time per email, which kills the habit loop. A free monitored site that emails "your score changed" turns a one-time visitor into a recurring returner and a natural upgrade candidate. BUILD_PLAN.md:101
+
+4. Programmatic SEO expansion. You have blog + comparison pages but no templated, data-driven landing pages (per-platform: "WordPress GDPR compliance", per-regulation, per-tracker). The GTM plan explicitly calls for programmatic SEO content. ENTERPRISE_GOVERNANCE_HUB_PLAN.md:394-400 The sitemap already auto-includes generated routes, so new templated pages plug straight in. sitemap.ts:8-42
+
+5. WordPress plugin as an in-tool lead engine. The existing plugin only injects a footer pixel — upgrade it to an admin "Scan this site" button that surfaces the teaser score inside wp-admin and deep-links to signup, putting the free scan inside the tools your ICP already uses. BUILD_PLAN.md:82-83
+
+6. Automated "cold vulnerability audit" outreach. The GTM plan lists this as manual/operational; it can be productized as a self-serve scan-and-email flow that scales top-of-funnel without founder time. ENTERPRISE_GOVERNANCE_HUB_PLAN.md:394-397
+
+The hard prerequisite (or none of this is measurable)
+The analytics sink still only writes log lines — no PostHog/Segment destination is wired, so you cannot see which loop actually converts. Wire this first, or every growth experiment is blind. analytics.ts:43-50
+
+Honest caveats
+These are enabling mechanisms — the build plan explicitly labels the growth KPIs (trial→paid, organic traffic, LTV:CAC) as business outcomes not guaranteed by code. BUILD_PLAN.md:109-111
+Resist net-new dashboard surface area; the app is already very wide. These additions are acquisition loops, not new product modules. smoke.mjs:32-45
+Self-serve acquisition-loop implementation plan + PR
+In the jlevy122112-star/Comply-Quick repository, create a document docs/SELF_SERVE_GROWTH_LOOPS_PLAN.md on a new branch, commit, push, and open a PR against main titled "docs: self-serve acquisition-loop growth plan". Do not modify application code — only create the markdown document. This document is a sequenced set of self-contained, enterprise-grade Devin AI prompts (each with Goal, Scope, Files/paths, Data-model/API/UI changes, Tests, Acceptance criteria, and the standing UI/UX constraint) for building product-led acquisition loops that attract customers without founder-led sales.
+
+STACK CONTEXT (state near the top): Next.js 16 (App Router) + React 19 + Tailwind, Supabase (Postgres + RLS + Supabase Auth), Stripe billing, Sentry, background work via Supabase Edge Functions + pg_cron plus a Fly.io scanner-worker. NOT Google Cloud/Firestore. Every user-facing surface must follow the §3.5 premium UI/UX standard (build on src/components/ui + Tailwind tokens, fully responsive desktop/tablet/mobile, WCAG 2.2 AA — keyboard/focus/contrast/ARIA, polished loading/empty/error states).
+
+WHAT ALREADY EXISTS (document so prompts harden, not rebuild): free-scan claim funnel (src/lib/free-scan.ts, src/components/landing/{HeroScan,LeadCaptureForm}.tsx, src/app/free-scan, src/app/api/public-scan/route.ts); public score pages + embeddable badges (src/lib/score/publish.ts, src/app/score/[slug], src/app/api/badge); partner (B2B) referral revenue share with cq_ref cookie attribution (src/lib/supabase/middleware.ts, src/app/api/checkout/route.ts, partners/partner_referrals/partner_commissions); SEO blog + /compare/[slug] pages auto-included in src/app/sitemap.ts; single lead-magnet email (src/app/api/leads/route.ts, src/lib/email); notification dispatch via Resend (src/lib/notifications/dispatch.ts); logs-only analytics sink (src/services/analytics.ts); canonical event taxonomy (src/lib/analytics/canonical-events.ts). Reference docs/BUILD_PLAN.md, docs/go-to-market-plan.md, and docs/architecture/ENTERPRISE_GOVERNANCE_HUB_PLAN.md rather than duplicating them.
+
+SEQUENCED PROMPTS (each its own PR):
+
+Wire a real analytics destination (e.g., PostHog) inside src/services/analytics.ts emit(), behind an env var, keeping the no-op log fallback; add missing top-of-funnel events to CANONICAL_EVENTS (free_scan_claimed, public_scan_completed, score_published, badge_embedded, referral_invited, referral_converted, wp_plugin_scan_run). Rationale: nothing else is measurable without this.
+Customer-to-customer referral loop (distinct from the partner program): a Supabase table for user referrals + reward credits, an in-app "invite a peer — both get a reward" surface, reusing the existing cq_ref cookie + checkout attribution path; grant account credit/extra scans on conversion. Include RLS, anti-abuse, and tests.
+Lifecycle email drip: replace the single welcome email with a scheduled multi-step nurture (claimed-but-didn't-scan, scanned-but-didn't-signup, signed-up-but-didn't-upgrade), driven by pg_cron/Edge Function + Resend; per-recipient opt-out. Tests for sequencing/idempotency.
+Free continuous monitoring hook: allow free users one continuously-monitored site with score-change email alerts (re-scan habit loop) while keeping the 1 on-demand scan/month cap; wire "your score changed → improve/upgrade" nudges. Reuse src/lib/intelligence.
+Programmatic SEO landing pages: a templated, data-driven route family (per-platform, per-regulation, per-tracker, e.g. "WordPress GDPR compliance"), auto-included in src/app/sitemap.ts, each with a scan CTA and internal linking. Keep claims accurate.
+WordPress plugin lead engine: upgrade packages/wordpress-plugin from a footer pixel to an admin "Scan this site" button calling the public scan API, rendering the gated teaser score in wp-admin, deep-linking to signup with UTM; nonces, capability checks, escaping; emits wp_plugin_scan_run.
+Productized cold vulnerability audit: a self-serve scan-and-email flow (enter a URL → emailed teaser report + signup CTA) that scales top-of-funnel without founder time; rate-limited and abuse-protected like src/app/api/leads/route.ts.
+Include a "Positioning" note (PLG-first, founder time reserved for agency-partner recruitment + enterprise deals), a "Guardrails" section (no net-new dashboard surface area; all public proof points must be truthful; margin protection on free monitoring), and a "Measurement" section defining the loop metric for each prompt (viral coefficient, drip re-activation rate, monitored-free→paid, programmatic-SEO organic scans, plugin-sourced signups). Use clear headings, tables, and mermaid diagrams (no colors, labels in double quotes).
